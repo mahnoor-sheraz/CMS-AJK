@@ -39,13 +39,15 @@ When working on tasks in this repository, leverage the specialized skill framewo
 - **👁️ Code Review**: `.agents/code-reviewer.md`
 - **🔐 Application Security**: `.agents/appsec-engineer.md`
 - **📋 Compliance & Audits**: `.agents/compliance-auditor.md`
+- **🌿 Git Workflow & Merging**: `.agents/git-workflow-master.md`
 
 Refer to [.agents/README.md](file:///Users/sheraz/work/cms-ajk/.agents/README.md) for usage instructions.
 
 ---
 
-## 📖 Architecture, Real-Time & Storage Documentation (`docs/`)
+## 📖 Architecture, Real-Time, Storage & Git Documentation (`docs/`)
 
 - [docs/ARCHITECTURE.md](file:///Users/sheraz/work/cms-ajk/docs/ARCHITECTURE.md): Database schema (18 tables), ER relationships, performance indexes.
 - [docs/REALTIME_WEBSOCKETS.md](file:///Users/sheraz/work/cms-ajk/docs/REALTIME_WEBSOCKETS.md): Real-time WebSockets setup via Laravel Reverb and Inertia React.
 - [docs/STORAGE_S3_GUIDE.md](file:///Users/sheraz/work/cms-ajk/docs/STORAGE_S3_GUIDE.md): S3 cloud storage configuration, local MinIO mocking, PHPUnit `Storage::fake('s3')`, and presigned URL access patterns.
+- [docs/GIT_WORKFLOW_AND_MERGING.md](file:///Users/sheraz/work/cms-ajk/docs/GIT_WORKFLOW_AND_MERGING.md): Branching conventions (`feature/*`, `fix/*`), PR squash-and-merge policy, Conventional Commits, and AI agent quality gates.

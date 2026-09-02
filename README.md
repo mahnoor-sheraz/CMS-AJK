@@ -53,4 +53,5 @@ php artisan test
 - 🗺️ **[System Architecture & Database Schema](file:///Users/sheraz/work/cms-ajk/docs/ARCHITECTURE.md)**: Details on the 18 relational tables, FK constraints, and scaling strategies.
 - ⚡ **[First-Party Real-Time WebSockets Guide](file:///Users/sheraz/work/cms-ajk/docs/REALTIME_WEBSOCKETS.md)**: Real-time complaint assignment and live counter updates using Laravel Reverb and Echo.
 - 📦 **[S3 Storage Setup, Mocking & Provisioning Guide](file:///Users/sheraz/work/cms-ajk/docs/STORAGE_S3_GUIDE.md)**: S3 config, local MinIO mocking, `Storage::fake('s3')`, and presigned URLs.
-- 🤖 **[Agent Skills Directory](file:///Users/sheraz/work/cms-ajk/.agents/README.md)**: Specialized AI agent skill personas for onboarding, architecture, security, code review, and compliance auditing.
+- 🌿 **[Team & AI Agent Git Branching & Merging Strategy](file:///Users/sheraz/work/cms-ajk/docs/GIT_WORKFLOW_AND_MERGING.md)**: Branch naming (`feature/*`, `fix/*`), Conventional Commits, PR policy, and AI quality gates.
+- 🤖 **[Agent Skills Directory](file:///Users/sheraz/work/cms-ajk/.agents/README.md)**: Specialized AI agent skill personas for onboarding, architecture, security, code review, compliance, and git workflow.
