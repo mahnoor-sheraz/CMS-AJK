@@ -1,47 +1,51 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# CMCC-AJK Agent Guidelines & Repository Architecture
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+This repository contains the **Citizen Complaint Management System for Azad Jammu & Kashmir (CMCC-AJK)** built with Laravel 13, Inertia.js (React 18), Tailwind CSS, and Vite.
 
-## Prerequisites
+---
 
-Verify that PHP and Composer are available:
+## 🚀 Prerequisites & Quick Start
 
-```sh
-php -v
-composer -V
-```
+1. **Verify PHP & Composer**:
+   ```bash
+   php -v         # Must be PHP 8.3+
+   composer -V
+   ```
+2. **Environment Setup**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+3. **Dependencies & Assets**:
+   ```bash
+   composer install
+   npm install --legacy-peer-deps
+   npm run build
+   ```
+4. **Database & Tests**:
+   ```bash
+   php artisan migrate --seed
+   php artisan test
+   ```
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
+---
 
-macOS:
+## 🛠️ Specialized Agent Skills (`.agents/`)
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
-```
+When working on tasks in this repository, leverage the specialized skill frameworks in `.agents/`:
 
-Windows PowerShell:
+- **🧭 Codebase Exploration**: `.agents/codebase-onboarding-engineer.md`
+- **🏗️ Database & System Design**: `.agents/backend-architect.md`
+- **👁️ Code Review**: `.agents/code-reviewer.md`
+- **🔐 Application Security**: `.agents/appsec-engineer.md`
+- **📋 Compliance & Audits**: `.agents/compliance-auditor.md`
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
+Refer to [.agents/README.md](file:///Users/sheraz/work/cms-ajk/.agents/README.md) for usage instructions.
 
-Linux:
+---
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
+## 📖 Architecture, Real-Time & Storage Documentation (`docs/`)
 
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
-
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+- [docs/ARCHITECTURE.md](file:///Users/sheraz/work/cms-ajk/docs/ARCHITECTURE.md): Database schema (18 tables), ER relationships, performance indexes.
+- [docs/REALTIME_WEBSOCKETS.md](file:///Users/sheraz/work/cms-ajk/docs/REALTIME_WEBSOCKETS.md): Real-time WebSockets setup via Laravel Reverb and Inertia React.
+- [docs/STORAGE_S3_GUIDE.md](file:///Users/sheraz/work/cms-ajk/docs/STORAGE_S3_GUIDE.md): S3 cloud storage configuration, local MinIO mocking, PHPUnit `Storage::fake('s3')`, and presigned URL access patterns.
