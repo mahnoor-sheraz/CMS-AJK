@@ -4,6 +4,7 @@
 ![React](https://img.shields.io/badge/React-18.x-blue.svg)
 ![Inertia.js](https://img.shields.io/badge/Inertia.js-2.x-purple.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.5-indigo.svg)
+![Reverb](https://img.shields.io/badge/WebSockets-Laravel%20Reverb-orange.svg)
 ![Tests Status](https://img.shields.io/badge/Tests-34%20Passed-brightgreen.svg)
 
 The **CMCC-AJK** system is a centralized public sector grievance management platform designed for Azad Jammu & Kashmir government departments. It enables citizens to register complaints across multiple channels (Web, Mobile App, Call Center, Khuli Kachahry) and allows department Focal Persons (FPs) and System Administrators to track, investigate, club, forward, and resolve complaints.
@@ -16,7 +17,7 @@ The **CMCC-AJK** system is a centralized public sector grievance management plat
 - **Complaint Lifecycle Pipeline**: Statuses from `submitted` to `under_investigation`, `pending_field_visit`, `clubbed`, `forwarded_external`, `resolved`, `rejected`.
 - **Immutable Audit Trail**: Logged status histories (`complaint_status_history`) and action tracking (`complaint_actions`).
 - **AI Similarity & Duplicate Detection**: Embedding storage for duplicate identification (`complaint_similarity_matches`).
-- **Real-Time Websockets**: Event broadcasting via Laravel Reverb and React Inertia listeners.
+- **First-Party Real-Time WebSockets**: Out-of-the-box WebSocket event broadcasting using **Laravel Reverb** and Inertia React listeners without third-party SaaS fees.
 - **S3 / Cloud File Attachments**: Encrypted file storage for complaint evidence with local MinIO emulator support.
 
 ---
@@ -35,10 +36,13 @@ php artisan key:generate
 # 3. Compile frontend assets
 npm run build
 
-# 4. Run database migrations & seeders
+# 4. Start Laravel Reverb WebSocket Server (Optional for Real-Time)
+php artisan reverb:start
+
+# 5. Run database migrations & seeders
 php artisan migrate --seed
 
-# 5. Run PHPUnit test suite (34 Tests / 85 Assertions)
+# 6. Run PHPUnit test suite (34 Tests / 85 Assertions)
 php artisan test
 ```
 
@@ -47,6 +51,6 @@ php artisan test
 ## 📚 Project Documentation
 
 - 🗺️ **[System Architecture & Database Schema](file:///Users/sheraz/work/cms-ajk/docs/ARCHITECTURE.md)**: Details on the 18 relational tables, FK constraints, and scaling strategies.
-- ⚡ **[Real-Time WebSocket Integration Guide](file:///Users/sheraz/work/cms-ajk/docs/REALTIME_WEBSOCKETS.md)**: Real-time complaint assignment and live counter updates with Reverb and Echo.
+- ⚡ **[First-Party Real-Time WebSockets Guide](file:///Users/sheraz/work/cms-ajk/docs/REALTIME_WEBSOCKETS.md)**: Real-time complaint assignment and live counter updates using Laravel Reverb and Echo.
 - 📦 **[S3 Storage Setup, Mocking & Provisioning Guide](file:///Users/sheraz/work/cms-ajk/docs/STORAGE_S3_GUIDE.md)**: S3 config, local MinIO mocking, `Storage::fake('s3')`, and presigned URLs.
 - 🤖 **[Agent Skills Directory](file:///Users/sheraz/work/cms-ajk/.agents/README.md)**: Specialized AI agent skill personas for onboarding, architecture, security, code review, and compliance auditing.
