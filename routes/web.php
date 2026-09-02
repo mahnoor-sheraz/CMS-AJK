@@ -1,19 +1,22 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\PublicComplaintController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+// Public Citizen Portal Routes
+Route::get('/', [PublicComplaintController::class, 'create'])->name('home');
+
+Route::prefix('complaints')->group(function () {
+    Route::get('/new', [PublicComplaintController::class, 'create'])->name('complaints.new');
+    Route::post('/', [PublicComplaintController::class, 'store'])->name('complaints.store');
+    Route::get('/confirmation/{complaint_number}', [PublicComplaintController::class, 'confirmation'])->name('complaints.confirmation');
+    Route::get('/track', [PublicComplaintController::class, 'trackForm'])->name('complaints.track');
+    Route::post('/track', [PublicComplaintController::class, 'track'])->name('complaints.track.search');
 });
 
+// Auth Dashboards
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
@@ -25,7 +28,7 @@ Route::get('/dashboard', function () {
         return redirect()->route('fp.dashboard');
     }
 
-    return Inertia::render('Dashboard');
+    return redirect()->route('complaints.new');
 })->middleware(['auth'])->name('dashboard');
 
 // Admin Route Group

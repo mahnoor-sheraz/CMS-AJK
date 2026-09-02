@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    [dir="rtl"] {
+        font-family: 'Noto Nastaliq Urdu', serif;
+        line-height: 2;
+    }
+
+    [dir="rtl"] input,
+    [dir="rtl"] select,
+    [dir="rtl"] textarea,
+    [dir="rtl"] button {
+        font-family: 'Noto Nastaliq Urdu', serif;
+    }
+}
