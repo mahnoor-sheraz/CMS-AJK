@@ -15,6 +15,7 @@ class Category extends Model
         'department_id',
         'parent_category_id',
         'name',
+        'name_ur',
         'is_active',
     ];
 

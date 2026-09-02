@@ -14,6 +14,7 @@ class SubDepartment extends Model
     protected $fillable = [
         'department_id',
         'name',
+        'name_ur',
         'is_active',
     ];
 

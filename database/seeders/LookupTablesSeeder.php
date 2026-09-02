@@ -28,13 +28,13 @@ class LookupTablesSeeder extends Seeder
                 'name' => 'Neelum',
                 'name_ur' => 'نیلم',
                 'tehsils' => [
-                    ['name' => 'Athmuqam', 'name_ur' => 'آٹھمقام'],
-                    ['name' => 'Sharda', 'name_ur' => 'شاردا'],
+                    ['name' => 'Athmuqam', 'name_ur' => 'ایتھمقام'],
+                    ['name' => 'Sharda', 'name_ur' => 'شاردہ'],
                 ],
             ],
             [
                 'name' => 'Jhelum Valley (Hattian Bala)',
-                'name_ur' => 'وادی جہلم (ہٹیاں بالا)',
+                'name_ur' => 'وادیٔ جہلم (ہٹیاں بالا)',
                 'tehsils' => [
                     ['name' => 'Hattian', 'name_ur' => 'ہٹیاں'],
                     ['name' => 'Chikar', 'name_ur' => 'چکار'],
@@ -47,7 +47,7 @@ class LookupTablesSeeder extends Seeder
                 'tehsils' => [
                     ['name' => 'Bagh', 'name_ur' => 'باغ'],
                     ['name' => 'Dhirkot', 'name_ur' => 'دھیرکوٹ'],
-                    ['name' => 'Harighel', 'name_ur' => 'ہڑی گہل'],
+                    ['name' => 'Harighel', 'name_ur' => 'ہڑی گلہ'],
                 ],
             ],
             [
@@ -55,18 +55,18 @@ class LookupTablesSeeder extends Seeder
                 'name_ur' => 'حویلی',
                 'tehsils' => [
                     ['name' => 'Haveli', 'name_ur' => 'حویلی'],
-                    ['name' => 'Khurshidabad', 'name_ur' => 'خورشیدآباد'],
-                    ['name' => 'Mumtazabad', 'name_ur' => 'ممتازآباد'],
+                    ['name' => 'Khurshidabad', 'name_ur' => 'خورشید آباد'],
+                    ['name' => 'Mumtazabad', 'name_ur' => 'ممتاز آباد'],
                 ],
             ],
             [
                 'name' => 'Poonch',
-                'name_ur' => 'پونچھ',
+                'name_ur' => 'پونچھ (راولاکوٹ)',
                 'tehsils' => [
                     ['name' => 'Rawalakot', 'name_ur' => 'راولاکوٹ'],
-                    ['name' => 'Hajira', 'name_ur' => 'ہجیرہ'],
-                    ['name' => 'Abbaspur', 'name_ur' => 'عباس پور'],
-                    ['name' => 'Thorar', 'name_ur' => 'تھوڑار'],
+                    ['name' => 'Hajira', 'name_ur' => 'ہاجرہ'],
+                    ['name' => 'Abbaspur', 'name_ur' => 'عباسپور'],
+                    ['name' => 'Thorar', 'name_ur' => 'تھوراڑ'],
                 ],
             ],
             [
@@ -74,8 +74,8 @@ class LookupTablesSeeder extends Seeder
                 'name_ur' => 'سدھنوتی',
                 'tehsils' => [
                     ['name' => 'Pallandri', 'name_ur' => 'پلندری'],
-                    ['name' => 'Mong', 'name_ur' => 'منگ'],
-                    ['name' => 'Tararkhal', 'name_ur' => 'تراڑ کھل'],
+                    ['name' => 'Mong', 'name_ur' => 'مونگ'],
+                    ['name' => 'Tararkhal', 'name_ur' => 'تراڑکھل'],
                     ['name' => 'Baloch', 'name_ur' => 'بلوچ'],
                 ],
             ],
@@ -84,7 +84,7 @@ class LookupTablesSeeder extends Seeder
                 'name_ur' => 'میرپور',
                 'tehsils' => [
                     ['name' => 'Mirpur', 'name_ur' => 'میرپور'],
-                    ['name' => 'Dudyal', 'name_ur' => 'ڈڈیال'],
+                    ['name' => 'Dudyal', 'name_ur' => 'دودیال'],
                 ],
             ],
             [
@@ -92,11 +92,11 @@ class LookupTablesSeeder extends Seeder
                 'name_ur' => 'کوٹلی',
                 'tehsils' => [
                     ['name' => 'Kotli', 'name_ur' => 'کوٹلی'],
-                    ['name' => 'Khuiratta', 'name_ur' => 'خوئی رٹہ'],
+                    ['name' => 'Khuiratta', 'name_ur' => 'کھوئیرٹہ'],
                     ['name' => 'Charhoi', 'name_ur' => 'چڑھوئی'],
-                    ['name' => 'Darlia Jattan', 'name_ur' => 'ڈہلیا جٹاں'],
+                    ['name' => 'Darlia Jattan', 'name_ur' => 'درولیہ جاٹاں'],
                     ['name' => 'Sehnsa', 'name_ur' => 'سہنسہ'],
-                    ['name' => 'Fatehpur Thakyala', 'name_ur' => 'فتح پور تھکیالہ'],
+                    ['name' => 'Fatehpur Thakyala', 'name_ur' => 'فتح پور ٹھکیالہ'],
                 ],
             ],
             [
