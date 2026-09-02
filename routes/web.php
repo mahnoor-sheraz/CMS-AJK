@@ -15,8 +15,32 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
+    $user = auth()->user();
+
+    if ($user->role === 'admin') {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user->role === 'focal_person') {
+        return redirect()->route('fp.dashboard');
+    }
+
     return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
+
+// Admin Route Group
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Admin/Dashboard');
+    })->name('admin.dashboard');
+});
+
+// Focal Person Route Group
+Route::middleware(['auth', 'role:focal_person'])->prefix('fp')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('FocalPerson/Dashboard');
+    })->name('fp.dashboard');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
