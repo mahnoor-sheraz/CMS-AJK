@@ -45,7 +45,7 @@ class Complaint extends Model
             if (!$complaint->complaint_number) {
                 $year = now()->format('Y');
                 $paddedId = str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT);
-                $complaint->complaint_number = "CMCC-{$year}-{$paddedId}";
+                $complaint->complaint_number = "PMCC-{$year}-{$paddedId}";
                 $complaint->saveQuietly();
             }
         });

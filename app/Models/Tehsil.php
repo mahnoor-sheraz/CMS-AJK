@@ -14,6 +14,7 @@ class Tehsil extends Model
     protected $fillable = [
         'district_id',
         'name',
+        'name_ur',
     ];
 
     public function district(): BelongsTo

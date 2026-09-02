@@ -16,68 +16,116 @@ class LookupTablesSeeder extends Seeder
     public function run(): void
     {
         $districtsWithTehsils = [
-            'Muzaffarabad' => [
-                'Muzaffarabad',
-                'Naseerabad',
+            [
+                'name' => 'Muzaffarabad',
+                'name_ur' => 'مظفرآباد',
+                'tehsils' => [
+                    ['name' => 'Muzaffarabad', 'name_ur' => 'مظفرآباد'],
+                    ['name' => 'Naseerabad', 'name_ur' => 'نصیرآباد'],
+                ],
             ],
-            'Neelum' => [
-                'Athmuqam',
-                'Sharda',
+            [
+                'name' => 'Neelum',
+                'name_ur' => 'نیلم',
+                'tehsils' => [
+                    ['name' => 'Athmuqam', 'name_ur' => 'آٹھمقام'],
+                    ['name' => 'Sharda', 'name_ur' => 'شاردا'],
+                ],
             ],
-            'Jhelum Valley (Hattian Bala)' => [
-                'Hattian',
-                'Chikar',
-                'Leepa',
+            [
+                'name' => 'Jhelum Valley (Hattian Bala)',
+                'name_ur' => 'وادی جہلم (ہٹیاں بالا)',
+                'tehsils' => [
+                    ['name' => 'Hattian', 'name_ur' => 'ہٹیاں'],
+                    ['name' => 'Chikar', 'name_ur' => 'چکار'],
+                    ['name' => 'Leepa', 'name_ur' => 'لیپہ'],
+                ],
             ],
-            'Bagh' => [
-                'Bagh',
-                'Dhirkot',
-                'Harighel',
+            [
+                'name' => 'Bagh',
+                'name_ur' => 'باغ',
+                'tehsils' => [
+                    ['name' => 'Bagh', 'name_ur' => 'باغ'],
+                    ['name' => 'Dhirkot', 'name_ur' => 'دھیرکوٹ'],
+                    ['name' => 'Harighel', 'name_ur' => 'ہڑی گہل'],
+                ],
             ],
-            'Haveli' => [
-                'Haveli',
-                'Khurshidabad',
-                'Mumtazabad',
+            [
+                'name' => 'Haveli',
+                'name_ur' => 'حویلی',
+                'tehsils' => [
+                    ['name' => 'Haveli', 'name_ur' => 'حویلی'],
+                    ['name' => 'Khurshidabad', 'name_ur' => 'خورشیدآباد'],
+                    ['name' => 'Mumtazabad', 'name_ur' => 'ممتازآباد'],
+                ],
             ],
-            'Poonch' => [
-                'Rawalakot',
-                'Hajira',
-                'Abbaspur',
-                'Thorar',
+            [
+                'name' => 'Poonch',
+                'name_ur' => 'پونچھ',
+                'tehsils' => [
+                    ['name' => 'Rawalakot', 'name_ur' => 'راولاکوٹ'],
+                    ['name' => 'Hajira', 'name_ur' => 'ہجیرہ'],
+                    ['name' => 'Abbaspur', 'name_ur' => 'عباس پور'],
+                    ['name' => 'Thorar', 'name_ur' => 'تھوڑار'],
+                ],
             ],
-            'Sudhnuti' => [
-                'Pallandri',
-                'Mong',
-                'Tararkhal',
-                'Baloch',
+            [
+                'name' => 'Sudhnuti',
+                'name_ur' => 'سدھنوتی',
+                'tehsils' => [
+                    ['name' => 'Pallandri', 'name_ur' => 'پلندری'],
+                    ['name' => 'Mong', 'name_ur' => 'منگ'],
+                    ['name' => 'Tararkhal', 'name_ur' => 'تراڑ کھل'],
+                    ['name' => 'Baloch', 'name_ur' => 'بلوچ'],
+                ],
             ],
-            'Mirpur' => [
-                'Mirpur',
-                'Dudyal',
+            [
+                'name' => 'Mirpur',
+                'name_ur' => 'میرپور',
+                'tehsils' => [
+                    ['name' => 'Mirpur', 'name_ur' => 'میرپور'],
+                    ['name' => 'Dudyal', 'name_ur' => 'ڈڈیال'],
+                ],
             ],
-            'Kotli' => [
-                'Kotli',
-                'Khuiratta',
-                'Charhoi',
-                'Darlia Jattan',
-                'Sehnsa',
-                'Fatehpur Thakyala',
+            [
+                'name' => 'Kotli',
+                'name_ur' => 'کوٹلی',
+                'tehsils' => [
+                    ['name' => 'Kotli', 'name_ur' => 'کوٹلی'],
+                    ['name' => 'Khuiratta', 'name_ur' => 'خوئی رٹہ'],
+                    ['name' => 'Charhoi', 'name_ur' => 'چڑھوئی'],
+                    ['name' => 'Darlia Jattan', 'name_ur' => 'ڈہلیا جٹاں'],
+                    ['name' => 'Sehnsa', 'name_ur' => 'سہنسہ'],
+                    ['name' => 'Fatehpur Thakyala', 'name_ur' => 'فتح پور تھکیالہ'],
+                ],
             ],
-            'Bhimber' => [
-                'Bhimber',
-                'Barnala',
-                'Samahni',
+            [
+                'name' => 'Bhimber',
+                'name_ur' => 'بھمبر',
+                'tehsils' => [
+                    ['name' => 'Bhimber', 'name_ur' => 'بھمبر'],
+                    ['name' => 'Barnala', 'name_ur' => 'برنالہ'],
+                    ['name' => 'Samahni', 'name_ur' => 'سماہنی'],
+                ],
             ],
         ];
 
-        foreach ($districtsWithTehsils as $districtName => $tehsils) {
-            $district = District::firstOrCreate(['name' => $districtName]);
+        foreach ($districtsWithTehsils as $districtData) {
+            $district = District::updateOrCreate(
+                ['name' => $districtData['name']],
+                ['name_ur' => $districtData['name_ur']]
+            );
 
-            foreach ($tehsils as $tehsilName) {
-                Tehsil::firstOrCreate([
-                    'district_id' => $district->id,
-                    'name' => $tehsilName,
-                ]);
+            foreach ($districtData['tehsils'] as $tehsilData) {
+                Tehsil::updateOrCreate(
+                    [
+                        'district_id' => $district->id,
+                        'name' => $tehsilData['name'],
+                    ],
+                    [
+                        'name_ur' => $tehsilData['name_ur'],
+                    ]
+                );
             }
         }
 

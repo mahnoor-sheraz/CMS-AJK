@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('district_id')->constrained('districts')->onDelete('restrict');
             $table->string('name');
+            $table->string('name_ur')->nullable();
             $table->timestamps();
 
             $table->index('district_id');

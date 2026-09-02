@@ -12,6 +12,7 @@ class District extends Model
 
     protected $fillable = [
         'name',
+        'name_ur',
     ];
 
     public function tehsils(): HasMany
