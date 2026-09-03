@@ -73,6 +73,8 @@ export const translations = {
         valDepartmentReq: 'محکمہ منتخب کرنا ضروری ہے۔',
         valFilesMaxCount: 'آپ زیادہ سے زیادہ 5 فائلز اپ لوڈ کر سکتے ہیں۔',
         valFileMaxSize: 'فائل کا سائز 10MB سے زیادہ نہیں ہونا چاہیے۔',
+        valRateLimitTitle: 'شکایت درج کرنے کی حد (Rate Limit)',
+        valRateLimitRecent: 'آپ اس شناختی کارڈ پر پچھلے 24 گھنٹوں میں پہلے ہی شکایت درج کروا چکے ہیں۔ آپ دوبارہ {time} پر نئی شکایت درج کروا سکتے ہیں۔',
 
         // Confirmation Page
         confTitle: 'شکایت کامیابی سے درج ہو گئی ہے!',
@@ -191,6 +193,8 @@ export const translations = {
         valDepartmentReq: 'Please select a Department.',
         valFilesMaxCount: 'You can upload a maximum of 5 files.',
         valFileMaxSize: 'File size must not exceed 10MB each.',
+        valRateLimitTitle: 'Submission Rate Limit Exceeded',
+        valRateLimitRecent: 'You have already submitted a complaint within the last 24 hours. You will be eligible to submit another complaint on {time}.',
 
         // Confirmation Page
         confTitle: 'Complaint Submitted Successfully!',

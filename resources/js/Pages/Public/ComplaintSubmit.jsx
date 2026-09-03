@@ -196,6 +196,28 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                 <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
             </div>
 
+            {/* Rate Limit Alert Banner */}
+            {errors.rate_limit && (
+                <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-400 text-amber-950 p-5 sm:p-6 rounded-2xl shadow-md flex items-start gap-4 animate-shake before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
+                    <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl flex-shrink-0 shadow-md ring-2 ring-amber-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                            <h4 className="font-black text-base sm:text-lg text-amber-950 tracking-tight">
+                                {t('valRateLimitTitle')}
+                            </h4>
+                        </div>
+                        <p className="text-sm sm:text-base font-semibold text-amber-900 leading-relaxed pt-1">
+                            {t('valRateLimitRecent', { time: errors.rate_limit })}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* SECTION 1: Personal Information */}
                 <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
@@ -234,10 +256,20 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                                 onChange={(e) => setData('cnic', e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder={t('placeholderCnic')}
                                 className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
-                                    errors.cnic ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
+                                    errors.cnic || errors.rate_limit
+                                        ? 'border-amber-500 focus:ring-amber-400 bg-amber-50/30 font-semibold'
+                                        : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             />
                             {errors.cnic && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.cnic}</p>}
+                            {errors.rate_limit && (
+                                <p className="mt-2 text-xs font-bold text-amber-900 bg-amber-100/80 border border-amber-300 px-3 py-2 rounded-xl flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-700 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{t('valRateLimitRecent', { time: errors.rate_limit })}</span>
+                                </p>
+                            )}
                         </div>
 
                         {/* Mobile Number */}

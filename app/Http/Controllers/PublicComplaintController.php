@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Models\District;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -71,6 +72,24 @@ class PublicComplaintController extends Controller
         // Clean CNIC and Mobile number digits
         $cnic = preg_replace('/[^0-9]/', '', $request->cnic);
         $mobileNumber = preg_replace('/[^0-9]/', '', $request->mobile_number);
+
+        // Enforce 24-hour rate limit by citizen CNIC
+        $existingCitizen = Citizen::where('cnic', $cnic)->first();
+        if ($existingCitizen) {
+            $recentComplaint = Complaint::where('citizen_id', $existingCitizen->id)
+                ->where('submitted_at', '>=', now()->subHours(24))
+                ->latest('submitted_at')
+                ->first();
+
+            if ($recentComplaint && $recentComplaint->submitted_at) {
+                $nextAllowedAt = $recentComplaint->submitted_at->copy()->addHours(24);
+                $formattedTime = $nextAllowedAt->format('d M Y, h:i A');
+
+                throw ValidationException::withMessages([
+                    'rate_limit' => $formattedTime,
+                ]);
+            }
+        }
 
         // Deduplicate or create Citizen
         $citizen = Citizen::updateOrCreate(

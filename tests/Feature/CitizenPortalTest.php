@@ -122,6 +122,10 @@ class CitizenPortalTest extends TestCase
 
         $this->assertEquals(1, Citizen::where('cnic', '8110155555555')->count());
 
+        // Simulate that the first complaint was lodged 25 hours ago (outside rate limit window)
+        $citizen = Citizen::where('cnic', '8110155555555')->first();
+        Complaint::where('citizen_id', $citizen->id)->update(['submitted_at' => now()->subHours(25)]);
+
         // Second complaint with updated name & mobile
         $this->post('/complaints', [
             'name' => 'Updated Name',
@@ -141,6 +145,64 @@ class CitizenPortalTest extends TestCase
             'name' => 'Updated Name',
             'mobile_number' => '03339998887',
         ]);
+    }
+
+    public function test_rate_limit_blocks_second_complaint_within_24_hours(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+
+        // 1. First complaint submitted successfully
+        $firstResponse = $this->post('/complaints', [
+            'name' => 'Kashif Hussain',
+            'cnic' => '8110144444444',
+            'mobile_number' => '03004444444',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'subject' => 'Road repair complaint',
+            'details' => 'The main road in our sector is severely damaged and causing severe accidents.',
+            'department_id' => (string) $department->id,
+        ]);
+
+        $firstComplaint = Complaint::whereHas('citizen', fn ($q) => $q->where('cnic', '8110144444444'))->first();
+        $this->assertNotNull($firstComplaint);
+        $firstResponse->assertRedirect(route('complaints.confirmation', $firstComplaint->complaint_number));
+
+        // 2. Attempt second complaint within 24 hours with same CNIC
+        $secondResponse = $this->post('/complaints', [
+            'name' => 'Kashif Hussain',
+            'cnic' => '8110144444444',
+            'mobile_number' => '03004444444',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'subject' => 'Second attempt road repair complaint',
+            'details' => 'Trying to submit another complaint with the same CNIC within twenty-four hours.',
+            'department_id' => (string) $department->id,
+        ]);
+
+        // Assert blocked with rate_limit validation error containing exact next eligible time
+        $expectedNextTime = $firstComplaint->submitted_at->copy()->addHours(24)->format('d M Y, h:i A');
+        $secondResponse->assertSessionHasErrors(['rate_limit' => $expectedNextTime]);
+
+        // Assert database still has only 1 complaint for this citizen
+        $this->assertEquals(1, Complaint::whereHas('citizen', fn ($q) => $q->where('cnic', '8110144444444'))->count());
+
+        // 3. Fast-forward past 24 hours: submission must now succeed
+        $firstComplaint->update(['submitted_at' => now()->subHours(25)]);
+
+        $thirdResponse = $this->post('/complaints', [
+            'name' => 'Kashif Hussain',
+            'cnic' => '8110144444444',
+            'mobile_number' => '03004444444',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'subject' => 'Third complaint after 24 hours',
+            'details' => 'This complaint is submitted after twenty-four hours have passed and must succeed.',
+            'department_id' => (string) $department->id,
+        ]);
+
+        $this->assertEquals(2, Complaint::whereHas('citizen', fn ($q) => $q->where('cnic', '8110144444444'))->count());
     }
 
     public function test_tracking_complaint_with_valid_details_returns_complaint_and_stages(): void
