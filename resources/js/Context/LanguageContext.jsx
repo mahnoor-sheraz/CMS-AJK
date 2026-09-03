@@ -41,7 +41,18 @@ export function LanguageProvider({ children }) {
 export function useLanguage() {
     const context = useContext(LanguageContext);
     if (!context) {
-        throw new Error('useLanguage must be used within a LanguageProvider');
+        return {
+            lang: 'ur',
+            setLang: () => {},
+            toggleLanguage: () => {},
+            t: (key, params = {}) => {
+                let text = translations['ur']?.[key] || translations['en']?.[key] || key;
+                Object.keys(params).forEach((paramKey) => {
+                    text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), params[paramKey]);
+                });
+                return text;
+            },
+        };
     }
     return context;
 }

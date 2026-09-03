@@ -108,9 +108,5 @@ function PublicLayoutContent({ children }) {
 }
 
 export default function PublicLayout({ children }) {
-    return (
-        <LanguageProvider>
-            <PublicLayoutContent>{children}</PublicLayoutContent>
-        </LanguageProvider>
-    );
+    return <PublicLayoutContent>{children}</PublicLayoutContent>;
 }
