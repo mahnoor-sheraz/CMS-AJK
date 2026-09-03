@@ -229,7 +229,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelName')} <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -237,7 +237,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 placeholder={t('placeholderName')}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.name ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             />
@@ -246,16 +246,17 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
 
                         {/* CNIC */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelCnic')} <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
+                                dir="ltr"
                                 value={data.cnic}
                                 maxLength={13}
                                 onChange={(e) => setData('cnic', e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder={t('placeholderCnic')}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.cnic || errors.rate_limit
                                         ? 'border-amber-500 focus:ring-amber-400 bg-amber-50/30 font-semibold'
                                         : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
@@ -274,16 +275,17 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
 
                         {/* Mobile Number */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelMobile')} <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
+                                dir="ltr"
                                 value={data.mobile_number}
                                 maxLength={11}
                                 onChange={(e) => setData('mobile_number', e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder={t('placeholderMobile')}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.mobile_number ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             />
@@ -292,13 +294,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
 
                         {/* District */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelDistrict')} <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={data.district_id}
                                 onChange={handleDistrictChange}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.district_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             >
@@ -314,14 +316,14 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
 
                         {/* Tehsil */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelTehsil')} <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={data.tehsil_id}
                                 onChange={(e) => setData('tehsil_id', e.target.value)}
                                 disabled={!data.district_id}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     !data.district_id ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' :
                                     errors.tehsil_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
@@ -350,13 +352,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Department */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelDepartment')} <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={data.department_id}
                                 onChange={handleDepartmentChange}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.department_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             >
@@ -374,13 +376,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                         {/* Sub-Department (If available and not 'other') */}
                         {data.department_id && data.department_id !== 'other' && availableSubDepartments.length > 0 && (
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelSubDepartment')}
                                 </label>
                                 <select
                                     value={data.sub_department_id}
                                     onChange={(e) => setData('sub_department_id', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                                    className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                                 >
                                     <option value="">{t('selectSubDepartment')}</option>
                                     {availableSubDepartments.map((sd) => (
@@ -395,13 +397,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                         {/* Category (Hidden if Department is 'other') */}
                         {data.department_id && data.department_id !== 'other' && (
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelCategory')}
                                 </label>
                                 <select
                                     value={data.category_id}
                                     onChange={handleCategoryChange}
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                                    className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                                 >
                                     <option value="">{t('selectCategory')}</option>
                                     {availableCategories.map((cat) => (
@@ -417,13 +419,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                         {/* Sub-Category (If main category selected and has sub-categories) */}
                         {data.category_id && data.category_id !== 'other' && availableSubCategories.length > 0 && (
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelSubCategory')}
                                 </label>
                                 <select
                                     value={data.sub_category_id}
                                     onChange={(e) => setData('sub_category_id', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                                    className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                                 >
                                     <option value="">{t('selectSubCategory')}</option>
                                     {availableSubCategories.map((sc) => (
@@ -447,7 +449,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                     <div className="space-y-6">
                         {/* Subject */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelSubject')} <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -456,7 +458,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                                 maxLength={100}
                                 onChange={(e) => setData('subject', e.target.value)}
                                 placeholder={t('placeholderSubject')}
-                                className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                     errors.subject ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             />
@@ -470,7 +472,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
 
                         {/* Details */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                 {t('labelDetails')} <span className="text-red-500">*</span>
                             </label>
                             <textarea
@@ -478,7 +480,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                                 value={data.details}
                                 onChange={(e) => setData('details', e.target.value)}
                                 placeholder={t('placeholderDetails')}
-                                className={`w-full rounded-xl border px-4 py-3 text-sm transition-all focus:outline-none focus:ring-2 ${
+                                className={`w-full rounded-xl border px-4 py-3.5 min-h-[150px] text-base leading-relaxed transition-all focus:outline-none focus:ring-2 ${
                                     errors.details ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                 }`}
                             />

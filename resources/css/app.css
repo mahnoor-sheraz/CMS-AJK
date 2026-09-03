@@ -4,14 +4,40 @@
 
 @layer base {
     [dir="rtl"] {
-        font-family: 'Noto Nastaliq Urdu', serif;
-        line-height: 2;
+        font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.8;
     }
 
     [dir="rtl"] input,
     [dir="rtl"] select,
     [dir="rtl"] textarea,
     [dir="rtl"] button {
-        font-family: 'Noto Nastaliq Urdu', serif;
+        font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* RTL Select dropdown chevron position & breathing room */
+    [dir="rtl"] select {
+        background-position: left 0.85rem center !important;
+        padding-left: 2.75rem !important;
+        padding-right: 1rem !important;
+    }
+
+    /* Form control height, line height, and font clarity */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    select {
+        min-height: 3.125rem; /* 50px */
+        font-size: 0.9375rem; /* 15px */
+    }
+
+    [dir="rtl"] input::placeholder,
+    [dir="rtl"] textarea::placeholder {
+        font-family: 'Noto Sans Arabic', sans-serif;
+        opacity: 0.65;
+        font-size: 0.875rem;
     }
 }
+

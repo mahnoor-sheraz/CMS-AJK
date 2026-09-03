@@ -23,10 +23,10 @@ export const translations = {
         labelMobile: 'موبائل نمبر (11 ہندسے)',
         placeholderMobile: 'مثلاً: 03001234567',
         labelDistrict: 'ضلع',
-        selectDistrict: '-- ضلع منتخب کریں --',
+        selectDistrict: 'ضلع منتخب کریں',
         labelTehsil: 'تحصیل',
-        selectTehsil: '-- پہلے ضلع منتخب کریں --',
-        selectTehsilActive: '-- تحصیل منتخب کریں --',
+        selectTehsil: 'پہلے ضلع منتخب کریں',
+        selectTehsilActive: 'تحصیل منتخب کریں',
 
         // Complaint Content Section
         sectionComplaint: 'شکایت کی تفصیلات',
@@ -37,16 +37,16 @@ export const translations = {
         charCounter: 'حروف: {count} (کم از کم 50 حروف ضروری ہیں)',
         
         // Department & Category Section
-        sectionCategory: 'تعلقہ محکمہ و شعبہ',
+        sectionCategory: 'متعلقہ محکمہ اور شکایت کی قسم',
         labelDepartment: 'محکمہ',
-        selectDepartment: '-- متعلقہ محکمہ منتخب کریں --',
+        selectDepartment: 'متعلقہ محکمہ منتخب کریں',
         optOther: 'دیگر / معلوم نہیں',
         labelSubDepartment: 'ذیلی محکمہ (اختیاری)',
-        selectSubDepartment: '-- ذیلی محکمہ منتخب کریں --',
+        selectSubDepartment: 'ذیلی محکمہ منتخب کریں',
         labelCategory: 'شکایت کی قسم / کیٹیگری',
-        selectCategory: '-- کیٹیگری منتخب کریں --',
-        labelSubCategory: 'ذیلی کیٹیگری (اختیاری)',
-        selectSubCategory: '-- ذیلی کیٹیگری منتخب کریں --',
+        selectCategory: 'شکایت کی قسم منتخب کریں',
+        labelSubCategory: 'ذیلی قسم (اختیاری)',
+        selectSubCategory: 'ذیلی قسم منتخب کریں',
 
         // Attachments Section
         sectionAttachments: 'دستاویزات یا ثبوت (اختیاری)',
@@ -143,10 +143,10 @@ export const translations = {
         labelMobile: 'Mobile Number (11 digits)',
         placeholderMobile: 'e.g. 03001234567',
         labelDistrict: 'District',
-        selectDistrict: '-- Select District --',
+        selectDistrict: 'Select District',
         labelTehsil: 'Tehsil',
-        selectTehsil: '-- Select District First --',
-        selectTehsilActive: '-- Select Tehsil --',
+        selectTehsil: 'Select District First',
+        selectTehsilActive: 'Select Tehsil',
 
         // Complaint Content Section
         sectionComplaint: 'Complaint Details',
@@ -159,14 +159,14 @@ export const translations = {
         // Department & Category Section
         sectionCategory: 'Relevant Department & Category',
         labelDepartment: 'Department',
-        selectDepartment: '-- Select Relevant Department --',
+        selectDepartment: 'Select Department',
         optOther: 'Other / Don\'t Know',
         labelSubDepartment: 'Sub-Department (Optional)',
-        selectSubDepartment: '-- Select Sub-Department --',
+        selectSubDepartment: 'Select Sub-Department',
         labelCategory: 'Complaint Category',
-        selectCategory: '-- Select Category --',
+        selectCategory: 'Select Category',
         labelSubCategory: 'Sub-Category (Optional)',
-        selectSubCategory: '-- Select Sub-Category --',
+        selectSubCategory: 'Select Sub-Category',
 
         // Attachments Section
         sectionAttachments: 'Attachments or Proofs (Optional)',

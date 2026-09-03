@@ -88,15 +88,16 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
             <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 max-w-2xl mx-auto mb-8 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                             {t('trackLabelComplaintNo')} <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
+                            dir="ltr"
                             value={data.complaint_number}
                             onChange={(e) => setData('complaint_number', e.target.value)}
                             placeholder={t('trackPlaceholderComplaintNo')}
-                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none uppercase font-mono tracking-wider"
+                            className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none uppercase font-mono tracking-wider"
                             required
                         />
                         {errors.complaint_number && (
@@ -105,16 +106,17 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                             {t('trackLabelCnic')} <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
+                            dir="ltr"
                             value={data.cnic}
                             maxLength={13}
                             onChange={(e) => setData('cnic', e.target.value.replace(/[^0-9]/g, ''))}
                             placeholder={t('trackPlaceholderCnic')}
-                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none"
+                            className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none"
                             required
                         />
                         {errors.cnic && (
