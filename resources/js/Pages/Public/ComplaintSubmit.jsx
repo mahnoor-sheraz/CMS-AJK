@@ -169,11 +169,29 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
             hasError = true;
         }
 
-        if (hasError) return;
+        if (hasError) {
+            setTimeout(() => {
+                const firstError = document.querySelector('.border-red-500, .border-amber-500');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus?.();
+                }
+            }, 60);
+            return;
+        }
 
         // Submit form via Inertia POST
         post('/complaints', {
             forceFormData: true,
+            onError: () => {
+                setTimeout(() => {
+                    const firstError = document.querySelector('.border-red-500, .border-amber-500, .animate-shake');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus?.();
+                    }
+                }, 60);
+            },
         });
     };
 

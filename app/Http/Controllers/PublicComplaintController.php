@@ -60,6 +60,7 @@ class PublicComplaintController extends Controller
             'department_id' => 'required|string',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
             'category_id' => 'nullable|exists:categories,id',
+            'sub_category_id' => 'nullable|exists:categories,id',
             'attachments' => 'nullable|array|max:5',
             'attachments.*' => 'file|mimes:jpeg,png,jpg,gif,pdf,mp3,wav,mp4,avi,mov|max:10240',
         ]);
@@ -68,6 +69,9 @@ class PublicComplaintController extends Controller
         $departmentId = $isUncategorized ? null : (int) $request->department_id;
         $subDepartmentId = ($isUncategorized || !$request->sub_department_id) ? null : (int) $request->sub_department_id;
         $categoryId = ($isUncategorized || !$request->category_id || $request->category_id === 'other') ? null : (int) $request->category_id;
+        if (!$isUncategorized && $request->sub_category_id && $request->sub_category_id !== 'other') {
+            $categoryId = (int) $request->sub_category_id;
+        }
 
         // Clean CNIC and Mobile number digits
         $cnic = preg_replace('/[^0-9]/', '', $request->cnic);

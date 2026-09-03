@@ -76,6 +76,42 @@ class CitizenPortalTest extends TestCase
         $response->assertRedirect(route('complaints.confirmation', $complaint->complaint_number));
     }
 
+    public function test_complaint_submission_with_large_attachment_and_sub_category(): void
+    {
+        Storage::fake('public');
+
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::where('code', 'HLT')->first();
+        $category = $department->categories()->whereNull('parent_category_id')->first();
+        $subCategory = $category->subCategories()->first();
+
+        // 7MB file attachment (well above previous 2MB limit)
+        $file = UploadedFile::fake()->create('large_screenshot.png', 7168, 'image/png');
+
+        $response = $this->post('/complaints', [
+            'name' => 'Tariq Mehmood',
+            'cnic' => '8110199887766',
+            'mobile_number' => '03009988776',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'category_id' => (string) $category->id,
+            'sub_category_id' => $subCategory ? (string) $subCategory->id : null,
+            'subject' => 'Medicine Shortage for Emergency Patients',
+            'details' => 'Life saving drugs are severely unavailable at the district hospital for emergency patients.',
+            'attachments' => [$file],
+        ]);
+
+        $complaint = Complaint::whereHas('citizen', fn ($q) => $q->where('cnic', '8110199887766'))->first();
+        $this->assertNotNull($complaint);
+        $this->assertCount(1, $complaint->attachments);
+        if ($subCategory) {
+            $this->assertEquals($subCategory->id, $complaint->category_id);
+        }
+        $response->assertRedirect(route('complaints.confirmation', $complaint->complaint_number));
+    }
+
     public function test_submitting_other_department_sets_is_uncategorized_true(): void
     {
         $district = District::first();
