@@ -69,18 +69,23 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
         <PublicLayout>
             <Head title={t('trackTitle')} />
 
-            {/* Header Banner */}
+            {/* Header Banner with AJK Badge */}
             <div className="mb-8 text-center max-w-2xl mx-auto">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-900 tracking-tight mb-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-amber-400/80 text-[#034d28] text-xs font-bold mb-3 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — شکایات ٹریکنگ سسٹم' : 'Govt of Azad Jammu & Kashmir — Grievance Tracking'}</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight mb-2">
                     {t('trackTitle')}
                 </h1>
                 <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                     {t('trackSubtitle')}
                 </p>
+                <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
             </div>
 
             {/* Search Form Card */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 max-w-2xl mx-auto mb-8">
+            <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 max-w-2xl mx-auto mb-8 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
@@ -91,7 +96,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                             value={data.complaint_number}
                             onChange={(e) => setData('complaint_number', e.target.value)}
                             placeholder={t('trackPlaceholderComplaintNo')}
-                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none uppercase font-mono tracking-wider"
+                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none uppercase font-mono tracking-wider"
                             required
                         />
                         {errors.complaint_number && (
@@ -109,7 +114,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                             maxLength={13}
                             onChange={(e) => setData('cnic', e.target.value.replace(/[^0-9]/g, ''))}
                             placeholder={t('trackPlaceholderCnic')}
-                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-emerald-600 focus:ring-2 focus:ring-amber-400/30 focus:outline-none"
                             required
                         />
                         {errors.cnic && (
@@ -120,7 +125,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                     <button
                         type="submit"
                         disabled={processing}
-                        className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-gradient-to-r from-[#034d28] via-[#046A38] to-[#034d28] hover:from-[#023b1f] hover:to-[#034d28] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all border-b-4 border-amber-500 active:border-b-0 active:translate-y-1 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {processing ? (
                             <>
@@ -141,7 +146,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
 
             {/* Generic Not Found Alert */}
             {searched && notFound && (
-                <div className="max-w-2xl mx-auto bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 text-center space-y-2 text-amber-900 shadow-sm animate-fade-in">
+                <div className="max-w-2xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 text-center space-y-2 text-amber-900 shadow-sm animate-fade-in">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-amber-600 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -153,7 +158,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
 
             {/* Complaint Found Details Card */}
             {searched && complaint && (
-                <div className="max-w-3xl mx-auto bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-8 animate-fade-in">
+                <div className="relative overflow-hidden max-w-3xl mx-auto bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-8 animate-fade-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
                     {/* Header Details */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5">
                         <div>
@@ -178,13 +183,13 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                         </div>
                     </div>
 
-                    {/* 3-Stage Progress Tracker Bar */}
+                    {/* 3-Stage Progress Tracker Bar with AJK Colors */}
                     <div className="py-4">
                         <div className="relative flex items-center justify-between max-w-xl mx-auto">
                             {/* Connecting Line */}
                             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-200 -z-0"></div>
                             <div
-                                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-emerald-600 transition-all duration-500 -z-0"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-[#034d28] via-amber-500 to-amber-400 transition-all duration-500 -z-0"
                                 style={{
                                     width: currentStageIndex === 1 ? '0%' : currentStageIndex === 2 ? '50%' : '100%',
                                 }}
@@ -198,11 +203,11 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                                 return (
                                     <div key={stg.id} className="relative z-10 flex flex-col items-center group">
                                         <div
-                                            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all ${
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shadow-md transition-all ${
                                                 isCurrent
-                                                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 scale-110'
+                                                    ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-[#034d28] ring-4 ring-amber-300/60 scale-110'
                                                     : isCompleted
-                                                    ? 'bg-emerald-700 text-white'
+                                                    ? 'bg-[#034d28] text-white ring-2 ring-amber-400/90'
                                                     : 'bg-white text-slate-400 border-2 border-slate-300'
                                             }`}
                                         >

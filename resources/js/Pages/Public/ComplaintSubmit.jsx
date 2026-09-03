@@ -181,21 +181,26 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
         <PublicLayout>
             <Head title={t('submitTitle')} />
 
-            {/* Header Banner */}
+            {/* Header Banner with AJK Badge */}
             <div className="mb-8 text-center max-w-3xl mx-auto">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-900 tracking-tight mb-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-amber-400/80 text-[#034d28] text-xs font-bold mb-3 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — عوامی شکایات پورٹل' : 'Govt of Azad Jammu & Kashmir — Citizen Grievance Portal'}</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight mb-2">
                     {t('submitTitle')}
                 </h1>
                 <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                     {t('submitSubtitle')}
                 </p>
+                <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* SECTION 1: Personal Information */}
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
-                    <h2 className="text-lg font-bold text-emerald-800 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
+                    <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">1</span>
                         {t('sectionPersonal')}
                     </h2>
 
@@ -304,9 +309,9 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                 </div>
 
                 {/* SECTION 2: Department & Category */}
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
-                    <h2 className="text-lg font-bold text-emerald-800 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
+                    <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">2</span>
                         {t('sectionCategory')}
                     </h2>
 
@@ -401,9 +406,9 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                 </div>
 
                 {/* SECTION 3: Complaint Content */}
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
-                    <h2 className="text-lg font-bold text-emerald-800 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
+                    <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">3</span>
                         {t('sectionComplaint')}
                     </h2>
 
@@ -460,9 +465,9 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                 </div>
 
                 {/* SECTION 4: Attachments */}
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
-                    <h2 className="text-lg font-bold text-emerald-800 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
+                    <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">4</span>
                         {t('sectionAttachments')}
                     </h2>
 
@@ -505,7 +510,7 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="w-full sm:w-auto px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-base rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-[#034d28] via-[#046A38] to-[#034d28] hover:from-[#023b1f] hover:to-[#034d28] text-white font-extrabold text-base rounded-xl shadow-lg hover:shadow-xl transition-all border-b-4 border-amber-500 active:border-b-0 active:translate-y-1 disabled:opacity-50 flex items-center justify-center gap-2.5"
                     >
                         {processing ? (
                             <>
