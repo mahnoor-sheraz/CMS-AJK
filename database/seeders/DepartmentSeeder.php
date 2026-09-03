@@ -25,18 +25,24 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'THQ Hospitals & Basic Health Units', 'name_ur' => 'ٹی ایچ کیو ہسپتال و بنیادی صحت مراکز'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'Medicine Shortage',
-                        'name_ur' => 'ادویات کی قلت',
-                        'sub_categories' => [
-                            ['name' => 'Life Saving Drugs', 'name_ur' => 'زندگی بچانے والی ادویات'],
-                            ['name' => 'General Medicine', 'name_ur' => 'عام ادویات'],
-                        ],
-                    ],
-                    [
-                        'name' => 'Staff Absence & Misbehavior',
-                        'name_ur' => 'عملے کی غیر حاضری و بدسلوکی',
-                    ],
+                    ['name' => 'Medicine Shortage', 'name_ur' => 'ادویات کی قلت', 'sub_categories' => [
+                        ['name' => 'Life Saving Drugs', 'name_ur' => 'زندگی بچانے والی ادویات'],
+                        ['name' => 'General Medicine', 'name_ur' => 'عام ادویات'],
+                        ['name' => 'Vaccines & Immunization Stock', 'name_ur' => 'حفاظتی ٹیکوں کی عدم دستیابی'],
+                    ]],
+                    ['name' => 'Staff Absence & Misbehavior', 'name_ur' => 'عملے کی غیر حاضری و بدسلوکی', 'sub_categories' => [
+                        ['name' => 'Doctor Absence', 'name_ur' => 'ڈاکٹر کی غیر حاضری'],
+                        ['name' => 'Paramedical Staff Absence', 'name_ur' => 'پیرامیڈیکل عملے کی غیر حاضری'],
+                        ['name' => 'Misbehavior with Patients', 'name_ur' => 'مریضوں کے ساتھ بدسلوکی'],
+                    ]],
+                    ['name' => 'Poor Hospital Hygiene & Sanitation', 'name_ur' => 'ہسپتال میں صفائی کا ناقص انتظام'],
+                    ['name' => 'Non-Functional Medical Equipment', 'name_ur' => 'طبی آلات کا غیر فعال ہونا'],
+                    ['name' => 'Ambulance Service Issues', 'name_ur' => 'ایمبولینس سروس کے مسائل', 'sub_categories' => [
+                        ['name' => 'Ambulance Unavailability', 'name_ur' => 'ایمبولینس کی عدم دستیابی'],
+                        ['name' => 'Delayed Response Time', 'name_ur' => 'تاخیر سے پہنچنا'],
+                    ]],
+                    ['name' => 'Overcharging / Illegal Fee Collection', 'name_ur' => 'ناجائز فیس کی وصولی'],
+                    ['name' => 'Medical Negligence', 'name_ur' => 'طبی غفلت'],
                 ],
             ],
             [
@@ -49,14 +55,22 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'Girls Schools', 'name_ur' => 'گرلز سکولز'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'Teacher Shortage / Absence',
-                        'name_ur' => 'اساتذہ کی قلت یا غیر حاضری',
-                    ],
-                    [
-                        'name' => 'Building & Infrastructure Defect',
-                        'name_ur' => 'عمارت کی خستہ حالی و بنیادی سہولیات',
-                    ],
+                    ['name' => 'Teacher Shortage / Absence', 'name_ur' => 'اساتذہ کی قلت یا غیر حاضری', 'sub_categories' => [
+                        ['name' => 'Teacher Absenteeism', 'name_ur' => 'اساتذہ کی غیر حاضری'],
+                        ['name' => 'Vacant Teaching Posts', 'name_ur' => 'اساتذہ کی خالی اسامیاں'],
+                    ]],
+                    ['name' => 'Building & Infrastructure Defect', 'name_ur' => 'عمارت کی خستہ حالی و بنیادی سہولیات', 'sub_categories' => [
+                        ['name' => 'Damaged Classrooms / Boundary Wall', 'name_ur' => 'خستہ حال کمرے یا چاردیواری'],
+                        ['name' => 'Lack of Furniture', 'name_ur' => 'فرنیچر کی کمی'],
+                    ]],
+                    ['name' => 'Missing Basic Facilities', 'name_ur' => 'بنیادی سہولیات کا فقدان', 'sub_categories' => [
+                        ['name' => 'No Drinking Water', 'name_ur' => 'پینے کے پانی کی عدم دستیابی'],
+                        ['name' => 'No Washrooms / Toilets', 'name_ur' => 'بیت الخلاء کی عدم دستیابی'],
+                        ['name' => 'No Electricity', 'name_ur' => 'بجلی کی عدم فراہمی'],
+                    ]],
+                    ['name' => 'Free Textbooks Non-Distribution', 'name_ur' => 'مفت نصابی کتب کی عدم تقسیم'],
+                    ['name' => 'Corporal Punishment / Misconduct', 'name_ur' => 'جسمانی سزا یا بدتمیزی'],
+                    ['name' => 'Unauthorized School Closure', 'name_ur' => 'سکول کی غیر مجاز بندش'],
                 ],
             ],
             [
@@ -69,14 +83,18 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'Billing & Metering', 'name_ur' => 'بلنگ و میٹرنگ'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'Unscheduled Load Shedding',
-                        'name_ur' => 'بغیر شیڈول لوڈ شیڈنگ',
-                    ],
-                    [
-                        'name' => 'Transformer Fault / Overbilling',
-                        'name_ur' => 'ٹرانسفارمر کی خرابی یا غلط بلنگ',
-                    ],
+                    ['name' => 'Unscheduled Load Shedding', 'name_ur' => 'بغیر شیڈول لوڈ شیڈنگ', 'sub_categories' => [
+                        ['name' => 'Feeder-wise Unscheduled Outage', 'name_ur' => 'فیڈر کی سطح پر غیر شیڈول بندش'],
+                        ['name' => 'Extended Outage Duration', 'name_ur' => 'بندش کا دورانیہ معمول سے زیادہ'],
+                    ]],
+                    ['name' => 'Transformer Fault / Overbilling', 'name_ur' => 'ٹرانسفارمر کی خرابی یا غلط بلنگ', 'sub_categories' => [
+                        ['name' => 'Transformer Burnt / Damaged', 'name_ur' => 'ٹرانسفارمر جل جانا یا خراب ہونا'],
+                        ['name' => 'Overbilling / Wrong Meter Reading', 'name_ur' => 'زائد بل یا غلط میٹر ریڈنگ'],
+                    ]],
+                    ['name' => 'New Connection Delay', 'name_ur' => 'نئے کنکشن میں تاخیر'],
+                    ['name' => 'Voltage Fluctuation', 'name_ur' => 'وولٹیج میں کمی بیشی'],
+                    ['name' => 'Illegal Connections / Electricity Theft', 'name_ur' => 'غیر قانونی کنکشن یا بجلی چوری'],
+                    ['name' => 'Faulty / Broken Meter', 'name_ur' => 'خراب میٹر'],
                 ],
             ],
             [
@@ -89,14 +107,14 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'Registration & Stamp Paper', 'name_ur' => 'رجسٹریشن و اسٹامپ پیپر'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'Fard Distribution Delay',
-                        'name_ur' => 'فرد کے اجراء میں تاخیر',
-                    ],
-                    [
-                        'name' => 'Illegal Encroachment / Mutation Dispute',
-                        'name_ur' => 'ناجائز قبضہ یا تنازعِ انتقال',
-                    ],
+                    ['name' => 'Fard Distribution Delay', 'name_ur' => 'فرد کے اجراء میں تاخیر'],
+                    ['name' => 'Illegal Encroachment / Mutation Dispute', 'name_ur' => 'ناجائز قبضہ یا تنازعِ انتقال', 'sub_categories' => [
+                        ['name' => 'Illegal Occupation of Land', 'name_ur' => 'اراضی پر ناجائز قبضہ'],
+                        ['name' => 'Mutation (Intiqal) Dispute', 'name_ur' => 'انتقالِ اراضی کا تنازع'],
+                    ]],
+                    ['name' => 'Registration & Stamp Paper Delay', 'name_ur' => 'رجسٹری و اسٹامپ پیپر میں تاخیر'],
+                    ['name' => 'Patwari Non-Cooperation / Bribery', 'name_ur' => 'پٹواری کی عدم تعاون یا رشوت طلبی'],
+                    ['name' => 'Land Record Digitization Error', 'name_ur' => 'اراضی ریکارڈ کی ڈیجیٹائزیشن میں غلطی'],
                 ],
             ],
             [
@@ -108,10 +126,14 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'Water Supply & Sanitation', 'name_ur' => 'واٹر سپلائی و سینی ٹیشن'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'Water Supply Interruption',
-                        'name_ur' => 'پینے کے پانی کی فراہمی میں تعطل',
-                    ],
+                    ['name' => 'Water Supply Interruption', 'name_ur' => 'پینے کے پانی کی فراہمی میں تعطل', 'sub_categories' => [
+                        ['name' => 'No Water Supply', 'name_ur' => 'پانی کی عدم فراہمی'],
+                        ['name' => 'Contaminated / Unsafe Water', 'name_ur' => 'آلودہ یا غیر محفوظ پانی'],
+                        ['name' => 'Low Water Pressure', 'name_ur' => 'پانی کا کم دباؤ'],
+                    ]],
+                    ['name' => 'Sewerage & Drainage Blockage', 'name_ur' => 'سیوریج و نکاسی آب کی بندش'],
+                    ['name' => 'Illegal Construction', 'name_ur' => 'غیر قانونی تعمیرات'],
+                    ['name' => 'Building Plan Approval Delay', 'name_ur' => 'نقشہ منظوری میں تاخیر'],
                 ],
             ],
             [
@@ -124,14 +146,21 @@ class DepartmentSeeder extends Seeder
                     ['name' => 'Investigation & Police Stations', 'name_ur' => 'تفتیش و تھانہ جات'],
                 ],
                 'categories' => [
-                    [
-                        'name' => 'FIR Registration Delay',
-                        'name_ur' => 'ایف آئی آر درج کرنے میں تاخیر',
-                    ],
-                    [
-                        'name' => 'Public Nuisance & Safety',
-                        'name_ur' => 'عوامی پریشانی و امن عامہ کے مسائل',
-                    ],
+                    ['name' => 'FIR Registration Delay', 'name_ur' => 'ایف آئی آر درج کرنے میں تاخیر', 'sub_categories' => [
+                        ['name' => 'Refusal to Register FIR', 'name_ur' => 'ایف آئی آر درج کرنے سے انکار'],
+                        ['name' => 'Delay in FIR Registration', 'name_ur' => 'ایف آئی آر درج کرنے میں تاخیر'],
+                    ]],
+                    ['name' => 'Public Nuisance & Safety', 'name_ur' => 'عوامی پریشانی و امن عامہ کے مسائل', 'sub_categories' => [
+                        ['name' => 'Noise Pollution', 'name_ur' => 'شور کی آلودگی'],
+                        ['name' => 'Illegal Gambling / Drugs', 'name_ur' => 'غیر قانونی جوا یا منشیات'],
+                    ]],
+                    ['name' => 'Police Misconduct / Corruption', 'name_ur' => 'پولیس کی بدسلوکی یا بدعنوانی'],
+                    ['name' => 'Traffic Violations & Congestion', 'name_ur' => 'ٹریفک کی خلاف ورزی و رش', 'sub_categories' => [
+                        ['name' => 'Illegal Parking', 'name_ur' => 'غیر قانونی پارکنگ'],
+                        ['name' => 'Traffic Signal Malfunction', 'name_ur' => 'ٹریفک سگنل کی خرابی'],
+                    ]],
+                    ['name' => 'Missing Person Case Delay', 'name_ur' => 'گمشدہ شخص کے کیس میں تاخیر'],
+                    ['name' => 'Harassment Complaint', 'name_ur' => 'ہراسانی کی شکایت'],
                 ],
             ],
         ];
