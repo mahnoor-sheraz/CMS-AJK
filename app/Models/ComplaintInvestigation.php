@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,5 +50,36 @@ class ComplaintInvestigation extends Model
     public function assignedOfficer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_officer_id');
+    }
+
+    /**
+     * Scope query to investigations accessible by user's role and assignment.
+     */
+    public function scopeAccessibleBy(Builder $query, User $user): Builder
+    {
+        if ($user->is_active === false) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Admin has global investigation oversight
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        // Director & Focal Person can oversee investigations in their department
+        if ($user->isDirector() || $user->isFocalPerson()) {
+            if (empty($user->department_id)) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->whereHas('complaint', fn ($cq) => $cq->where('department_id', $user->department_id));
+        }
+
+        // Field Officer can only access investigations assigned to them
+        if ($user->isFieldOfficer()) {
+            return $query->where('assigned_officer_id', $user->id);
+        }
+
+        return $query->whereRaw('0 = 1');
     }
 }

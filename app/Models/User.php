@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -266,5 +267,36 @@ class User extends Authenticatable
             ->get()
             ->groupBy('feature.name')
             ->toArray();
+    }
+
+    /**
+     * Scope query to users accessible by user's role and hierarchy.
+     */
+    public function scopeAccessibleBy(Builder $query, User $user): Builder
+    {
+        if ($user->is_active === false) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // Admin has global visibility over all user accounts
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        // Director & Focal Person can only view officers within their department
+        if ($user->isDirector() || $user->isFocalPerson()) {
+            if (empty($user->department_id)) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->where('department_id', $user->department_id);
+        }
+
+        // Field Officer can only view their own record
+        if ($user->isFieldOfficer()) {
+            return $query->where('id', $user->id);
+        }
+
+        return $query->whereRaw('0 = 1');
     }
 }

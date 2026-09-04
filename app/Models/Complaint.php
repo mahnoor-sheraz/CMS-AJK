@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -168,5 +169,54 @@ class Complaint extends Model
     public function reassignmentRequests(): HasMany
     {
         return $this->hasMany(ComplaintReassignmentRequest::class);
+    }
+
+    /**
+     * Scope a query to only include complaints accessible by the given user's role and departmental scope.
+     * Enforces the database layer authorization check to prevent IDOR and cross-department data leakage.
+     */
+    public function scopeAccessibleBy(Builder $query, User $user): Builder
+    {
+        if ($user->is_active === false) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // 1. Admin: Global access to all complaints across all departments
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        // 2. Director & Focal Person: Strictly restricted to their assigned department
+        if ($user->isDirector() || $user->isFocalPerson()) {
+            if (empty($user->department_id)) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->where('complaints.department_id', $user->department_id);
+        }
+
+        // 3. Field Officer: Strictly restricted to complaints assigned to them directly or for investigation
+        if ($user->isFieldOfficer()) {
+            return $query->where(function (Builder $q) use ($user) {
+                $q->where('complaints.assigned_fp_id', $user->id)
+                    ->orWhereHas('investigations', function (Builder $iq) use ($user) {
+                        $iq->where('assigned_officer_id', $user->id);
+                    })
+                    ->orWhereHas('assignments', function (Builder $aq) use ($user) {
+                        $aq->where('assigned_to_user_id', $user->id);
+                    });
+            });
+        }
+
+        // 4. Default: Deny access for unassigned/unknown roles
+        return $query->whereRaw('0 = 1');
+    }
+
+    /**
+     * Alias for scopeAccessibleBy.
+     */
+    public function scopeForUser(Builder $query, User $user): Builder
+    {
+        return $this->scopeAccessibleBy($query, $user);
     }
 }

@@ -33,16 +33,13 @@ Route::get('/dashboard', function () {
 
 // Admin Route Group
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->name('admin.dashboard');
+    Route::get('/dashboard', \App\Http\Controllers\Admin\AdminDashboardController::class)->name('admin.dashboard');
 });
 
 // Focal Person Route Group
-Route::middleware(['auth', 'role:focal_person'])->prefix('fp')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('FocalPerson/Dashboard');
-    })->name('fp.dashboard');
+Route::middleware(['auth', 'role:focal_person,director'])->prefix('fp')->group(function () {
+    Route::get('/dashboard', \App\Http\Controllers\FocalPerson\FocalPersonDashboardController::class)->name('fp.dashboard');
+    Route::get('/complaints/{id}', [\App\Http\Controllers\InternalComplaintController::class, 'show'])->name('fp.complaints.show');
 });
 
 Route::middleware('auth')->group(function () {
