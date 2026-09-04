@@ -6,13 +6,34 @@ import { useLanguage } from '@/Context/LanguageContext';
 export default function ComplaintTrack({ complaint = null, searched = false, notFound = false, searchParams = {} }) {
     const { lang, t } = useLanguage();
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         complaint_number: searchParams.complaint_number || '',
         cnic: searchParams.cnic || '',
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        clearErrors();
+
+        let hasError = false;
+        const cleanComplaint = (data.complaint_number || '').trim();
+        const cleanCnic = (data.cnic || '').replace(/[^0-9]/g, '');
+
+        if (!cleanComplaint) {
+            setError('complaint_number', t('trackPlaceholderComplaintNo'));
+            hasError = true;
+        }
+
+        if (!cleanCnic) {
+            setError('cnic', t('valCnicReq'));
+            hasError = true;
+        } else if (cleanCnic.length !== 13) {
+            setError('cnic', `[ERR_INVALID_CNIC_FORMAT] ${t('valCnicFormat')}`);
+            hasError = true;
+        }
+
+        if (hasError) return;
+
         post('/complaints/track');
     };
 
@@ -146,14 +167,24 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
 
             {/* RESULTS SECTION */}
 
-            {/* Generic Not Found Alert */}
+            {/* Not Found Alert */}
             {searched && notFound && (
-                <div className="max-w-2xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 text-center space-y-2 text-amber-900 shadow-sm animate-fade-in">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-amber-600 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <p className="font-bold text-sm sm:text-base leading-relaxed">
+                <div className="max-w-2xl mx-auto bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-400 rounded-2xl p-6 sm:p-7 text-center space-y-3 text-amber-950 shadow-md animate-fade-in">
+                    <div className="w-14 h-14 bg-amber-100 border border-amber-300 rounded-2xl flex items-center justify-center mx-auto text-amber-800 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-200/90 text-amber-950 border border-amber-300">
+                        {errors.error_code || 'ERR_COMPLAINT_NOT_FOUND'}
+                    </div>
+                    <h3 className="font-extrabold text-base sm:text-lg text-amber-950">
                         {t('trackNotFound')}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-amber-900/80 max-w-md mx-auto leading-relaxed">
+                        {lang === 'ur' 
+                            ? 'براہ کرم یقینی بنائیں کہ آپ نے شکایتی نمبر (مثلاً CMP-20260903-XXXX) اور شناختی کارڈ نمبر درست درج کیے ہیں۔' 
+                            : 'Please verify that your complaint reference number (e.g. CMP-20260903-XXXX) and 13-digit CNIC match your submission receipt.'}
                     </p>
                 </div>
             )}

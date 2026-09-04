@@ -93,13 +93,13 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
         const files = Array.from(e.target.files);
 
         if (files.length > 5) {
-            setFileError(t('valFilesMaxCount'));
+            setFileError(`[ERR_FILE_COUNT_EXCEEDED] ${t('valFilesMaxCount')}`);
             return;
         }
 
         for (let file of files) {
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                setFileError(t('valFileMaxSize'));
+                setFileError(`[ERR_FILE_SIZE_EXCEEDED] ${t('valFileMaxSize')}`);
                 return;
             }
         }
@@ -214,6 +214,54 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                 <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
             </div>
 
+            {/* General System / Transaction Error Alert Banner */}
+            {errors.general && (
+                <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-2 border-red-400 text-red-950 p-5 sm:p-6 rounded-2xl shadow-md flex items-start gap-4 animate-shake before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-red-500 before:via-rose-600 before:to-red-500">
+                    <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-xl flex-shrink-0 shadow-md ring-2 ring-red-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-red-200 text-red-900 border border-red-300">
+                                {errors.error_code || 'ERR_SUBMISSION_FAILED'}
+                            </span>
+                            <h4 className="font-black text-base sm:text-lg text-red-950 tracking-tight">
+                                {t('errSubmissionFailedTitle')}
+                            </h4>
+                        </div>
+                        <p className="text-sm sm:text-base font-semibold text-red-900 leading-relaxed pt-1">
+                            {errors.general}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Server Payload / Upload Error Alert Banner */}
+            {errors.attachments && (
+                <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-rose-50 via-orange-50 to-rose-50 border-2 border-rose-400 text-rose-950 p-5 sm:p-6 rounded-2xl shadow-md flex items-start gap-4 animate-shake before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-rose-500 before:via-orange-500 before:to-rose-500">
+                    <div className="p-3 bg-gradient-to-br from-rose-500 to-orange-600 text-white rounded-xl flex-shrink-0 shadow-md ring-2 ring-rose-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-rose-200 text-rose-900 border border-rose-300">
+                                {errors.error_code || 'ERR_PAYLOAD_TOO_LARGE'}
+                            </span>
+                            <h4 className="font-black text-base sm:text-lg text-rose-950 tracking-tight">
+                                {t('errPayloadTooLargeTitle')}
+                            </h4>
+                        </div>
+                        <p className="text-sm sm:text-base font-semibold text-rose-900 leading-relaxed pt-1">
+                            {errors.attachments}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Rate Limit Alert Banner */}
             {errors.rate_limit && (
                 <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-400 text-amber-950 p-5 sm:p-6 rounded-2xl shadow-md flex items-start gap-4 animate-shake before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
@@ -223,8 +271,10 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                         </svg>
                     </div>
                     <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-amber-200 text-amber-950 border border-amber-300">
+                                {errors.error_code || 'ERR_RATE_LIMIT_EXCEEDED'}
+                            </span>
                             <h4 className="font-black text-base sm:text-lg text-amber-950 tracking-tight">
                                 {t('valRateLimitTitle')}
                             </h4>
@@ -537,7 +587,23 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-300 rounded-xl p-1"
                         />
 
-                        {fileError && <p className="mt-2 text-xs text-red-600 font-medium">{fileError}</p>}
+                        {fileError && (
+                            <div className="mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span>{fileError}</span>
+                            </div>
+                        )}
+
+                        {errors.attachments && (
+                            <div className="mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                                <span className="font-mono bg-red-100 text-red-800 px-2 py-0.5 rounded text-[11px] font-bold">
+                                    {errors.error_code || 'ERR_PAYLOAD_TOO_LARGE'}
+                                </span>
+                                <span>{errors.attachments}</span>
+                            </div>
+                        )}
 
                         {attachmentFiles.length > 0 && (
                             <div className="mt-4 space-y-2">

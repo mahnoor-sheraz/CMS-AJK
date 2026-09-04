@@ -28,4 +28,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error_code' => 'ERR_PAYLOAD_TOO_LARGE',
+                    'message' => 'Uploaded attachments exceed the maximum server upload size limit. Please upload smaller files.',
+                ], 413);
+            }
+
+            return back()->withErrors([
+                'attachments' => 'Uploaded attachments exceed the maximum server upload limit. Please upload smaller files.',
+                'error_code' => 'ERR_PAYLOAD_TOO_LARGE',
+            ]);
+        });
     })->create();

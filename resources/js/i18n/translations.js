@@ -117,6 +117,19 @@ export const translations = {
         statusNotResolvable: 'قابلِ حل نہیں',
         statusResolved: 'حل شدہ',
         statusRejected: 'مسترد شدہ',
+
+        // Global Error Codes & Messages
+        errCodeLabel: 'خرابی کوڈ:',
+        errFormHasErrors: 'براہِ کرم فارم میں نمایاں کی گئی غلطیوں کو درست کریں اور دوبارہ ارسال کریں۔',
+        errSubmissionFailedTitle: 'شکایت درج کرنے میں خرابی پیش آگئی',
+        errSubmissionFailedDesc: 'عارضی تکنیکی خرابی کی وجہ سے شکایت محفوظ نہیں ہو سکی۔ براہِ کرم کچھ دیر بعد دوبارہ کوشش کریں۔',
+        errPayloadTooLargeTitle: 'فائلوں کا سائز بہت زیادہ ہے',
+        errPayloadTooLargeDesc: 'اپ لوڈ کردہ فائلیں سرور کی مقررہ حد (64MB مجموعی) سے زیادہ ہیں۔ براہِ کرم چھوٹی فائلیں اپ لوڈ کریں۔',
+        errNetworkTitle: 'کنکشن کی خرابی',
+        errNetworkDesc: 'سرور کے ساتھ رابطہ منقطع ہو گیا ہے۔ براہِ کرم انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔',
+        errComplaintNotFoundCode: 'کوئی ریکارڈ نہیں ملا (ERR_COMPLAINT_NOT_FOUND)',
+        errUnauthorizedRoleTitle: 'رسائی کی اجازت نہیں',
+        errUnauthorizedRoleDesc: 'آپ کے اکاؤنٹ کے پاس اس صفحے تک رسائی کا اختیار نہیں ہے۔ (ERR_FORBIDDEN_ROLE)',
     },
 
     en: {
@@ -237,5 +250,18 @@ export const translations = {
         statusNotResolvable: 'Not Resolvable',
         statusResolved: 'Resolved',
         statusRejected: 'Rejected',
+
+        // Global Error Codes & Messages
+        errCodeLabel: 'Error Code:',
+        errFormHasErrors: 'Please correct the highlighted errors in the form before submitting.',
+        errSubmissionFailedTitle: 'Submission Failed',
+        errSubmissionFailedDesc: 'Failed to record your complaint due to a temporary system error. Please try again in a few moments.',
+        errPayloadTooLargeTitle: 'Upload Payload Exceeded',
+        errPayloadTooLargeDesc: 'The uploaded files exceed the server limit (64MB total). Please select smaller files.',
+        errNetworkTitle: 'Connection Error',
+        errNetworkDesc: 'Connection to the server failed. Please check your internet connection and try again.',
+        errComplaintNotFoundCode: 'Record Not Found (ERR_COMPLAINT_NOT_FOUND)',
+        errUnauthorizedRoleTitle: 'Access Denied',
+        errUnauthorizedRoleDesc: 'Your account does not have permission to access this resource. (ERR_FORBIDDEN_ROLE)',
     }
 };

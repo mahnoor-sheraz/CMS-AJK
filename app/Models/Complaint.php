@@ -42,8 +42,14 @@ class Complaint extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Complaint $complaint) {
+            if (empty($complaint->cnic) && ! empty($complaint->citizen_id)) {
+                $complaint->cnic = Citizen::where('id', $complaint->citizen_id)->value('cnic');
+            }
+        });
+
         static::created(function (Complaint $complaint) {
-            if (!$complaint->complaint_number) {
+            if (! $complaint->complaint_number) {
                 $year = now()->format('Y');
                 $paddedId = str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT);
                 $complaint->complaint_number = "PMCC-{$year}-{$paddedId}";
