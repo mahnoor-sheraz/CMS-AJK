@@ -13,6 +13,7 @@ class ComplaintInvestigation extends Model
     protected $fillable = [
         'complaint_id',
         'fp_id',
+        'assigned_officer_id',
         'investigation_type',
         'notes',
         'location',
@@ -31,5 +32,10 @@ class ComplaintInvestigation extends Model
     public function focalPerson(): BelongsTo
     {
         return $this->belongsTo(User::class, 'fp_id');
+    }
+
+    public function assignedOfficer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_officer_id');
     }
 }

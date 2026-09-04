@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'department_id',
         'sub_department_id',
+        'supervisor_id',
         'is_active',
     ];
 
@@ -115,5 +116,50 @@ class User extends Authenticatable
     public function adminAssignments(): HasMany
     {
         return $this->hasMany(ComplaintAssignment::class, 'assigned_by');
+    }
+
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    public function subordinates(): HasMany
+    {
+        return $this->hasMany(User::class, 'supervisor_id');
+    }
+
+    public function assignedInvestigations(): HasMany
+    {
+        return $this->hasMany(ComplaintInvestigation::class, 'assigned_officer_id');
+    }
+
+    public function requestedReassignments(): HasMany
+    {
+        return $this->hasMany(ComplaintReassignmentRequest::class, 'requested_by');
+    }
+
+    public function reviewedReassignments(): HasMany
+    {
+        return $this->hasMany(ComplaintReassignmentRequest::class, 'reviewed_by');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isFocalPerson(): bool
+    {
+        return $this->role === 'focal_person';
+    }
+
+    public function isDirector(): bool
+    {
+        return $this->role === 'director';
+    }
+
+    public function isFieldOfficer(): bool
+    {
+        return $this->role === 'field_officer';
     }
 }

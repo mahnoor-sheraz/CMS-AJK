@@ -42,4 +42,14 @@ class Department extends Model
     {
         return $this->hasMany(Complaint::class);
     }
+
+    public function outgoingReassignments(): HasMany
+    {
+        return $this->hasMany(ComplaintReassignmentRequest::class, 'from_department_id');
+    }
+
+    public function incomingReassignments(): HasMany
+    {
+        return $this->hasMany(ComplaintReassignmentRequest::class, 'to_department_id');
+    }
 }

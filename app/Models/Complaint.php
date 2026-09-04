@@ -145,4 +145,9 @@ class Complaint extends Model
     {
         return $this->hasMany(ComplaintAssignment::class);
     }
+
+    public function reassignmentRequests(): HasMany
+    {
+        return $this->hasMany(ComplaintReassignmentRequest::class);
+    }
 }
