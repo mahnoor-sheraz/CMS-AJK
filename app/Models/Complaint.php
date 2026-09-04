@@ -15,6 +15,7 @@ class Complaint extends Model
     protected $fillable = [
         'complaint_number',
         'citizen_id',
+        'cnic',
         'channel_id',
         'district_id',
         'tehsil_id',

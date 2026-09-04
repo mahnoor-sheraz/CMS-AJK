@@ -116,6 +116,7 @@ class PublicComplaintController extends Controller
         // Create Complaint
         $complaint = Complaint::create([
             'citizen_id' => $citizen->id,
+            'cnic' => $cnic,
             'channel_id' => $channel->id,
             'district_id' => $request->district_id,
             'tehsil_id' => $request->tehsil_id,
