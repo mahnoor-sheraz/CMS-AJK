@@ -36,6 +36,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'department_id',
         'sub_department_id',
         'supervisor_id',
@@ -174,5 +175,96 @@ class User extends Authenticatable
     public function isFieldOfficer(): bool
     {
         return $this->role === 'field_officer';
+    }
+
+    public function roleModel(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
+     * Get the active role for this user (falling back to slug lookup if role_id is null).
+     */
+    public function getResolvedRole(): ?Role
+    {
+        if ($this->relationLoaded('roleModel') && $this->roleModel) {
+            return $this->roleModel;
+        }
+
+        if ($this->role_id) {
+            return $this->roleModel;
+        }
+
+        if ($this->role) {
+            return Role::where('slug', $this->role)->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if user has a given permission slug.
+     */
+    public function hasPermission(string $permissionSlug): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $role = $this->getResolvedRole();
+        if (! $role) {
+            return false;
+        }
+
+        if (! isset($this->cachedPermissions)) {
+            $this->cachedPermissions = $role->permissions()->pluck('slug')->all();
+        }
+
+        return in_array($permissionSlug, $this->cachedPermissions, true);
+    }
+
+    /**
+     * Check if user has any of the given permissions.
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has all of the given permissions.
+     */
+    public function hasAllPermissions(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (! $this->hasPermission($permission)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the complete permissions matrix for this user.
+     */
+    public function getPermissionsMatrix(): array
+    {
+        $role = $this->getResolvedRole();
+        if (! $role) {
+            return [];
+        }
+
+        return $role->permissions()
+            ->with('feature')
+            ->get()
+            ->groupBy('feature.name')
+            ->toArray();
     }
 }

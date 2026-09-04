@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             LookupTablesSeeder::class,
             DepartmentSeeder::class,
             AdminUserSeeder::class,
+            RbacSeeder::class,
         ]);
     }
 }
