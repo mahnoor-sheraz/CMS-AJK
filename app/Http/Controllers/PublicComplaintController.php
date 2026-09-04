@@ -114,14 +114,20 @@ class PublicComplaintController extends Controller
 
         try {
             // Deduplicate or create Citizen
+            $citizenData = [
+                'name' => $request->name,
+                'mobile_number' => $mobileNumber,
+                'district_id' => $request->district_id,
+                'tehsil_id' => $request->tehsil_id,
+            ];
+
+            if ($request->filled('gender')) {
+                $citizenData['gender'] = $request->gender;
+            }
+
             $citizen = Citizen::updateOrCreate(
                 ['cnic' => $cnic],
-                [
-                    'name' => $request->name,
-                    'mobile_number' => $mobileNumber,
-                    'district_id' => $request->district_id,
-                    'tehsil_id' => $request->tehsil_id,
-                ]
+                $citizenData
             );
 
             $channel = Channel::firstOrCreate(['name' => 'Web']);

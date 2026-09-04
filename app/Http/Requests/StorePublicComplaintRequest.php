@@ -27,6 +27,7 @@ class StorePublicComplaintRequest extends FormRequest
             'name' => is_string($this->name) ? trim(strip_tags($this->name)) : $this->name,
             'cnic' => is_string($this->cnic) ? preg_replace('/[^0-9]/', '', $this->cnic) : $this->cnic,
             'mobile_number' => is_string($this->mobile_number) ? preg_replace('/[^0-9+]/', '', trim($this->mobile_number)) : $this->mobile_number,
+            'gender' => (!empty($this->gender) && is_string($this->gender)) ? strtolower(trim($this->gender)) : null,
             'subject' => is_string($this->subject) ? trim(strip_tags($this->subject)) : $this->subject,
             'details' => is_string($this->details) ? trim(strip_tags($this->details)) : $this->details,
         ]);
@@ -59,6 +60,11 @@ class StorePublicComplaintRequest extends FormRequest
                 'required',
                 'string',
                 'regex:/^(03|\+?923)[0-9]{9}$/', // Valid Pakistani mobile pattern (03XXXXXXXXX or +923XXXXXXXXX)
+            ],
+            'gender' => [
+                'nullable',
+                'string',
+                Rule::in(['male', 'female']),
             ],
             'district_id' => [
                 'required',

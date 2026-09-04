@@ -15,6 +15,7 @@ class Citizen extends Model
         'cnic',
         'name',
         'mobile_number',
+        'gender',
         'district_id',
         'tehsil_id',
     ];

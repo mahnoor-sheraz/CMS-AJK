@@ -20,6 +20,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         name: '',
         cnic: '',
         mobile_number: '',
+        gender: '',
         district_id: '',
         tehsil_id: '',
         subject: '',
@@ -376,6 +377,25 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 }`}
                             />
                             {errors.mobile_number && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.mobile_number}</p>}
+                        </div>
+
+                        {/* Gender (Optional) */}
+                        <div>
+                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
+                                {t('labelGender')}
+                            </label>
+                            <select
+                                value={data.gender}
+                                onChange={(e) => setData('gender', e.target.value)}
+                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
+                                    errors.gender ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
+                                }`}
+                            >
+                                <option value="">{t('selectGender')}</option>
+                                <option value="male">{t('optMale')}</option>
+                                <option value="female">{t('optFemale')}</option>
+                            </select>
+                            {errors.gender && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.gender}</p>}
                         </div>
 
                         {/* District */}

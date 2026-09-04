@@ -320,4 +320,133 @@ class CitizenPortalTest extends TestCase
             ->where('notFound', true)
         );
     }
+
+    public function test_citizen_can_submit_with_valid_gender(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+
+        // Submit with male gender
+        $response = $this->post('/complaints', [
+            'name' => 'Usman Tariq',
+            'cnic' => '8110155555551',
+            'mobile_number' => '03005555551',
+            'gender' => 'male',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'subject' => 'Road Repair in Village Near Kotli',
+            'details' => 'The main link road has severe potholes and needs urgent repair work by the department.',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('citizens', [
+            'cnic' => '8110155555551',
+            'gender' => 'male',
+        ]);
+
+        // Submit with female gender
+        $responseFemale = $this->post('/complaints', [
+            'name' => 'Fatima Bibi',
+            'cnic' => '8110155555552',
+            'mobile_number' => '03005555552',
+            'gender' => 'female',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'subject' => 'Sanitation Issue in Ward 2',
+            'details' => 'Garbage collection has been delayed for weeks causing health hazards in the neighborhood.',
+        ]);
+
+        $responseFemale->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('citizens', [
+            'cnic' => '8110155555552',
+            'gender' => 'female',
+        ]);
+    }
+
+    public function test_citizen_can_submit_without_gender(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+
+        $response = $this->post('/complaints', [
+            'name' => 'Zubair Shah',
+            'cnic' => '8110166666661',
+            'mobile_number' => '03006666661',
+            // gender omitted completely
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'subject' => 'Electricity Low Voltage in Sector B',
+            'details' => 'Voltage fluctuations have damaged several home appliances. Requesting transformer inspection.',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('citizens', [
+            'cnic' => '8110166666661',
+            'gender' => null,
+        ]);
+    }
+
+    public function test_existing_citizen_updates_gender_when_provided(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+
+        // Create citizen without gender
+        $citizen = Citizen::create([
+            'cnic' => '8110177777771',
+            'name' => 'Ayesha Noor',
+            'mobile_number' => '03007777771',
+            'gender' => null,
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+        ]);
+
+        $this->assertNull($citizen->gender);
+
+        // Submit complaint specifying female
+        $response = $this->post('/complaints', [
+            'name' => 'Ayesha Noor',
+            'cnic' => '8110177777771',
+            'mobile_number' => '03007777771',
+            'gender' => 'female',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'subject' => 'Street Light Not Functioning in Street 5',
+            'details' => 'Street lights have been non-functional for past two weeks. Requesting maintenance team dispatch.',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('citizens', [
+            'cnic' => '8110177777771',
+            'gender' => 'female',
+        ]);
+    }
+
+    public function test_citizen_submission_fails_with_invalid_gender(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+
+        $response = $this->post('/complaints', [
+            'name' => 'Invalid Gender Test',
+            'cnic' => '8110199999991',
+            'mobile_number' => '03009999991',
+            'gender' => 'invalid_value',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'subject' => 'Invalid Gender Subject Test',
+            'details' => 'This submission should fail validation due to invalid gender enum value.',
+        ]);
+
+        $response->assertSessionHasErrors(['gender']);
+    }
 }
