@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePublicComplaintRequest;
+use App\Http\Requests\TrackComplaintRequest;
 use App\Models\Category;
 use App\Models\Channel;
 use App\Models\Citizen;
@@ -72,39 +74,9 @@ class PublicComplaintController extends Controller
     /**
      * Handle incoming complaint submission.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StorePublicComplaintRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'cnic' => ['required', 'string', 'regex:/^[0-9]{13}$/'],
-            'mobile_number' => ['required', 'string', 'regex:/^(03|\+?923)[0-9]{9}$/'],
-            'district_id' => 'required|exists:districts,id',
-            'tehsil_id' => 'required|exists:tehsils,id',
-            'subject' => 'required|string|max:100',
-            'details' => 'required|string|min:50',
-            'department_id' => 'required|string',
-            'sub_department_id' => 'nullable|exists:sub_departments,id',
-            'category_id' => 'nullable|exists:categories,id',
-            'sub_category_id' => 'nullable|exists:categories,id',
-            'attachments' => 'nullable|array|max:5',
-            'attachments.*' => 'file|mimes:jpeg,png,jpg,gif,pdf,mp3,wav,mp4,avi,mov|max:10240',
-        ], [
-            'name.required' => 'Full Name is required.',
-            'cnic.required' => 'CNIC Number is required.',
-            'cnic.regex' => 'CNIC must consist of exactly 13 digits without hyphens.',
-            'mobile_number.required' => 'Mobile Number is required.',
-            'mobile_number.regex' => 'Mobile number must be a valid Pakistani mobile number (e.g. 03001234567).',
-            'district_id.required' => 'Please select a District.',
-            'tehsil_id.required' => 'Please select a Tehsil.',
-            'subject.required' => 'Complaint subject is required.',
-            'subject.max' => 'Subject cannot exceed 100 characters.',
-            'details.required' => 'Complaint details are required.',
-            'details.min' => 'Details must be at least 50 characters long.',
-            'department_id.required' => 'Please select a Department.',
-            'attachments.max' => 'You can upload a maximum of 5 files.',
-            'attachments.*.max' => 'Each attachment must not exceed 10MB in size.',
-            'attachments.*.mimes' => 'Attachment format is not allowed. Permitted: JPG, PNG, PDF, Audio, Video.',
-        ]);
+        $validated = $request->validated();
 
         $isUncategorized = ($request->department_id === 'other');
         $departmentId = $isUncategorized ? null : (int) $request->department_id;
@@ -271,25 +243,10 @@ class PublicComplaintController extends Controller
     /**
      * Handle complaint tracking search request.
      */
-    public function track(Request $request): Response
+    public function track(TrackComplaintRequest $request): Response
     {
-        $request->validate([
-            'complaint_number' => 'required|string',
-            'cnic' => 'required|string',
-        ], [
-            'complaint_number.required' => 'Complaint number is required.',
-            'cnic.required' => 'CNIC number is required.',
-        ]);
-
-        $cnic = preg_replace('/[^0-9]/', '', $request->cnic);
-        $complaintNumber = trim($request->complaint_number);
-
-        if (strlen($cnic) !== 13) {
-            throw ValidationException::withMessages([
-                'cnic' => 'CNIC must consist of exactly 13 digits without hyphens.',
-                'error_code' => 'ERR_INVALID_CNIC_FORMAT',
-            ]);
-        }
+        $cnic = $request->cnic;
+        $complaintNumber = $request->complaint_number;
 
         $cacheKey = "complaint:track:{$complaintNumber}:{$cnic}";
 

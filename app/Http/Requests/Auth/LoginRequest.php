@@ -22,6 +22,16 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation (Sanitization & Normalization).
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => is_string($this->email) ? trim(strtolower($this->email)) : $this->email,
+        ]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -29,8 +39,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'string', 'max:128'],
         ];
     }
 
