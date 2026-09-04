@@ -199,6 +199,18 @@ class PublicComplaintController extends Controller
                 'changed_at' => now(),
             ]);
 
+            // Record activity log for citizen submission
+            activity('public_portal')
+                ->performedOn($complaint)
+                ->withProperties([
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'complaint_number' => $complaint->complaint_number,
+                    'citizen_cnic' => $cnic,
+                    'attachments_count' => count($uploadedFilePaths),
+                ])
+                ->log('Citizen lodged grievance via Web Portal');
+
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();

@@ -7,11 +7,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\Models\Concerns\CausesActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use CausesActivity, HasFactory, LogsActivity, Notifiable;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role', 'department_id', 'sub_department_id', 'supervisor_id', 'is_active'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('users')
+            ->setDescriptionForEvent(fn (string $eventName) => "User account has been {$eventName}");
+    }
 
     /**
      * The attributes that are mass assignable.
