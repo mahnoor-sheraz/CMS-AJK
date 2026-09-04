@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Models\District;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,20 +24,24 @@ class PublicComplaintController extends Controller
      */
     public function create(): Response
     {
-        $districts = District::with(['tehsils' => function ($q) {
-            $q->orderBy('name');
-        }])->orderBy('name')->get();
+        $districts = Cache::remember('portal:districts_tehsils', 86400, function () {
+            return District::with(['tehsils' => function ($q) {
+                $q->orderBy('name');
+            }])->orderBy('name')->get();
+        });
 
-        $departments = Department::where('is_active', true)
-            ->with([
-                'subDepartments' => fn ($q) => $q->where('is_active', true)->orderBy('name'),
-                'categories' => fn ($q) => $q->where('is_active', true)
-                    ->whereNull('parent_category_id')
-                    ->with(['subCategories' => fn ($sq) => $sq->where('is_active', true)->orderBy('name')])
-                    ->orderBy('name'),
-            ])
-            ->orderBy('display_order')
-            ->get();
+        $departments = Cache::remember('portal:departments_hierarchy', 86400, function () {
+            return Department::where('is_active', true)
+                ->with([
+                    'subDepartments' => fn ($q) => $q->where('is_active', true)->orderBy('name'),
+                    'categories' => fn ($q) => $q->where('is_active', true)
+                        ->whereNull('parent_category_id')
+                        ->with(['subCategories' => fn ($sq) => $sq->where('is_active', true)->orderBy('name')])
+                        ->orderBy('name'),
+                ])
+                ->orderBy('display_order')
+                ->get();
+        });
 
         return Inertia::render('Public/ComplaintSubmit', [
             'districts' => $districts,
@@ -192,13 +197,16 @@ class PublicComplaintController extends Controller
 
         $cnic = preg_replace('/[^0-9]/', '', $request->cnic);
         $complaintNumber = trim($request->complaint_number);
+        $cacheKey = "complaint:track:{$complaintNumber}:{$cnic}";
 
-        $complaint = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
-            ->where('complaint_number', $complaintNumber)
-            ->whereHas('citizen', function ($q) use ($cnic) {
-                $q->where('cnic', $cnic);
-            })
-            ->first();
+        $complaint = Cache::remember($cacheKey, 60, function () use ($complaintNumber, $cnic) {
+            return Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
+                ->where('complaint_number', $complaintNumber)
+                ->whereHas('citizen', function ($q) use ($cnic) {
+                    $q->where('cnic', $cnic);
+                })
+                ->first();
+        });
 
         return Inertia::render('Public/ComplaintTrack', [
             'complaint' => $complaint,
