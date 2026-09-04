@@ -31,7 +31,7 @@ class PublicComplaintController extends Controller
             $districts = Cache::remember('portal:districts_tehsils', 86400, function () {
                 return District::with(['tehsils' => function ($q) {
                     $q->orderBy('name');
-                }])->orderBy('name')->get();
+                }])->orderBy('name')->get()->toArray();
             });
 
             $departments = Cache::remember('portal:departments_hierarchy', 86400, function () {
@@ -44,12 +44,23 @@ class PublicComplaintController extends Controller
                             ->orderBy('name'),
                     ])
                     ->orderBy('display_order')
-                    ->get();
+                    ->get()
+                    ->toArray();
             });
         } catch (\Throwable $e) {
             Log::error('Failed to retrieve cached portal master data, falling back to direct query: ' . $e->getMessage());
-            $districts = District::with('tehsils')->orderBy('name')->get();
-            $departments = Department::where('is_active', true)->orderBy('display_order')->get();
+            $districts = District::with(['tehsils' => fn ($q) => $q->orderBy('name')])->orderBy('name')->get()->toArray();
+            $departments = Department::where('is_active', true)
+                ->with([
+                    'subDepartments' => fn ($q) => $q->where('is_active', true)->orderBy('name'),
+                    'categories' => fn ($q) => $q->where('is_active', true)
+                        ->whereNull('parent_category_id')
+                        ->with(['subCategories' => fn ($sq) => $sq->where('is_active', true)->orderBy('name')])
+                        ->orderBy('name'),
+                ])
+                ->orderBy('display_order')
+                ->get()
+                ->toArray();
         }
 
         return Inertia::render('Public/ComplaintSubmit', [

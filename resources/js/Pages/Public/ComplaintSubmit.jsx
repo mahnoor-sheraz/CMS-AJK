@@ -3,8 +3,18 @@ import { Head, useForm } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 
-export default function ComplaintSubmit({ districts = [], departments = [] }) {
+export default function ComplaintSubmit({ districts: rawDistricts = [], departments: rawDepartments = [] }) {
     const { lang, t } = useLanguage();
+
+    const districts = useMemo(() => {
+        if (Array.isArray(rawDistricts)) return rawDistricts;
+        return Object.values(rawDistricts || {});
+    }, [rawDistricts]);
+
+    const departments = useMemo(() => {
+        if (Array.isArray(rawDepartments)) return rawDepartments;
+        return Object.values(rawDepartments || {});
+    }, [rawDepartments]);
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         name: '',
@@ -28,7 +38,9 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
     const availableTehsils = useMemo(() => {
         if (!data.district_id) return [];
         const selectedDistrict = districts.find((d) => String(d.id) === String(data.district_id));
-        return selectedDistrict ? selectedDistrict.tehsils || [] : [];
+        if (!selectedDistrict) return [];
+        const tehsils = selectedDistrict.tehsils;
+        return Array.isArray(tehsils) ? tehsils : Object.values(tehsils || {});
     }, [data.district_id, districts]);
 
     // Filter Sub-Departments and Categories based on selected Department
@@ -38,11 +50,15 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
     }, [data.department_id, departments]);
 
     const availableSubDepartments = useMemo(() => {
-        return selectedDeptObj ? selectedDeptObj.sub_departments || [] : [];
+        if (!selectedDeptObj) return [];
+        const subs = selectedDeptObj.sub_departments || selectedDeptObj.subDepartments || [];
+        return Array.isArray(subs) ? subs : Object.values(subs || {});
     }, [selectedDeptObj]);
 
     const availableCategories = useMemo(() => {
-        return selectedDeptObj ? selectedDeptObj.categories || [] : [];
+        if (!selectedDeptObj) return [];
+        const cats = selectedDeptObj.categories || [];
+        return Array.isArray(cats) ? cats : Object.values(cats || {});
     }, [selectedDeptObj]);
 
     // Filter Sub-Categories based on selected Category
@@ -52,7 +68,9 @@ export default function ComplaintSubmit({ districts = [], departments = [] }) {
     }, [data.category_id, availableCategories]);
 
     const availableSubCategories = useMemo(() => {
-        return selectedCategoryObj ? selectedCategoryObj.sub_categories || [] : [];
+        if (!selectedCategoryObj) return [];
+        const subCats = selectedCategoryObj.sub_categories || selectedCategoryObj.subCategories || [];
+        return Array.isArray(subCats) ? subCats : Object.values(subCats || {});
     }, [selectedCategoryObj]);
 
     // Handle District change
