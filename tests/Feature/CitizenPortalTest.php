@@ -449,4 +449,56 @@ class CitizenPortalTest extends TestCase
 
         $response->assertSessionHasErrors(['gender']);
     }
+
+    public function test_confirmation_page_renders_with_complete_preview_data_and_relations(): void
+    {
+        Storage::fake('public');
+
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+        $category = $department->categories()->first();
+
+        $file = UploadedFile::fake()->create('proof_document.pdf', 300, 'application/pdf');
+
+        $this->post('/complaints', [
+            'name' => 'Mirza Farooq',
+            'cnic' => '8210155555551',
+            'mobile_number' => '03005555551',
+            'gender' => 'male',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => (string) $department->id,
+            'category_id' => $category ? (string) $category->id : null,
+            'subject' => 'Road Repair Needed at Main Chowk',
+            'details' => 'The main chowk road has developed deep potholes creating extreme traffic hazards for public transit.',
+            'attachments' => [$file],
+        ]);
+
+        $complaint = Complaint::where('cnic', '8210155555551')->first();
+        $this->assertNotNull($complaint);
+
+        $response = $this->get(route('complaints.confirmation', $complaint->complaint_number));
+        $response->assertStatus(200);
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Public/ComplaintConfirmation')
+            ->has('complaint')
+            ->where('complaint.complaint_number', $complaint->complaint_number)
+            ->where('complaint.subject', 'Road Repair Needed at Main Chowk')
+            ->where('complaint.citizen.name', 'Mirza Farooq')
+            ->where('complaint.citizen.gender', 'male')
+            ->has('complaint.district')
+            ->has('complaint.tehsil')
+            ->has('complaint.department')
+            ->has('complaint.attachments', 1)
+        );
+    }
+
+    public function test_confirmation_page_redirects_to_track_when_complaint_not_found(): void
+    {
+        $response = $this->get(route('complaints.confirmation', 'PMCC-9999-999999'));
+        $response->assertRedirect(route('complaints.track'));
+        $response->assertSessionHasErrors(['complaint_number', 'error_code']);
+    }
 }

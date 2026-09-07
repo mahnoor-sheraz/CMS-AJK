@@ -218,7 +218,7 @@ class PublicComplaintController extends Controller
     public function confirmation(string $complaint_number): Response|RedirectResponse
     {
         $complaint = Complaint::where('complaint_number', $complaint_number)
-            ->with(['citizen', 'district', 'tehsil', 'department'])
+            ->with(['citizen', 'district', 'tehsil', 'department', 'subDepartment', 'category', 'attachments'])
             ->first();
 
         if (! $complaint) {

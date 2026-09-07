@@ -40,6 +40,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 Route::middleware(['auth', 'role:focal_person,director'])->prefix('fp')->group(function () {
     Route::get('/dashboard', \App\Http\Controllers\FocalPerson\FocalPersonDashboardController::class)->name('fp.dashboard');
     Route::get('/complaints/{id}', [\App\Http\Controllers\InternalComplaintController::class, 'show'])->name('fp.complaints.show');
+    Route::get('/complaints/{id}/investigate', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'show'])->name('fp.complaints.investigate');
+    Route::post('/complaints/{id}/duplicates/{matchId}/confirm', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'confirmDuplicate'])->name('fp.complaints.duplicates.confirm');
+    Route::post('/complaints/{id}/duplicates/{matchId}/dismiss', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'dismissDuplicate'])->name('fp.complaints.duplicates.dismiss');
+    Route::post('/complaints/{id}/classify', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'classify'])->name('fp.complaints.classify');
 });
 
 Route::middleware('auth')->group(function () {

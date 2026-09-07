@@ -28,6 +28,9 @@ class StorePublicComplaintRequest extends FormRequest
             'cnic' => is_string($this->cnic) ? preg_replace('/[^0-9]/', '', $this->cnic) : $this->cnic,
             'mobile_number' => is_string($this->mobile_number) ? preg_replace('/[^0-9+]/', '', trim($this->mobile_number)) : $this->mobile_number,
             'gender' => (!empty($this->gender) && is_string($this->gender)) ? strtolower(trim($this->gender)) : null,
+            'sub_department_id' => (!empty($this->sub_department_id) && $this->sub_department_id !== 'null') ? (int) $this->sub_department_id : null,
+            'category_id' => (!empty($this->category_id) && $this->category_id !== 'null') ? $this->category_id : null,
+            'sub_category_id' => (!empty($this->sub_category_id) && $this->sub_category_id !== 'null') ? $this->sub_category_id : null,
             'subject' => is_string($this->subject) ? trim(strip_tags($this->subject)) : $this->subject,
             'details' => is_string($this->details) ? trim(strip_tags($this->details)) : $this->details,
         ]);

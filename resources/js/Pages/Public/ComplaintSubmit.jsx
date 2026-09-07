@@ -38,6 +38,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
     const [attachmentFiles, setAttachmentFiles] = useState([]);
     const [fileError, setFileError] = useState('');
+    const [declarationAccepted, setDeclarationAccepted] = useState(false);
 
     // In-browser Camera & Video Capture State
     const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -306,6 +307,12 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             if (!data.name.trim()) {
                 setError('name', t('valNameReq'));
                 isValid = false;
+            } else if (data.name.trim().length < 2) {
+                setError('name', t('valNameMin'));
+                isValid = false;
+            } else if (!/^[\p{L}\s.\-']+$/u.test(data.name.trim())) {
+                setError('name', t('valNameFormat'));
+                isValid = false;
             }
 
             const cleanCnic = data.cnic.replace(/[^0-9]/g, '');
@@ -344,6 +351,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             if (!data.subject.trim()) {
                 setError('subject', t('valSubjectReq'));
                 isValid = false;
+            } else if (data.subject.trim().length < 5) {
+                setError('subject', t('valSubjectMin'));
+                isValid = false;
             } else if (data.subject.length > 100) {
                 setError('subject', t('valSubjectMax'));
                 isValid = false;
@@ -355,12 +365,20 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             } else if (data.details.trim().length < 50) {
                 setError('details', t('valDetailsMin'));
                 isValid = false;
+            } else if (data.details.trim().length > 5000) {
+                setError('details', t('valDetailsMax'));
+                isValid = false;
+            }
+        } else if (step === 4) {
+            if (!declarationAccepted) {
+                setError('declaration', t('valDeclarationReq'));
+                isValid = false;
             }
         }
 
         if (!isValid) {
             setTimeout(() => {
-                const firstError = document.querySelector('.border-red-500, .border-amber-500, text-red-600');
+                const firstError = document.querySelector('.border-red-500, .border-amber-400, .border-amber-500, text-red-600, #submission-error-alert');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     firstError.focus?.();
@@ -407,7 +425,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         e.preventDefault();
         clearErrors();
 
-        // Validate all 3 previous steps just in case
+        // Validate all 4 steps sequentially
         if (!validateStep(1)) {
             setCurrentStep(1);
             return;
@@ -418,6 +436,10 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         }
         if (!validateStep(3)) {
             setCurrentStep(3);
+            return;
+        }
+        if (!validateStep(4)) {
+            setCurrentStep(4);
             return;
         }
 
@@ -432,10 +454,13 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                     setCurrentStep(2);
                 } else if (errs.department_id || errs.sub_department_id || errs.category_id || errs.sub_category_id || errs.subject || errs.details) {
                     setCurrentStep(3);
+                } else {
+                    // Rate limit, general, or attachment error stays on Step 4
+                    setCurrentStep(4);
                 }
 
                 setTimeout(() => {
-                    const firstError = document.querySelector('.border-red-500, .border-amber-500, .animate-shake');
+                    const firstError = document.querySelector('.border-red-500, .border-amber-400, .border-amber-500, .animate-shake, #submission-error-alert');
                     if (firstError) {
                         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         firstError.focus?.();
@@ -1258,6 +1283,79 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 </div>
                             </div>
                         </div>
+
+                        {/* 4C: Citizen Declaration & Affirmation */}
+                        <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all ${
+                            errors.declaration ? 'bg-red-50/50 border-red-400' : 'bg-gradient-to-r from-emerald-50/60 via-amber-50/40 to-emerald-50/60 border-amber-300 shadow-xs'
+                        }`}>
+                            <label className="flex items-start gap-3.5 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    id="declaration"
+                                    checked={declarationAccepted}
+                                    onChange={(e) => {
+                                        setDeclarationAccepted(e.target.checked);
+                                        if (errors.declaration) clearErrors('declaration');
+                                    }}
+                                    className="mt-1 h-5 w-5 rounded-md border-slate-300 text-[#034d28] focus:ring-[#034d28] cursor-pointer shrink-0"
+                                />
+                                <span className="text-xs sm:text-sm font-semibold text-slate-800 leading-relaxed">
+                                    {t('confDeclarationCheckbox')} <span className="text-red-500">*</span>
+                                </span>
+                            </label>
+                            {errors.declaration && (
+                                <p className="mt-2.5 text-xs text-red-600 font-bold flex items-center gap-1.5 animate-shake">
+                                    <span>⚠️</span> {errors.declaration}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* 4D: In-Step Submission Alert Banner (Rate Limit, Server Error, Attachments) */}
+                        {(errors.rate_limit || errors.general || errors.attachments || Object.keys(errors).some(k => k.startsWith('attachments'))) && (
+                            <div id="submission-error-alert" className="p-4 sm:p-5 rounded-2xl bg-amber-50/95 border-2 border-amber-400 text-amber-950 space-y-3 shadow-md animate-shake">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 font-bold text-lg shadow-xs">
+                                        ⚠️
+                                    </div>
+                                    <div className="space-y-1.5 flex-1 text-xs sm:text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-black bg-amber-200 text-amber-950 border border-amber-300 uppercase">
+                                                {errors.rate_limit ? 'ERR_RATE_LIMIT_EXCEEDED' : errors.general ? 'ERR_SUBMISSION_FAILED' : 'ERR_ATTACHMENTS_INVALID'}
+                                            </span>
+                                            <h4 className="font-extrabold text-amber-950">
+                                                {errors.rate_limit ? t('valRateLimitTitle') : t('errSubmissionFailedTitle')}
+                                            </h4>
+                                        </div>
+                                        {errors.rate_limit && (
+                                            <p className="leading-relaxed font-medium">
+                                                {t('valRateLimitRecent', { time: errors.rate_limit })}
+                                            </p>
+                                        )}
+                                        {errors.general && (
+                                            <p className="leading-relaxed font-medium">
+                                                {errors.general}
+                                            </p>
+                                        )}
+                                        {errors.attachments && (
+                                            <p className="leading-relaxed font-medium text-red-700">
+                                                {errors.attachments}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                {errors.rate_limit && (
+                                    <div className="pt-2 border-t border-amber-200/80 flex justify-end">
+                                        <a
+                                            href="/complaints/track"
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#034d28] hover:bg-[#023b1f] text-white font-bold text-xs shadow-sm transition-all"
+                                        >
+                                            <span>{t('btnTrackNow')}</span>
+                                            <span className={isRtl ? 'rotate-180' : ''}>→</span>
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Step 4 Footer Navigation & Final Submission */}
                         <div className="flex items-center justify-between gap-4 pt-2">
