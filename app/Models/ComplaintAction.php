@@ -26,6 +26,7 @@ class ComplaintAction extends Model
                 'clubbed' => 'clubbed',
                 'forwarded_externally' => 'forwarded_external',
                 'rejected' => 'rejected',
+                'escalated' => 'escalated_to_admin',
             ];
 
             if (isset($statusMap[$action->resolution_status])) {

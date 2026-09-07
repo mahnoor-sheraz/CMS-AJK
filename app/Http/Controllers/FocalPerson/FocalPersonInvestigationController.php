@@ -39,7 +39,7 @@ class FocalPersonInvestigationController extends Controller
                 'tehsil',
                 'department',
                 'subDepartment',
-                'category',
+                'category.parent',
                 'channel',
                 'attachments',
                 'assignedFp',
@@ -55,18 +55,38 @@ class FocalPersonInvestigationController extends Controller
             abort(404, 'Complaint not found.');
         }
 
-        // 2. Query AI Similarity Matches for this complaint
+        // Reachable only for complaints with stage application_submission
+        if ($complaint->stage !== 'application_submission') {
+            abort(403, 'First Investigation is only available for complaints awaiting triage with stage application_submission.');
+        }
+
+        // 2. Query AI Similarity Matches for this complaint: up to 5 candidates with status pending
         $similarityMatches = ComplaintSimilarityMatch::where('complaint_id', $complaint->id)
+            ->where('status', 'pending')
             ->with([
                 'matchedComplaint.citizen:id,name,cnic,mobile_number',
                 'matchedComplaint.district:id,name',
                 'matchedComplaint.tehsil:id,name',
                 'matchedComplaint.category:id,name',
+                'matchedComplaint.channel:id,name',
                 'reviewedBy:id,name',
             ])
             ->orderByDesc('similarity_score')
             ->take(5)
             ->get();
+
+        // Translate similarity_score into a label (High/Medium/Low)
+        $similarityMatches->transform(function ($match) {
+            $score = (float) $match->similarity_score;
+            if ($score >= 0.85) {
+                $match->similarity_label = 'High';
+            } elseif ($score >= 0.70) {
+                $match->similarity_label = 'Medium';
+            } else {
+                $match->similarity_label = 'Low';
+            }
+            return $match;
+        });
 
         // 3. Subordinate Field Officers (supervised by this user)
         $fieldOfficers = User::where('supervisor_id', $user->id)
@@ -81,6 +101,12 @@ class FocalPersonInvestigationController extends Controller
             ->orderBy('name')
             ->get();
 
+        $departments = \App\Models\Department::where('id', '!=', $complaint->department_id)->get(['id', 'name']);
+        
+        $latestReassignmentRequest = \App\Models\ComplaintReassignmentRequest::where('complaint_id', $complaint->id)
+            ->latest()
+            ->first();
+
         // Check if there is an already confirmed duplicate
         $hasConfirmedDuplicate = $complaint->clubbedEntry()->exists()
             || $similarityMatches->where('status', 'confirmed')->isNotEmpty();
@@ -91,6 +117,8 @@ class FocalPersonInvestigationController extends Controller
             'fieldOfficers' => $fieldOfficers,
             'forwardDestinations' => $forwardDestinations,
             'hasConfirmedDuplicate' => $hasConfirmedDuplicate,
+            'departments' => $departments,
+            'latestReassignmentRequest' => $latestReassignmentRequest,
             'currentFp' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -231,7 +259,7 @@ class FocalPersonInvestigationController extends Controller
                         'assigned_officer_id' => $validated['assigned_officer_id'],
                         'investigation_type' => 'schedule_field_visit',
                         'visit_datetime' => $validated['visit_datetime'],
-                        'location' => $validated['location'] ?? "{$complaint->district?->name} - {$complaint->tehsil?->name}",
+                        'location' => ! empty($validated['location']) ? $validated['location'] : trim("{$complaint->district?->name} - {$complaint->tehsil?->name}", ' -'),
                         'notes' => $validated['notes'] ?? 'Field inspection scheduled.',
                     ]);
 
@@ -252,5 +280,166 @@ class FocalPersonInvestigationController extends Controller
         });
 
         return redirect()->route('fp.dashboard')->with('success', "Complaint {$complaint->complaint_number} classified successfully.");
+    }
+
+    /**
+     * Display the Action/Resolution screen.
+     */
+    public function resolveForm(Request $request, int $id): Response
+    {
+        $user = $request->user();
+
+        if (! $user || (! $user->isFocalPerson() && ! $user->isDirector())) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $complaint = Complaint::accessibleBy($user)
+            ->with([
+                'citizen',
+                'district',
+                'tehsil',
+                'department',
+                'subDepartment',
+                'category.parent',
+                'channel',
+                'attachments',
+                'assignedFp',
+                'clubbedEntry.primaryComplaint',
+                'investigations.focalPerson',
+                'investigations.assignedOfficer',
+                'clubbedChildren',
+            ])
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($complaint->stage !== 'investigation_by_department') {
+            abort(403, 'Action/Resolution is only available for complaints currently under investigation.');
+        }
+
+        $departments = \App\Models\Department::where('id', '!=', $complaint->department_id)->get(['id', 'name']);
+        
+        $latestReassignmentRequest = \App\Models\ComplaintReassignmentRequest::where('complaint_id', $complaint->id)
+            ->latest()
+            ->first();
+
+        return Inertia::render('FocalPerson/ComplaintResolve', [
+            'complaint' => $complaint,
+            'departments' => $departments,
+            'latestReassignmentRequest' => $latestReassignmentRequest,
+        ]);
+    }
+
+    /**
+     * Add a progress note to the investigation log.
+     */
+    public function addProgressNote(Request $request, int $id): RedirectResponse
+    {
+        $user = $request->user();
+        $complaint = Complaint::accessibleBy($user)->where('id', $id)->firstOrFail();
+
+        $request->validate([
+            'notes' => 'required|string|max:1000',
+        ]);
+
+        ComplaintInvestigation::create([
+            'complaint_id' => $complaint->id,
+            'fp_id' => $user->id,
+            'investigation_type' => 'progress_note',
+            'notes' => $request->notes,
+        ]);
+
+        return back()->with('success', 'Progress note added successfully.');
+    }
+
+    /**
+     * Submit the resolution action (Resolve / Reject / Escalate).
+     */
+    public function resolve(Request $request, int $id): RedirectResponse
+    {
+        $user = $request->user();
+        $complaint = Complaint::accessibleBy($user)->where('id', $id)->firstOrFail();
+
+        $request->validate([
+            'resolution_status' => 'required|in:resolved,rejected,escalated',
+            'action_summary' => 'required|string|min:100|max:2000',
+            'attachment' => 'required|file|max:10240',
+        ]);
+
+        DB::transaction(function () use ($complaint, $request, $user) {
+            $status = $request->resolution_status;
+
+            if ($request->hasFile('attachment')) {
+                $path = $request->file('attachment')->store('complaint_attachments', 'public');
+                \App\Models\ComplaintAttachment::create([
+                    'complaint_id' => $complaint->id,
+                    'file_path' => $path,
+                    'file_type' => $request->file('attachment')->getMimeType(),
+                    'uploaded_by_type' => 'focal_person',
+                    'uploaded_by_user_id' => $user->id,
+                ]);
+            }
+            
+            // Apply resolution to this complaint
+            $this->applyResolution($complaint, $user, $status, $request->action_summary);
+
+            // Cascade to clubbed children if any
+            if ($complaint->clubbedChildren()->exists()) {
+                foreach ($complaint->clubbedChildren as $child) {
+                    $this->applyResolution($child->clubbedComplaint, $user, $status, $request->action_summary);
+                }
+            }
+        });
+
+        return redirect()->route('fp.dashboard')->with('success', 'Complaint action recorded successfully.');
+    }
+
+    private function applyResolution(Complaint $complaint, User $user, string $status, string $summary): void
+    {
+        \App\Models\ComplaintAction::create([
+            'complaint_id' => $complaint->id,
+            'fp_id' => $user->id,
+            'resolution_status' => $status,
+            'action_summary' => $summary,
+        ]);
+
+        if ($status === 'escalated') {
+            $complaint->stage = 'investigation_by_department'; // keep it here
+        } else {
+            $complaint->stage = 'updated_info';
+        }
+        $complaint->save();
+
+        ComplaintStatusHistory::create([
+            'complaint_id' => $complaint->id,
+            'stage' => $complaint->stage,
+            'status_detail' => "Resolution action: {$status}",
+            'changed_by' => $user->id,
+            'changed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Submit a reassignment request to move the complaint to another department.
+     */
+    public function requestReassignment(Request $request, int $id): RedirectResponse
+    {
+        $user = $request->user();
+        $complaint = Complaint::accessibleBy($user)->where('id', $id)->firstOrFail();
+
+        $request->validate([
+            'to_department_id' => 'required|exists:departments,id|different:department_id',
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        \App\Models\ComplaintReassignmentRequest::create([
+            'complaint_id' => $complaint->id,
+            'requested_by' => $user->id,
+            'from_department_id' => $complaint->department_id,
+            'to_department_id' => $request->to_department_id,
+            'reason' => $request->reason,
+            'status' => 'pending',
+        ]);
+
+        return back()->with('success', 'Reassignment request submitted successfully and is pending Director approval.');
     }
 }

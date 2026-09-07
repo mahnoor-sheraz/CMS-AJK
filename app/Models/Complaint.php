@@ -141,6 +141,11 @@ class Complaint extends Model
         return $this->hasOne(ComplaintClub::class, 'clubbed_complaint_id');
     }
 
+    public function clubbedChildren(): HasMany
+    {
+        return $this->hasMany(ComplaintClub::class, 'primary_complaint_id');
+    }
+
     public function similarityMatches(): HasMany
     {
         return $this->hasMany(ComplaintSimilarityMatch::class, 'complaint_id');

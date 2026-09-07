@@ -129,6 +129,16 @@ class FocalPersonInvestigationTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_first_investigation_only_reachable_when_stage_is_application_submission(): void
+    {
+        $complaint = $this->createComplaint($this->deptHealth, 'Investigated Complaint');
+        $complaint->update(['stage' => 'investigation_by_department']);
+
+        $response = $this->actingAs($this->healthFp)->get("/fp/complaints/{$complaint->id}/investigate");
+
+        $response->assertStatus(403);
+    }
+
     // ==========================================
     // 2. AI Duplicate Suggestion Review
     // ==========================================

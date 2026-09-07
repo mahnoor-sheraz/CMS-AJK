@@ -44,6 +44,14 @@ Route::middleware(['auth', 'role:focal_person,director'])->prefix('fp')->group(f
     Route::post('/complaints/{id}/duplicates/{matchId}/confirm', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'confirmDuplicate'])->name('fp.complaints.duplicates.confirm');
     Route::post('/complaints/{id}/duplicates/{matchId}/dismiss', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'dismissDuplicate'])->name('fp.complaints.duplicates.dismiss');
     Route::post('/complaints/{id}/classify', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'classify'])->name('fp.complaints.classify');
+    
+    // Action/Resolution Screen (Module 4)
+    Route::get('/complaints/{id}/resolve', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'resolveForm'])->name('fp.complaints.resolve');
+    Route::post('/complaints/{id}/progress-note', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'addProgressNote'])->name('fp.complaints.progress-note');
+    Route::post('/complaints/{id}/resolve', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'resolve'])->name('fp.complaints.resolve.store');
+    
+    // Reassignment (Module 4)
+    Route::post('/complaints/{id}/reassign', [\App\Http\Controllers\FocalPerson\FocalPersonInvestigationController::class, 'requestReassignment'])->name('fp.complaints.reassign');
 });
 
 Route::middleware('auth')->group(function () {

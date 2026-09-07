@@ -537,6 +537,11 @@ export default function FocalPersonDashboard({
                                             <span className="text-xs text-gray-500">
                                                 Reason: {req.reason} • By: {req.requester?.name}
                                             </span>
+                                            {req.status === 'rejected' && req.review_notes && (
+                                                <div className="text-xs text-rose-600 dark:text-rose-400 mt-1">
+                                                    <strong>Director Note:</strong> {req.review_notes}
+                                                </div>
+                                            )}
                                         </div>
                                         <span className={`px-2 py-0.5 text-xs rounded font-semibold ${
                                             req.status === 'pending'
