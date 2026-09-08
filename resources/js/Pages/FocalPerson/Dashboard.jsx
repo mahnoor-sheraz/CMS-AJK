@@ -1,6 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import Modal from '@/Components/Modal';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
+import TextInput from '@/Components/TextInput';
 
 export default function FocalPersonDashboard({
     department = null,
@@ -11,6 +17,7 @@ export default function FocalPersonDashboard({
     categories = [],
     districts = [],
     tehsils = [],
+    departments = [],
     filters = {},
 }) {
     const [search, setSearch] = useState(filters.search || '');
@@ -21,6 +28,29 @@ export default function FocalPersonDashboard({
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [hasDuplicate, setHasDuplicate] = useState(Boolean(filters.has_duplicate));
+
+    const [reassigningComplaint, setReassigningComplaint] = useState(null);
+    const { data: reassignData, setData: setReassignData, post: postReassign, processing: reassignProcessing, errors: reassignErrors, reset: resetReassign } = useForm({
+        to_department_id: '',
+        reason: '',
+    });
+
+    const openReassignModal = (e, complaint) => {
+        e.stopPropagation();
+        setReassigningComplaint(complaint);
+        resetReassign();
+    };
+
+    const submitReassignment = (e) => {
+        e.preventDefault();
+        postReassign(route('fp.complaints.reassign', reassigningComplaint.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setReassigningComplaint(null);
+                resetReassign();
+            },
+        });
+    };
 
     // Filter tehsils based on selected district
     const availableTehsils = districtId
@@ -363,6 +393,7 @@ export default function FocalPersonDashboard({
                                         <th className="px-5 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Submitted Date</th>
                                         <th className="px-5 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Current Stage</th>
                                         <th className="px-5 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Days Open</th>
+                                        <th className="px-5 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -437,10 +468,12 @@ export default function FocalPersonDashboard({
                                                 <span
                                                     className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
                                                         c.stage === 'application_submission'
-                                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300'
+                                                            ? 'bg-[#8C8C8C]/10 text-[#8C8C8C] border border-[#8C8C8C]/20'
                                                             : c.stage === 'investigation_by_department'
-                                                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-300'
-                                                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300'
+                                                            ? 'bg-pmcc-accent/10 text-pmcc-accent border border-pmcc-accent/20'
+                                                            : (c.stage === 'updated_info' || c.stage === 'resolved')
+                                                            ? 'bg-[#2E7D32]/10 text-[#2E7D32] border border-[#2E7D32]/20'
+                                                            : 'bg-[#C0392B]/10 text-[#C0392B] border border-[#C0392B]/20'
                                                     }`}
                                                 >
                                                     {formatStage(c.stage)}
@@ -466,12 +499,25 @@ export default function FocalPersonDashboard({
                                                     </span>
                                                 )}
                                             </td>
+
+                                            {/* Column 8: Actions */}
+                                            <td className="px-5 py-3 text-center">
+                                                {!c.has_pending_reassignment && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => openReassignModal(e, c)}
+                                                        className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150"
+                                                    >
+                                                        Reassign
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
 
                                     {complaints.length === 0 && (
                                         <tr>
-                                            <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                                            <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                                                 <div className="text-2xl mb-1">📭</div>
                                                 <p className="text-sm font-medium">No complaints found matching current filters.</p>
                                                 {hasActiveFilters && (
@@ -562,6 +608,56 @@ export default function FocalPersonDashboard({
                     </div>
                 </div>
             </div>
+
+            <Modal show={reassigningComplaint !== null} onClose={() => setReassigningComplaint(null)}>
+                <form onSubmit={submitReassignment} className="p-6">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        Request Reassignment for #{reassigningComplaint?.complaint_number}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Select the correct department and explain why this complaint should be reassigned. This request will be sent to your Director for approval.
+                    </p>
+
+                    <div className="mt-6 space-y-4">
+                        <div>
+                            <InputLabel htmlFor="to_department_id" value="Destination Department" />
+                            <select
+                                id="to_department_id"
+                                value={reassignData.to_department_id}
+                                onChange={(e) => setReassignData('to_department_id', e.target.value)}
+                                className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-emerald-500 dark:focus:border-emerald-600 focus:ring-emerald-500 dark:focus:ring-emerald-600 rounded-md shadow-sm"
+                                required
+                            >
+                                <option value="" disabled>Select department</option>
+                                {departments.map(dept => (
+                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                ))}
+                            </select>
+                            <InputError message={reassignErrors.to_department_id} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="reason" value="Reason for Reassignment" />
+                            <textarea
+                                id="reason"
+                                value={reassignData.reason}
+                                onChange={(e) => setReassignData('reason', e.target.value)}
+                                className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-emerald-500 dark:focus:border-emerald-600 focus:ring-emerald-500 dark:focus:ring-emerald-600 rounded-md shadow-sm min-h-[100px]"
+                                placeholder="Explain why this belongs to the selected department..."
+                                required
+                            />
+                            <InputError message={reassignErrors.reason} className="mt-2" />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setReassigningComplaint(null)}>Cancel</SecondaryButton>
+                        <PrimaryButton disabled={reassignProcessing}>
+                            Submit Request
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

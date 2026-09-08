@@ -122,7 +122,7 @@ export default function FocalPersonComplaintResolve({
                                     Request Reassignment
                                 </button>
                             ) : (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pmcc-accent/10 text-pmcc-accent">
                                     Reassignment Pending
                                 </span>
                             )}

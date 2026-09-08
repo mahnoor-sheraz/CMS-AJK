@@ -119,7 +119,7 @@ export default function FocalPersonInvestigate({
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-[#8C8C8C]/10 text-[#8C8C8C] border border-[#8C8C8C]/20">
                             Stage: Received (Triage)
                         </span>
                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">

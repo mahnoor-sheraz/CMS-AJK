@@ -66,23 +66,19 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
     const getStatusInfo = (status) => {
         switch (status) {
             case 'submitted':
-                return { label: t('statusSubmitted'), bg: 'bg-blue-100 text-blue-800 border-blue-300' };
+                return { label: t('statusSubmitted'), bg: 'bg-[#8C8C8C]/10 text-[#8C8C8C] border-[#8C8C8C]/20' };
             case 'under_investigation':
-                return { label: t('statusUnderInvestigation'), bg: 'bg-amber-100 text-amber-800 border-amber-300' };
             case 'pending_field_visit':
-                return { label: t('statusPendingFieldVisit'), bg: 'bg-purple-100 text-purple-800 border-purple-300' };
-            case 'clubbed':
-                return { label: t('statusClubbed'), bg: 'bg-slate-100 text-slate-800 border-slate-300' };
             case 'forwarded_external':
-                return { label: t('statusForwardedExternal'), bg: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+            case 'clubbed':
+                return { label: t('statusUnderInvestigation'), bg: 'bg-pmcc-accent/10 text-pmcc-accent border-pmcc-accent/20' };
             case 'not_resolvable':
-                return { label: t('statusNotResolvable'), bg: 'bg-orange-100 text-orange-800 border-orange-300' };
-            case 'resolved':
-                return { label: t('statusResolved'), bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
             case 'rejected':
-                return { label: t('statusRejected'), bg: 'bg-red-100 text-red-800 border-red-300' };
+                return { label: t('statusRejected'), bg: 'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/20' };
+            case 'resolved':
+                return { label: t('statusResolved'), bg: 'bg-[#2E7D32]/10 text-[#2E7D32] border-[#2E7D32]/20' };
             default:
-                return { label: status, bg: 'bg-slate-100 text-slate-800 border-slate-300' };
+                return { label: status, bg: 'bg-[#8C8C8C]/10 text-[#8C8C8C] border-[#8C8C8C]/20' };
         }
     };
 

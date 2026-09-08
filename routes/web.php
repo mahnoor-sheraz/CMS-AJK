@@ -14,6 +14,9 @@ Route::prefix('complaints')->group(function () {
     Route::get('/confirmation/{complaint_number}', [PublicComplaintController::class, 'confirmation'])->name('complaints.confirmation');
     Route::get('/track', [PublicComplaintController::class, 'trackForm'])->name('complaints.track');
     Route::post('/track', [PublicComplaintController::class, 'track'])->name('complaints.track.search');
+    
+    // API endpoint for returning citizen pre-fill
+    Route::get('/api/citizen/{cnic}', [PublicComplaintController::class, 'getCitizenByCnic'])->name('complaints.api.citizen');
 });
 
 // Auth Dashboards

@@ -172,6 +172,8 @@ class FocalPersonDashboardController extends Controller
         $districts = District::select(['id', 'name'])->orderBy('name')->get();
         $tehsils = Tehsil::select(['id', 'district_id', 'name'])->orderBy('name')->get();
 
+        $departments = \App\Models\Department::where('id', '!=', $user->department_id)->get(['id', 'name']);
+
         return Inertia::render('FocalPerson/Dashboard', [
             'department' => $user->department,
             'metrics' => $metrics,
@@ -181,6 +183,7 @@ class FocalPersonDashboardController extends Controller
             'categories' => $categories,
             'districts' => $districts,
             'tehsils' => $tehsils,
+            'departments' => $departments,
             'filters' => [
                 'search' => $request->input('search', ''),
                 'status' => $request->input('status', ''),

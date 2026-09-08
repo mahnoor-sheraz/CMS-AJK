@@ -2,6 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
+import { IMaskInput } from 'react-imask';
+import Select from 'react-select';
 
 export default function ComplaintSubmit({ districts: rawDistricts = [], departments: rawDepartments = [] }) {
     const { lang, t } = useLanguage();
@@ -113,6 +115,44 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
+    };
+    
+    // Auto-fill Citizen info on CNIC blur
+    const handleCnicBlur = async () => {
+        const cleanCnic = data.cnic.replace(/[^0-9]/g, '');
+        if (cleanCnic.length === 13) {
+            try {
+                const response = await fetch(`/complaints/api/citizen/${cleanCnic}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result) {
+                        setData(prev => ({
+                            ...prev,
+                            name: prev.name || result.name || '',
+                            mobile_number: prev.mobile_number || result.mobile_number || '',
+                            gender: prev.gender || result.gender || '',
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch citizen info:', err);
+            }
+        }
+    };
+    
+    // Custom styles for React-Select
+    const selectStyles = {
+        control: (base, state) => ({
+            ...base,
+            minHeight: '3rem',
+            borderRadius: '0.75rem',
+            borderColor: state.isFocused ? '#10b981' : (state.selectProps.hasError ? '#ef4444' : '#cbd5e1'),
+            backgroundColor: state.selectProps.hasError ? 'rgba(254, 242, 242, 0.2)' : '#ffffff',
+            boxShadow: state.isFocused ? (state.selectProps.hasError ? '0 0 0 2px rgba(248, 113, 113, 0.5)' : '0 0 0 2px rgba(52, 211, 153, 0.5)') : 'none',
+            '&:hover': {
+                borderColor: state.selectProps.hasError ? '#ef4444' : '#10b981'
+            }
+        })
     };
 
     // Handle District change
@@ -713,13 +753,14 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelCnic')} <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    dir="ltr"
+                                <IMaskInput
+                                    mask="00000-0000000-0"
                                     value={data.cnic}
-                                    maxLength={13}
-                                    onChange={(e) => setData('cnic', e.target.value.replace(/[^0-9]/g, ''))}
-                                    placeholder={t('placeholderCnic')}
+                                    dir="ltr"
+                                    unmask={true}
+                                    onAccept={(value) => setData('cnic', value)}
+                                    onBlur={handleCnicBlur}
+                                    placeholder="00000-0000000-0"
                                     className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                         errors.cnic ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                     }`}
@@ -732,13 +773,13 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelMobile')} <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    dir="ltr"
+                                <IMaskInput
+                                    mask="0000-0000000"
                                     value={data.mobile_number}
-                                    maxLength={11}
-                                    onChange={(e) => setData('mobile_number', e.target.value.replace(/[^0-9]/g, ''))}
-                                    placeholder={t('placeholderMobile')}
+                                    dir="ltr"
+                                    unmask={true}
+                                    onAccept={(value) => setData('mobile_number', value)}
+                                    placeholder="0300-0000000"
                                     className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
                                         errors.mobile_number ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
                                     }`}
@@ -751,17 +792,18 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelGender')}
                                 </label>
-                                <select
-                                    value={data.gender}
-                                    onChange={(e) => setData('gender', e.target.value)}
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.gender ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                >
-                                    <option value="">{t('selectGender')}</option>
-                                    <option value="male">{t('optMale')}</option>
-                                    <option value="female">{t('optFemale')}</option>
-                                </select>
+                                <Select
+                                    styles={selectStyles}
+                                    hasError={!!errors.gender}
+                                    options={[
+                                        { value: 'male', label: t('optMale') },
+                                        { value: 'female', label: t('optFemale') }
+                                    ]}
+                                    value={data.gender ? { value: data.gender, label: data.gender === 'male' ? t('optMale') : t('optFemale') } : null}
+                                    onChange={(selectedOption) => setData('gender', selectedOption ? selectedOption.value : '')}
+                                    placeholder={t('selectGender')}
+                                    isClearable
+                                />
                                 {errors.gender && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.gender}</p>}
                             </div>
                         </div>
@@ -796,20 +838,15 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelDistrict')} <span className="text-red-500">*</span>
                                 </label>
-                                <select
-                                    value={data.district_id}
-                                    onChange={handleDistrictChange}
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.district_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                >
-                                    <option value="">{t('selectDistrict')}</option>
-                                    {districts.map((d) => (
-                                        <option key={d.id} value={d.id}>
-                                            {lang === 'ur' ? d.name_ur || d.name : d.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <Select
+                                    styles={selectStyles}
+                                    hasError={!!errors.district_id}
+                                    options={districts.map(d => ({ value: d.id, label: lang === 'ur' ? d.name_ur || d.name : d.name }))}
+                                    value={data.district_id ? { value: data.district_id, label: districts.find(d => String(d.id) === String(data.district_id)) ? (lang === 'ur' ? districts.find(d => String(d.id) === String(data.district_id)).name_ur || districts.find(d => String(d.id) === String(data.district_id)).name : districts.find(d => String(d.id) === String(data.district_id)).name) : '' } : null}
+                                    onChange={(selectedOption) => handleDistrictChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
+                                    placeholder={t('selectDistrict')}
+                                    isClearable
+                                />
                                 {errors.district_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.district_id}</p>}
                             </div>
 
@@ -818,24 +855,16 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelTehsil')} <span className="text-red-500">*</span>
                                 </label>
-                                <select
-                                    value={data.tehsil_id}
-                                    onChange={(e) => setData('tehsil_id', e.target.value)}
-                                    disabled={!data.district_id}
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        !data.district_id ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' :
-                                        errors.tehsil_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                >
-                                    <option value="">
-                                        {data.district_id ? t('selectTehsilActive') : t('selectTehsil')}
-                                    </option>
-                                    {availableTehsils.map((tItem) => (
-                                        <option key={tItem.id} value={tItem.id}>
-                                            {lang === 'ur' ? tItem.name_ur || tItem.name : tItem.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <Select
+                                    styles={selectStyles}
+                                    hasError={!!errors.tehsil_id}
+                                    isDisabled={!data.district_id}
+                                    options={availableTehsils.map(tItem => ({ value: tItem.id, label: lang === 'ur' ? tItem.name_ur || tItem.name : tItem.name }))}
+                                    value={data.tehsil_id ? { value: data.tehsil_id, label: availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)) ? (lang === 'ur' ? availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name_ur || availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name : availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name) : '' } : null}
+                                    onChange={(selectedOption) => setData('tehsil_id', selectedOption ? selectedOption.value : '')}
+                                    placeholder={data.district_id ? t('selectTehsilActive') : t('selectTehsil')}
+                                    isClearable
+                                />
                                 {errors.tehsil_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.tehsil_id}</p>}
                             </div>
                         </div>
@@ -879,21 +908,18 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                     {t('labelDepartment')} <span className="text-red-500">*</span>
                                 </label>
-                                <select
-                                    value={data.department_id}
-                                    onChange={handleDepartmentChange}
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.department_id ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                >
-                                    <option value="">{t('selectDepartment')}</option>
-                                    {departments.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>
-                                            {lang === 'ur' ? dept.name_ur || dept.name : dept.name}
-                                        </option>
-                                    ))}
-                                    <option value="other">{t('optOther')}</option>
-                                </select>
+                                <Select
+                                    styles={selectStyles}
+                                    hasError={!!errors.department_id}
+                                    options={[
+                                        ...departments.map(dept => ({ value: dept.id, label: lang === 'ur' ? dept.name_ur || dept.name : dept.name })),
+                                        { value: 'other', label: t('optOther') }
+                                    ]}
+                                    value={data.department_id ? { value: data.department_id, label: data.department_id === 'other' ? t('optOther') : (departments.find(dept => String(dept.id) === String(data.department_id)) ? (lang === 'ur' ? departments.find(dept => String(dept.id) === String(data.department_id)).name_ur || departments.find(dept => String(dept.id) === String(data.department_id)).name : departments.find(dept => String(dept.id) === String(data.department_id)).name) : '') } : null}
+                                    onChange={(selectedOption) => handleDepartmentChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
+                                    placeholder={t('selectDepartment')}
+                                    isClearable
+                                />
                                 {errors.department_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.department_id}</p>}
                             </div>
 
@@ -903,18 +929,14 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                         {t('labelSubDepartment')}
                                     </label>
-                                    <select
-                                        value={data.sub_department_id}
-                                        onChange={(e) => setData('sub_department_id', e.target.value)}
-                                        className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
-                                    >
-                                        <option value="">{t('selectSubDepartment')}</option>
-                                        {availableSubDepartments.map((sd) => (
-                                            <option key={sd.id} value={sd.id}>
-                                                {lang === 'ur' ? sd.name_ur || sd.name : sd.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <Select
+                                        styles={selectStyles}
+                                        options={availableSubDepartments.map(sd => ({ value: sd.id, label: lang === 'ur' ? sd.name_ur || sd.name : sd.name }))}
+                                        value={data.sub_department_id ? { value: data.sub_department_id, label: availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)) ? (lang === 'ur' ? availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name_ur || availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name : availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name) : '' } : null}
+                                        onChange={(selectedOption) => setData('sub_department_id', selectedOption ? selectedOption.value : '')}
+                                        placeholder={t('selectSubDepartment')}
+                                        isClearable
+                                    />
                                 </div>
                             )}
 
@@ -924,19 +946,17 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                         {t('labelCategory')}
                                     </label>
-                                    <select
-                                        value={data.category_id}
-                                        onChange={handleCategoryChange}
-                                        className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
-                                    >
-                                        <option value="">{t('selectCategory')}</option>
-                                        {availableCategories.map((cat) => (
-                                            <option key={cat.id} value={cat.id}>
-                                                {lang === 'ur' ? cat.name_ur || cat.name : cat.name}
-                                            </option>
-                                        ))}
-                                        <option value="other">{t('optOther')}</option>
-                                    </select>
+                                    <Select
+                                        styles={selectStyles}
+                                        options={[
+                                            ...availableCategories.map(cat => ({ value: cat.id, label: lang === 'ur' ? cat.name_ur || cat.name : cat.name })),
+                                            { value: 'other', label: t('optOther') }
+                                        ]}
+                                        value={data.category_id ? { value: data.category_id, label: data.category_id === 'other' ? t('optOther') : (availableCategories.find(cat => String(cat.id) === String(data.category_id)) ? (lang === 'ur' ? availableCategories.find(cat => String(cat.id) === String(data.category_id)).name_ur || availableCategories.find(cat => String(cat.id) === String(data.category_id)).name : availableCategories.find(cat => String(cat.id) === String(data.category_id)).name) : '') } : null}
+                                        onChange={(selectedOption) => handleCategoryChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
+                                        placeholder={t('selectCategory')}
+                                        isClearable
+                                    />
                                 </div>
                             )}
 
@@ -946,18 +966,14 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
                                         {t('labelSubCategory')}
                                     </label>
-                                    <select
-                                        value={data.sub_category_id}
-                                        onChange={(e) => setData('sub_category_id', e.target.value)}
-                                        className="w-full h-12 rounded-xl border border-slate-300 px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
-                                    >
-                                        <option value="">{t('selectSubCategory')}</option>
-                                        {availableSubCategories.map((sc) => (
-                                            <option key={sc.id} value={sc.id}>
-                                                {lang === 'ur' ? sc.name_ur || sc.name : sc.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <Select
+                                        styles={selectStyles}
+                                        options={availableSubCategories.map(sc => ({ value: sc.id, label: lang === 'ur' ? sc.name_ur || sc.name : sc.name }))}
+                                        value={data.sub_category_id ? { value: data.sub_category_id, label: availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)) ? (lang === 'ur' ? availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name_ur || availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name : availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name) : '' } : null}
+                                        onChange={(selectedOption) => setData('sub_category_id', selectedOption ? selectedOption.value : '')}
+                                        placeholder={t('selectSubCategory')}
+                                        isClearable
+                                    />
                                 </div>
                             )}
                         </div>

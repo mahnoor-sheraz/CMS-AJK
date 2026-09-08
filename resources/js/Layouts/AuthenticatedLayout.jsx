@@ -12,14 +12,24 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
+        <div className="min-h-screen bg-pmcc-bg-fp font-sans text-pmcc-text-main">
+            <nav className="border-b border-pmcc-primary-hover bg-pmcc-primary text-white shadow-sm sticky top-0 z-40">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
+                                <Link href="/fp/dashboard" className="flex items-center gap-3.5 group py-1">
+                                    <div className="relative flex items-center justify-center w-12 h-12 bg-pmcc-primary-hover border border-pmcc-primary-hover rounded-md shadow-inner text-[10px] text-pmcc-accent-muted">
+                                        Logo
+                                    </div>
+                                    <div className="hidden sm:flex flex-col">
+                                        <span className="font-extrabold text-sm sm:text-lg tracking-tight text-white transition-colors drop-shadow-sm">
+                                            PMCC
+                                        </span>
+                                        <span className="text-[10px] text-pmcc-accent-muted font-medium flex items-center gap-1">
+                                            وزیراعظم رابطہ مرکز
+                                        </span>
+                                    </div>
                                 </Link>
                             </div>
 
@@ -161,6 +171,14 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
                 </div>
             </nav>
+
+            <div className="bg-pmcc-primary w-full overflow-hidden leading-none z-30 relative">
+                <svg viewBox="0 0 400 46" preserveAspectRatio="none" className="w-full h-4 sm:h-6 block">
+                  <path d="M0,46 C50,30 90,34 130,24 C160,17 175,10 195,10 C215,10 225,20 245,26 C275,35 310,28 340,32 C365,35 385,30 400,26 L400,46 Z" fill="#ffffff" opacity="0.08"/>
+                  <path d="M0,46 C30,36 60,38 90,30 C115,24 135,14 160,14 C180,14 190,24 208,30 L230,20 C245,13 258,16 270,24 C290,37 320,30 350,34 C370,36 388,32 400,30 L400,46 Z" fill="#ffffff" opacity="0.14"/>
+                  <path d="M195,10 L200,4 L205,10" fill="none" stroke="#ffffff" strokeWidth="1.2" opacity="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+            </div>
 
             {header && (
                 <header className="bg-white shadow">

@@ -279,4 +279,25 @@ class PublicComplaintController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Look up returning citizen details by CNIC to pre-fill the form.
+     */
+    public function getCitizenByCnic($cnic)
+    {
+        // Add basic masking/cleaning if needed, assuming exact match for now
+        $complaint = Complaint::where('cnic', $cnic)
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        if ($complaint) {
+            return response()->json([
+                'name' => $complaint->name,
+                'mobile_number' => $complaint->mobile_number,
+                'gender' => $complaint->gender,
+            ]);
+        }
+        
+        return response()->json(null, 404);
+    }
 }
