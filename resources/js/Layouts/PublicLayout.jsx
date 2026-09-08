@@ -22,8 +22,8 @@ function PublicLayoutContent({ children }) {
                     <div className="flex items-center justify-between h-20">
                         {/* Branding Logo & Title with Official AJK Flag */}
                         <Link href="/complaints/new" className="flex items-center gap-3.5 group py-1">
-                            <div className="relative flex items-center justify-center w-14 h-14 bg-pmcc-primary-hover border border-pmcc-primary-hover rounded-md shadow-inner text-xs text-pmcc-accent-muted">
-                                Logo
+                            <div className="relative flex items-center justify-center w-14 h-14 bg-pmcc-primary-hover rounded-md shadow-inner">
+                                <img src="/images/ajk-logo.png" alt="AJK Logo" className="w-10 h-10 object-contain drop-shadow-md" />
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-extrabold text-base sm:text-xl tracking-tight text-white transition-colors drop-shadow-sm">

@@ -19,8 +19,8 @@ export default function AuthenticatedLayout({ header, children }) {
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
                                 <Link href="/fp/dashboard" className="flex items-center gap-3.5 group py-1">
-                                    <div className="relative flex items-center justify-center w-12 h-12 bg-pmcc-primary-hover border border-pmcc-primary-hover rounded-md shadow-inner text-[10px] text-pmcc-accent-muted">
-                                        Logo
+                                    <div className="relative flex items-center justify-center w-12 h-12 bg-pmcc-primary-hover rounded-md shadow-inner">
+                                        <img src="/images/ajk-logo.png" alt="AJK Logo" className="w-8 h-8 object-contain drop-shadow-md" />
                                     </div>
                                     <div className="hidden sm:flex flex-col">
                                         <span className="font-extrabold text-sm sm:text-lg tracking-tight text-white transition-colors drop-shadow-sm">
