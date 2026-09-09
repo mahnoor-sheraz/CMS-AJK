@@ -290,9 +290,19 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             )}
                         </p>
                         <h1 id="page-title">
-                            {label("Let's get your", 'آئیے آپ کی')}
-                            <br />
-                            <em>{label('voice heard.', 'آواز سنوائیں۔')}</em>
+                            {isRtl ? (
+                                <>
+                                    آپ کی بات،
+                                    <br />
+                                    <em>براہِ راست وزیرِ اعظم تک</em>
+                                </>
+                            ) : (
+                                <>
+                                    Let&apos;s get your
+                                    <br />
+                                    <em>voice heard.</em>
+                                </>
+                            )}
                         </h1>
                     </div>
                     <p className="intro-copy">
