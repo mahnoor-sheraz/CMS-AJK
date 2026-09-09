@@ -64,7 +64,7 @@ export default function FocalPersonComplaintResolve({
             <Head title={`Resolve ${complaint.complaint_number}`} />
 
             <div className="py-12">
-                <div className="max-w-[1600px] mx-auto sm:px-6 lg:px-8 space-y-6">
+                <div className="w-full max-w-screen-2xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
                     {latestReassignmentRequest && latestReassignmentRequest.status === 'rejected' && (
                         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-4">

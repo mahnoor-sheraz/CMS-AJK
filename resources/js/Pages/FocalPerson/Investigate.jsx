@@ -144,7 +144,7 @@ export default function FocalPersonInvestigate({
             <Head title={`First Investigation - ${complaint.complaint_number}`} />
 
             <div className="py-8">
-                <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 space-y-8">
+                <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8 space-y-8">
                     {latestReassignmentRequest && latestReassignmentRequest.status === 'rejected' && (
                         <div className="bg-rose-50 dark:bg-rose-900/30 border-l-4 border-rose-500 p-4 rounded-md">
                             <div className="flex">

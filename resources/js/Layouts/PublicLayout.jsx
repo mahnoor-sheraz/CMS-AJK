@@ -18,7 +18,7 @@ function PublicLayoutContent({ children }) {
 
             {/* Top Navigation Bar */}
             <header className="bg-pmcc-primary text-white shadow-sm border-b border-pmcc-primary-hover sticky top-2 sm:top-2.5 z-40">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
                         {/* Branding Logo & Title with Official AJK Flag */}
                         <Link href="/complaints/new" className="flex items-center gap-3.5 group py-1">
@@ -105,7 +105,7 @@ function PublicLayoutContent({ children }) {
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-grow flex flex-col justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto w-full relative z-10">
+            <main className="flex-grow flex flex-col justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 w-full max-w-screen-2xl mx-auto w-full relative z-10">
                 {children}
             </main>
 
@@ -114,7 +114,7 @@ function PublicLayoutContent({ children }) {
 
             {/* Footer with AJK Identity */}
             <footer className="bg-gradient-to-b from-pmcc-primary-hover to-pmcc-primary text-pmcc-bg-citizen border-t border-pmcc-accent text-center py-7 text-xs sm:text-sm">
-                <div className="max-w-[1600px] mx-auto px-4 flex flex-col items-center justify-center gap-2.5">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 flex flex-col items-center justify-center gap-2.5">
                     <div className="flex items-center gap-2">
                         <AjkFlag className="w-6 h-4" />
                         <span className="font-bold text-pmcc-accent tracking-wide">
