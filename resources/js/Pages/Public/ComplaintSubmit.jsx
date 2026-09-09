@@ -595,7 +595,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             />
 
             {/* Header Banner with AJK Badge */}
-            <div className="mb-6 text-center max-w-7xl mx-auto">
+            <div className="mb-6 text-center max-w-[1600px] mx-auto">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-amber-400/80 text-[#034d28] text-xs font-bold mb-3 shadow-xs">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                     <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — عوامی شکایات پورٹل' : 'Govt of Azad Jammu & Kashmir — Citizen Grievance Portal'}</span>
@@ -610,7 +610,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             </div>
 
             {/* 4-STEP WIZARD PROGRESS INDICATOR (Visually Distinct Segmented Pill Design) */}
-            <div className="max-w-7xl mx-auto mb-8 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-sm border border-emerald-900/10">
+            <div className="max-w-[1600px] mx-auto mb-8 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-sm border border-emerald-900/10">
                 {/* Active Step Status Label */}
                 <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
@@ -688,7 +688,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
             {/* Error Banners */}
             {errors.general && (
-                <div className="mb-6 max-w-7xl mx-auto relative overflow-hidden bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-2 border-red-400 text-red-950 p-5 rounded-2xl shadow-md flex items-start gap-4 animate-shake">
+                <div className="mb-6 max-w-[1600px] mx-auto relative overflow-hidden bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-2 border-red-400 text-red-950 p-5 rounded-2xl shadow-md flex items-start gap-4 animate-shake">
                     <div className="p-2.5 bg-red-500 text-white rounded-xl shrink-0 shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -706,7 +706,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             )}
 
             {errors.rate_limit && (
-                <div className="mb-6 max-w-7xl mx-auto p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-sm">
+                <div className="mb-6 max-w-[1600px] mx-auto p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -718,7 +718,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             )}
 
             {/* FORM BODY CONTAINER */}
-            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-6">
+            <form onSubmit={handleSubmit} className="max-w-[1600px] mx-auto space-y-6">
                 {/* ========================================================================= */}
                 {/* STEP 1: YOUR DETAILS */}
                 {/* ========================================================================= */}

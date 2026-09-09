@@ -142,7 +142,7 @@ export default function FocalPersonDashboard({
             <Head title={`Focal Person Dashboard - ${department?.name || 'Department'}`} />
 
             <div className="py-8">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+                <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 space-y-8">
                     {/* KPI Strip: Exactly 4 Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         {/* Card 1: New / Unassigned */}
