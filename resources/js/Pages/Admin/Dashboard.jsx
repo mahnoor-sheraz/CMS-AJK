@@ -28,7 +28,7 @@ export default function AdminDashboard({
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
                         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Total Grievances
+                                Total Complaints
                             </p>
                             <p className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
                                 {metrics.total_complaints ?? 0}
@@ -44,7 +44,7 @@ export default function AdminDashboard({
                         </div>
                         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                Resolved Grievances
+                                Resolved Complaints
                             </p>
                             <p className="mt-2 text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                                 {metrics.resolved_complaints ?? 0}
@@ -116,7 +116,7 @@ export default function AdminDashboard({
                         {/* Recent Complaints */}
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">
-                                Recent System Grievances
+                                Recent System Complaints
                             </h3>
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {recentComplaints.map((c) => (
@@ -138,7 +138,7 @@ export default function AdminDashboard({
                                     </div>
                                 ))}
                                 {recentComplaints.length === 0 && (
-                                    <p className="text-sm text-gray-500 py-4 text-center">No grievances recorded yet.</p>
+                                    <p className="text-sm text-gray-500 py-4 text-center">No complaints recorded yet.</p>
                                 )}
                             </div>
                         </div>

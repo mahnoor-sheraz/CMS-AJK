@@ -274,10 +274,10 @@ export default function FocalPersonInvestigate({
                             </div>
                         </div>
 
-                        {/* Grievance Narrative */}
+                        {/* Complaint Narrative */}
                         <div>
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                                Citizen Grievance Description
+                                Citizen Complaint Description
                             </span>
                             <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line">
                                 {complaint.details}
@@ -332,7 +332,7 @@ export default function FocalPersonInvestigate({
                                     </h3>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                    Review AI similarity candidates. Confirm duplicates to club under a master complaint, mark distinct grievances as not a duplicate, or skip to decide later.
+                                    Review AI similarity candidates. Confirm duplicates to club under a master complaint, mark distinct complaints as not a duplicate, or skip to decide later.
                                 </p>
                             </div>
                             <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
@@ -361,7 +361,7 @@ export default function FocalPersonInvestigate({
                                     No similar complaints found
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    No action required. This grievance does not match existing records.
+                                    No action required. This complaint does not match existing records.
                                 </p>
                             </div>
                         ) : (
@@ -514,10 +514,10 @@ export default function FocalPersonInvestigate({
                                 Section C • Classification Decision
                             </span>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mt-1">
-                                Select Grievance Triage Pathway
+                                Select Complaint Triage Pathway
                             </h3>
                             <p className="text-xs text-gray-500">
-                                Select exactly one pathway to formalize this grievance and advance it from triage stage.
+                                Select exactly one pathway to formalize this complaint and advance it from triage stage.
                             </p>
                             {errors.path && (
                                 <p className="text-xs text-rose-600 font-bold mt-2">{errors.path}</p>
@@ -550,7 +550,7 @@ export default function FocalPersonInvestigate({
                                         1. Handle Directly
                                     </h4>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Grievance falls under our departmental mandate. We will investigate and resolve internally.
+                                        Complaint falls under our departmental mandate. We will investigate and resolve internally.
                                     </p>
                                 </div>
                                 <span className="mt-4 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
@@ -582,10 +582,10 @@ export default function FocalPersonInvestigate({
                                         />
                                     </div>
                                     <h4 className="font-bold text-sm text-gray-900 dark:text-white mt-3">
-                                        2. Club with Existing Master Grievance
+                                        2. Club with Existing Master Complaint
                                     </h4>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Subsume this complaint under a verified master duplicate grievance.
+                                        Subsume this complaint under a verified master duplicate complaint.
                                     </p>
                                 </div>
                                 {!hasConfirmedDuplicate ? (
@@ -940,7 +940,7 @@ export default function FocalPersonInvestigate({
                         </div>
                         <div className="text-center space-y-1">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                Confirm as Duplicate Grievance?
+                                Confirm as Duplicate Complaint?
                             </h3>
                             <p className="text-xs text-gray-500 leading-relaxed">
                                 Confirming this will club complaint <strong>{complaint.complaint_number}</strong> under matched complaint <strong>{confirmingMatch.matched_complaint?.complaint_number || '#' + confirmingMatch.matched_complaint_id}</strong> before committing.

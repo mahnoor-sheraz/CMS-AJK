@@ -1,5 +1,22 @@
 export const translations = {
     ur: {
+        govTitle: 'حکومت آزاد جموں و کشمیر',
+        servicePortal: 'عوامی خدمت کا پورٹل · 24/7',
+        builtForCitizens: 'شہریوں کے لیے بنایا گیا',
+        letGetVoiceHeard: 'آئیے آپ کی آواز کو متعلقہ حکام تک پہنچائیں۔',
+        introCopy: 'اپنے بارے میں کچھ بتا کر شروع کریں۔ آپ کی معلومات محفوظ رکھی جاتی ہیں اور صرف آپ کی شکایت پر کارروائی کے لیے استعمال ہوتی ہیں۔',
+        step1Caption: 'آپ کون ہیں؟',
+        step2Caption: 'کہاں کا مسئلہ ہے؟',
+        step3Caption: 'کیا ہوا؟',
+        step4Caption: 'بھیجنے کے لیے تیار',
+        stepOne: 'پہلا قدم',
+        stepTwo: 'دوسرا قدم',
+        stepThree: 'تیسرا قدم',
+        stepFour: 'چوتھا قدم',
+        requiredFields: 'مطلوبہ خانے',
+        privacyNote: 'آپ کی تفصیلات محفوظ ہیں اور کبھی عوامی سطح پر شیئر نہیں کی جاتیں۔',
+        needHelp: 'مدد چاہیے؟ 01-786-0800 پر کال کریں · انگریزی اور اردو میں دستیاب ہے',
+
         // App Branding & Navigation
         appName: 'وزیر اعظم شکایات پورٹل',
         appSubName: 'حکومتِ آزاد جموں و کشمیر',
@@ -153,7 +170,7 @@ export const translations = {
         confPrintReceipt: 'رسید پرنٹ / محفوظ کریں',
         confSectionCitizen: 'شہری کی معلومات',
         confSectionLocation: 'علاقائی حدود و مقام',
-        confSectionGrievance: 'شکایت اور متعلقہ محکمہ',
+        confSectionComplaint: 'شکایت اور متعلقہ محکمہ',
         confSectionAttachments: 'منسلک ثبوت و دستاویزات',
         confNoAttachments: 'کوئی دستاویز منسلک نہیں کی گئی (اختیاری)',
         confStageLabel: 'موجودہ مرحلہ:',
@@ -209,6 +226,23 @@ export const translations = {
     },
 
     en: {
+        govTitle: 'GOVERNMENT OF AZAD JAMMU & KASHMIR',
+        servicePortal: 'Public service portal · 24/7',
+        builtForCitizens: 'Built for citizens',
+        letGetVoiceHeard: "Let's get your voice heard.",
+        introCopy: "Start by telling us a little about yourself. Your information is kept secure and used only to follow up on your complaint.",
+        step1Caption: 'Who are you?',
+        step2Caption: 'Where is it?',
+        step3Caption: 'What happened?',
+        step4Caption: 'Ready to send',
+        stepOne: 'Step one',
+        stepTwo: 'Step two',
+        stepThree: 'Step three',
+        stepFour: 'Step four',
+        requiredFields: 'Required fields',
+        privacyNote: 'Your details are protected and never shared publicly.',
+        needHelp: 'Need help? Call 0800-786-01 · Available in English and Urdu',
+
         // App Branding & Navigation
         appName: 'Prime Minister Contact Center',
         appSubName: 'Government of Azad Jammu & Kashmir',
@@ -221,7 +255,7 @@ export const translations = {
 
         // Complaint Submission Form Page
         submitTitle: 'Submit a New Complaint',
-        submitSubtitle: 'Directly lodge your grievances for swift government resolution',
+        submitSubtitle: 'Directly lodge your complaints for swift government resolution',
 
         // Personal Details Section
         sectionPersonal: 'Personal Information',
@@ -353,7 +387,7 @@ export const translations = {
 
         // Confirmation Preview & Translation Guide
         confPreviewTitle: 'Complaint Submission Summary & Receipt',
-        confPreviewSubtitle: 'Official record of your lodged grievance',
+        confPreviewSubtitle: 'Official record of your lodged complaint',
         confTranslateGuideTitle: 'How to Translate This Submission',
         confTranslateGuideDesc: 'You can preview and print your official complaint receipt in both English and Urdu. Toggle the language anytime using the language switch in the header or the switch below.',
         confToggleLang: 'Switch Receipt Language',
@@ -362,7 +396,7 @@ export const translations = {
         confPrintReceipt: 'Print / Save Receipt',
         confSectionCitizen: 'Citizen Information',
         confSectionLocation: 'Location & Jurisdiction',
-        confSectionGrievance: 'Grievance & Department Details',
+        confSectionComplaint: 'Complaint & Department Details',
         confSectionAttachments: 'Attached Evidence',
         confNoAttachments: 'No attachments uploaded (Optional)',
         confStageLabel: 'Current Stage:',

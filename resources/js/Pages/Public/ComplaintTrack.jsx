@@ -90,7 +90,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
             <div className="mb-8 text-center max-w-2xl mx-auto">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-amber-400/80 text-[#034d28] text-xs font-bold mb-3 shadow-xs">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — شکایات ٹریکنگ سسٹم' : 'Govt of Azad Jammu & Kashmir — Grievance Tracking'}</span>
+                    <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — شکایات ٹریکنگ سسٹم' : 'Govt of Azad Jammu & Kashmir — Complaint Tracking'}</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight mb-2">
                     {t('trackTitle')}

@@ -122,7 +122,7 @@ export default function FocalPersonDashboard({
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-bold leading-tight text-gray-800 dark:text-gray-100">
-                            Departmental Grievance Dashboard
+                            Departmental Complaint Dashboard
                         </h2>
                         <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
                             {department ? `${department.name} (${department.code})` : 'Department Unassigned'}
@@ -207,7 +207,7 @@ export default function FocalPersonDashboard({
                         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div>
                                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                    Departmental Grievances Queue
+                                    Departmental Complaints Queue
                                 </h3>
                                 <p className="text-xs text-gray-500">
                                     Scoped to {department?.name || 'assigned department'} • Click any row to proceed with triage or inspection
@@ -449,7 +449,7 @@ export default function FocalPersonDashboard({
 
                                             {/* Column 3: Category */}
                                             <td className="px-5 py-3 text-gray-700 dark:text-gray-300 font-medium">
-                                                {c.category?.name || 'General Grievance'}
+                                                {c.category?.name || 'General Complaint'}
                                             </td>
 
                                             {/* Column 4: District / Tehsil */}

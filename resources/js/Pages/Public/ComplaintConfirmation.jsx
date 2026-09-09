@@ -29,7 +29,7 @@ export default function ComplaintConfirmation({ complaint }) {
                             <p className="text-sm text-slate-600 max-w-md mx-auto">
                                 {lang === 'ur'
                                     ? 'شکایت کی تفصیلات دستیاب نہیں ہیں یا سیشن ختم ہو چکا ہے۔ براہ کرم ٹریکنگ صفحے پر جائیں۔'
-                                    : 'Complaint details are unavailable or the current session has expired. Please use the tracking portal to search for your grievance.'}
+                                    : 'Complaint details are unavailable or the current session has expired. Please use the tracking portal to search for your complaint.'}
                             </p>
                         </div>
                         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
@@ -336,10 +336,10 @@ export default function ComplaintConfirmation({ complaint }) {
                             </div>
                         </div>
 
-                        {/* Section 3: Grievance & Department Details */}
+                        {/* Section 3: Complaint & Department Details */}
                         <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-4">
                             <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/60 pb-2">
-                                <span>🏛️</span> {t('confSectionGrievance')}
+                                <span>🏛️</span> {t('confSectionComplaint')}
                             </h3>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs sm:text-sm">

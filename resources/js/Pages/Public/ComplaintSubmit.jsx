@@ -3,24 +3,31 @@ import { Head, useForm } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 import { IMaskInput } from 'react-imask';
-import Select from 'react-select';
+
+// ─── Step definitions (mirrors V0 page.tsx) ─────────────────────────────────
+const STEPS_EN = [
+    { number: '01', title: 'Your details',   caption: 'Who are you?'    },
+    { number: '02', title: 'Location',        caption: 'Where is it?'    },
+    { number: '03', title: 'Your complaint',  caption: 'What happened?'  },
+    { number: '04', title: 'Review',          caption: 'Ready to send'   },
+];
+const STEPS_UR = [
+    { number: '01', title: 'آپ کی تفصیلات', caption: 'آپ کون ہیں؟'       },
+    { number: '02', title: 'مقام',           caption: 'کہاں کا مسئلہ ہے؟' },
+    { number: '03', title: 'آپ کی شکایت',   caption: 'کیا ہوا؟'           },
+    { number: '04', title: 'جائزہ',          caption: 'بھیجنے کے لیے تیار' },
+];
 
 export default function ComplaintSubmit({ districts: rawDistricts = [], departments: rawDepartments = [] }) {
-    const { lang, t } = useLanguage();
-    const isRtl = lang === 'ur';
+    const { lang } = useLanguage();
+    const isRtl  = lang === 'ur';
+    const steps  = isRtl ? STEPS_UR : STEPS_EN;
 
-    const districts = useMemo(() => {
-        if (Array.isArray(rawDistricts)) return rawDistricts;
-        return Object.values(rawDistricts || {});
-    }, [rawDistricts]);
+    const districts   = useMemo(() => Array.isArray(rawDistricts)   ? rawDistricts   : Object.values(rawDistricts   || {}), [rawDistricts]);
+    const departments = useMemo(() => Array.isArray(rawDepartments) ? rawDepartments : Object.values(rawDepartments || {}), [rawDepartments]);
 
-    const departments = useMemo(() => {
-        if (Array.isArray(rawDepartments)) return rawDepartments;
-        return Object.values(rawDepartments || {});
-    }, [rawDepartments]);
-
-    // Current wizard step (1: Your Details, 2: Location, 3: Complaint, 4: Attachments & Review)
     const [currentStep, setCurrentStep] = useState(1);
+    const [declarationAccepted, setDeclarationAccepted] = useState(false);
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         name: '',
@@ -29,1480 +36,784 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         gender: '',
         district_id: '',
         tehsil_id: '',
-        subject: '',
-        details: '',
         department_id: '',
         sub_department_id: '',
         category_id: '',
         sub_category_id: '',
+        subject: '',
+        details: '',
         attachments: [],
     });
 
+    // ── Attachment state ─────────────────────────────────────────────────────
     const [attachmentFiles, setAttachmentFiles] = useState([]);
-    const [fileError, setFileError] = useState('');
-    const [declarationAccepted, setDeclarationAccepted] = useState(false);
+    const [fileError, setFileError]             = useState('');
+    const fileInputRef                          = useRef(null);
+    const photoInputRef                         = useRef(null);
+    const videoInputRef                         = useRef(null);
 
-    // In-browser Camera & Video Capture State
-    const [cameraModalOpen, setCameraModalOpen] = useState(false);
-    const [captureMode, setCaptureMode] = useState('photo'); // 'photo' | 'video'
-    const [cameraError, setCameraError] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingTimeLeft, setRecordingTimeLeft] = useState(60);
-    const videoRef = useRef(null);
-    const canvasRef = useRef(null);
-    const mediaStreamRef = useRef(null);
-    const mediaRecorderRef = useRef(null);
-    const recordedChunksRef = useRef([]);
-    const timerIntervalRef = useRef(null);
+    // ── Camera / video capture state ─────────────────────────────────────────
+    const [cameraOpen, setCameraOpen]         = useState(false);
+    const [captureMode, setCaptureMode]       = useState('photo');
+    const [cameraError, setCameraError]       = useState('');
+    const [isRecording, setIsRecording]       = useState(false);
+    const [timeLeft, setTimeLeft]             = useState(60);
+    const videoRef                            = useRef(null);
+    const canvasRef                           = useRef(null);
+    const streamRef                           = useRef(null);
+    const recorderRef                         = useRef(null);
+    const chunksRef                           = useRef([]);
+    const timerRef                            = useRef(null);
 
-    // Native file inputs for direct camera fallback
-    const nativePhotoInputRef = useRef(null);
-    const nativeVideoInputRef = useRef(null);
-    const fileUploadInputRef = useRef(null);
+    useEffect(() => () => { stopStream(); if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-    // Filter Tehsils based on selected District
+    // ── Derived lists ────────────────────────────────────────────────────────
     const availableTehsils = useMemo(() => {
-        if (!data.district_id) return [];
-        const selectedDistrict = districts.find((d) => String(d.id) === String(data.district_id));
-        if (!selectedDistrict) return [];
-        const tehsils = selectedDistrict.tehsils;
-        return Array.isArray(tehsils) ? tehsils : Object.values(tehsils || {});
+        const d = districts.find(d => String(d.id) === String(data.district_id));
+        if (!d) return [];
+        return Array.isArray(d.tehsils) ? d.tehsils : Object.values(d.tehsils || {});
     }, [data.district_id, districts]);
 
-    // Filter Sub-Departments and Categories based on selected Department
-    const selectedDeptObj = useMemo(() => {
-        if (!data.department_id || data.department_id === 'other') return null;
-        return departments.find((d) => String(d.id) === String(data.department_id));
-    }, [data.department_id, departments]);
+    const selectedDept = useMemo(() =>
+        departments.find(d => String(d.id) === String(data.department_id)) ?? null,
+    [data.department_id, departments]);
 
-    const availableSubDepartments = useMemo(() => {
-        if (!selectedDeptObj) return [];
-        const subs = selectedDeptObj.sub_departments || selectedDeptObj.subDepartments || [];
-        return Array.isArray(subs) ? subs : Object.values(subs || {});
-    }, [selectedDeptObj]);
+    const availableSubDepts = useMemo(() => {
+        const subs = selectedDept?.sub_departments ?? selectedDept?.subDepartments ?? [];
+        return Array.isArray(subs) ? subs : Object.values(subs);
+    }, [selectedDept]);
 
     const availableCategories = useMemo(() => {
-        if (!selectedDeptObj) return [];
-        const cats = selectedDeptObj.categories || [];
-        return Array.isArray(cats) ? cats : Object.values(cats || {});
-    }, [selectedDeptObj]);
+        const cats = selectedDept?.categories ?? [];
+        return Array.isArray(cats) ? cats : Object.values(cats);
+    }, [selectedDept]);
 
-    // Filter Sub-Categories based on selected Category
-    const selectedCategoryObj = useMemo(() => {
-        if (!data.category_id || data.category_id === 'other') return null;
-        return availableCategories.find((c) => String(c.id) === String(data.category_id));
-    }, [data.category_id, availableCategories]);
+    const selectedCategory = useMemo(() =>
+        availableCategories.find(c => String(c.id) === String(data.category_id)) ?? null,
+    [data.category_id, availableCategories]);
 
     const availableSubCategories = useMemo(() => {
-        if (!selectedCategoryObj) return [];
-        const subCats = selectedCategoryObj.sub_categories || selectedCategoryObj.subCategories || [];
-        return Array.isArray(subCats) ? subCats : Object.values(subCats || {});
-    }, [selectedCategoryObj]);
+        const sc = selectedCategory?.sub_categories ?? selectedCategory?.subCategories ?? [];
+        return Array.isArray(sc) ? sc : Object.values(sc);
+    }, [selectedCategory]);
 
-    // Clean up camera stream on unmount
-    useEffect(() => {
-        return () => {
-            stopCameraStream();
-            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        };
-    }, []);
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const label = (en, ur) => isRtl ? ur : en;
 
-    const stopCameraStream = () => {
-        if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-            mediaStreamRef.current = null;
-        }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-    };
-    
-    // Auto-fill Citizen info on CNIC blur
+    const dname = (item) => (isRtl ? item.name_ur || item.name : item.name);
+
+    const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const focusFirstError = () =>
+        setTimeout(() => {
+            const el = document.querySelector('.field-error, [data-error="true"]');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+
+    // ── Citizen CNIC auto-fill ───────────────────────────────────────────────
     const handleCnicBlur = async () => {
-        const cleanCnic = data.cnic.replace(/[^0-9]/g, '');
-        if (cleanCnic.length === 13) {
-            try {
-                const response = await fetch(`/complaints/api/citizen/${cleanCnic}`);
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result) {
-                        setData(prev => ({
-                            ...prev,
-                            name: prev.name || result.name || '',
-                            mobile_number: prev.mobile_number || result.mobile_number || '',
-                            gender: prev.gender || result.gender || '',
-                        }));
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to fetch citizen info:', err);
-            }
-        }
-    };
-    
-    // Custom styles for React-Select
-    const selectStyles = {
-        control: (base, state) => ({
-            ...base,
-            minHeight: '3rem',
-            borderRadius: '0.75rem',
-            borderColor: state.isFocused ? '#10b981' : (state.selectProps.hasError ? '#ef4444' : '#cbd5e1'),
-            backgroundColor: state.selectProps.hasError ? 'rgba(254, 242, 242, 0.2)' : '#ffffff',
-            boxShadow: state.isFocused ? (state.selectProps.hasError ? '0 0 0 2px rgba(248, 113, 113, 0.5)' : '0 0 0 2px rgba(52, 211, 153, 0.5)') : 'none',
-            '&:hover': {
-                borderColor: state.selectProps.hasError ? '#ef4444' : '#10b981'
-            }
-        })
+        const clean = data.cnic.replace(/\D/g, '');
+        if (clean.length !== 13) return;
+        try {
+            const res = await fetch(`/complaints/api/citizen/${clean}`);
+            if (!res.ok) return;
+            const citizen = await res.json();
+            if (citizen) setData(prev => ({
+                ...prev,
+                name:          prev.name          || citizen.name          || '',
+                mobile_number: prev.mobile_number || citizen.mobile_number || '',
+                gender:        prev.gender        || citizen.gender        || '',
+            }));
+        } catch {}
     };
 
-    // Handle District change
-    const handleDistrictChange = (e) => {
-        const val = e.target.value;
-        setData((prev) => ({
-            ...prev,
-            district_id: val,
-            tehsil_id: '',
-        }));
-    };
-
-    // Handle Department change
-    const handleDepartmentChange = (e) => {
-        const val = e.target.value;
-        setData((prev) => ({
-            ...prev,
-            department_id: val,
-            sub_department_id: '',
-            category_id: '',
-            sub_category_id: '',
-        }));
-    };
-
-    // Handle Category change
-    const handleCategoryChange = (e) => {
-        const val = e.target.value;
-        setData((prev) => ({
-            ...prev,
-            category_id: val,
-            sub_category_id: '',
-        }));
-    };
-
-    // Add files to attachments state with validation
-    const addAttachments = (newFiles) => {
+    // ── Attachments ──────────────────────────────────────────────────────────
+    const addFiles = (newFiles) => {
         setFileError('');
         const combined = [...attachmentFiles, ...newFiles];
-
-        if (combined.length > 5) {
-            setFileError(`[ERR_FILE_COUNT_EXCEEDED] ${t('valFilesMaxCount')}`);
-            return false;
+        if (combined.length > 5) { setFileError(label('Maximum 5 files allowed.', 'زیادہ سے زیادہ 5 فائلز کی اجازت ہے۔')); return false; }
+        for (const f of newFiles) {
+            if (f.size > 10 * 1024 * 1024) { setFileError(label('Each file must be under 10 MB.', 'ہر فائل 10 MB سے کم ہونی چاہیے۔')); return false; }
         }
-
-        for (let file of newFiles) {
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                setFileError(`[ERR_FILE_SIZE_EXCEEDED] ${t('valFileMaxSize')}`);
-                return false;
-            }
-        }
-
         setAttachmentFiles(combined);
         setData('attachments', combined);
         return true;
     };
-
-    // Remove single attachment
-    const removeAttachment = (indexToRemove) => {
-        const updated = attachmentFiles.filter((_, idx) => idx !== indexToRemove);
+    const removeFile = (i) => {
+        const updated = attachmentFiles.filter((_, idx) => idx !== i);
         setAttachmentFiles(updated);
         setData('attachments', updated);
     };
-
-    // Handle file input change
-    const handleFileChange = (e) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        const files = Array.from(e.target.files);
-        addAttachments(files);
+    const onFileChange = (e) => {
+        if (e.target.files?.length) addFiles(Array.from(e.target.files));
         e.target.value = '';
     };
 
-    // Open Camera Modal
-    const openCameraModal = async (mode = 'photo') => {
-        setCaptureMode(mode);
-        setCameraError('');
-        setCameraModalOpen(true);
-        setIsRecording(false);
-        setRecordingTimeLeft(60);
-
+    // ── Camera ───────────────────────────────────────────────────────────────
+    const stopStream = () => {
+        streamRef.current?.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        if (videoRef.current) videoRef.current.srcObject = null;
+    };
+    const openCamera = async (mode) => {
+        setCaptureMode(mode); setCameraError(''); setCameraOpen(true);
+        setIsRecording(false); setTimeLeft(60);
         try {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                throw new Error('MediaDevices not supported');
-            }
-
-            const constraints = {
-                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: mode === 'video',
-            };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            mediaStreamRef.current = stream;
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.play();
-            }
-        } catch (err) {
-            console.warn('Camera stream error:', err);
-            setCameraError(t('captureCameraDenied'));
-            stopCameraStream();
-        }
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }, audio: mode === 'video',
+            });
+            streamRef.current = stream;
+            if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+        } catch { setCameraError(label('Camera access denied. Use the upload button instead.', 'کیمرہ تک رسائی نہیں۔ اپ لوڈ بٹن استعمال کریں۔')); }
     };
-
-    // Close Camera Modal
-    const closeCameraModal = () => {
-        if (isRecording) stopVideoRecording();
-        stopCameraStream();
-        setCameraModalOpen(false);
-        setCameraError('');
+    const closeCamera = () => {
+        if (isRecording) stopRecording();
+        stopStream(); setCameraOpen(false); setCameraError('');
     };
-
-    // Capture Snapshot Photo
-    const capturePhoto = () => {
-        if (!videoRef.current || !canvasRef.current) return;
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob((blob) => {
-            if (blob) {
-                const photoFile = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                addAttachments([photoFile]);
-                closeCameraModal();
-            }
+    const snapPhoto = () => {
+        const v = videoRef.current, c = canvasRef.current;
+        if (!v || !c) return;
+        c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(blob => {
+            if (blob) { addFiles([new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' })]); closeCamera(); }
         }, 'image/jpeg', 0.85);
     };
-
-    // Start Video Recording
-    const startVideoRecording = () => {
-        if (!mediaStreamRef.current) return;
-
-        recordedChunksRef.current = [];
-        try {
-            const recorder = new MediaRecorder(mediaStreamRef.current);
-            mediaRecorderRef.current = recorder;
-
-            recorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) {
-                    recordedChunksRef.current.push(event.data);
-                }
-            };
-
-            recorder.onstop = () => {
-                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                const videoFile = new File([blob], `video_${Date.now()}.webm`, { type: 'video/webm' });
-                addAttachments([videoFile]);
-                closeCameraModal();
-            };
-
-            recorder.start(1000); // 1-sec chunks
-            setIsRecording(true);
-            setRecordingTimeLeft(60);
-
-            // 60-second countdown
-            let time = 60;
-            timerIntervalRef.current = setInterval(() => {
-                time -= 1;
-                setRecordingTimeLeft(time);
-                if (time <= 0) {
-                    clearInterval(timerIntervalRef.current);
-                    stopVideoRecording();
-                }
-            }, 1000);
-        } catch (err) {
-            console.warn('Video recorder error:', err);
-            setCameraError(t('captureCameraDenied'));
-        }
+    const startRecording = () => {
+        if (!streamRef.current) return;
+        chunksRef.current = [];
+        const rec = new MediaRecorder(streamRef.current);
+        recorderRef.current = rec;
+        rec.ondataavailable = e => { if (e.data?.size > 0) chunksRef.current.push(e.data); };
+        rec.onstop = () => {
+            const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+            addFiles([new File([blob], `video_${Date.now()}.webm`, { type: 'video/webm' })]);
+            closeCamera();
+        };
+        rec.start(1000); setIsRecording(true); setTimeLeft(60);
+        let t = 60;
+        timerRef.current = setInterval(() => { t--; setTimeLeft(t); if (t <= 0) { clearInterval(timerRef.current); stopRecording(); } }, 1000);
     };
-
-    // Stop Video Recording
-    const stopVideoRecording = () => {
-        if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current);
-            timerIntervalRef.current = null;
-        }
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.stop();
-        }
+    const stopRecording = () => {
+        clearInterval(timerRef.current);
+        if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
         setIsRecording(false);
     };
 
-    // Step-by-Step Validation Function
-    const validateStep = (step) => {
-        clearErrors();
-        let isValid = true;
-
+    // ── Validation ───────────────────────────────────────────────────────────
+    const validate = (step) => {
+        clearErrors(); let ok = true;
+        const err = (field, msg) => { setError(field, msg); ok = false; };
         if (step === 1) {
-            if (!data.name.trim()) {
-                setError('name', t('valNameReq'));
-                isValid = false;
-            } else if (data.name.trim().length < 2) {
-                setError('name', t('valNameMin'));
-                isValid = false;
-            } else if (!/^[\p{L}\s.\-']+$/u.test(data.name.trim())) {
-                setError('name', t('valNameFormat'));
-                isValid = false;
-            }
-
-            const cleanCnic = data.cnic.replace(/[^0-9]/g, '');
-            if (!cleanCnic) {
-                setError('cnic', t('valCnicReq'));
-                isValid = false;
-            } else if (cleanCnic.length !== 13) {
-                setError('cnic', t('valCnicFormat'));
-                isValid = false;
-            }
-
-            const cleanMobile = data.mobile_number.replace(/[^0-9]/g, '');
-            if (!cleanMobile) {
-                setError('mobile_number', t('valMobileReq'));
-                isValid = false;
-            } else if (!/^(03|\+?923)[0-9]{9}$/.test(cleanMobile)) {
-                setError('mobile_number', t('valMobileFormat'));
-                isValid = false;
-            }
-        } else if (step === 2) {
-            if (!data.district_id) {
-                setError('district_id', t('valDistrictReq'));
-                isValid = false;
-            }
-
-            if (!data.tehsil_id) {
-                setError('tehsil_id', t('valTehsilReq'));
-                isValid = false;
-            }
-        } else if (step === 3) {
-            if (!data.department_id) {
-                setError('department_id', t('valDepartmentReq'));
-                isValid = false;
-            }
-
-            if (!data.subject.trim()) {
-                setError('subject', t('valSubjectReq'));
-                isValid = false;
-            } else if (data.subject.trim().length < 5) {
-                setError('subject', t('valSubjectMin'));
-                isValid = false;
-            } else if (data.subject.length > 100) {
-                setError('subject', t('valSubjectMax'));
-                isValid = false;
-            }
-
-            if (!data.details.trim()) {
-                setError('details', t('valDetailsReq'));
-                isValid = false;
-            } else if (data.details.trim().length < 50) {
-                setError('details', t('valDetailsMin'));
-                isValid = false;
-            } else if (data.details.trim().length > 5000) {
-                setError('details', t('valDetailsMax'));
-                isValid = false;
-            }
-        } else if (step === 4) {
-            if (!declarationAccepted) {
-                setError('declaration', t('valDeclarationReq'));
-                isValid = false;
-            }
+            if (!data.name.trim())                                err('name', label('Full name is required.', 'پورا نام ضروری ہے۔'));
+            else if (data.name.trim().length < 2)                err('name', label('Name is too short.', 'نام بہت مختصر ہے۔'));
+            if ((data.cnic.replace(/\D/g, '')).length !== 13)    err('cnic', label('Enter a valid 13-digit CNIC.', 'درست 13 ہندسی CNIC درج کریں۔'));
+            if (!/^(03|\+?923)\d{9}$/.test(data.mobile_number.replace(/\D/g, '')))
+                err('mobile_number', label('Enter a valid Pakistani mobile number.', 'درست پاکستانی موبائل نمبر درج کریں۔'));
         }
-
-        if (!isValid) {
-            setTimeout(() => {
-                const firstError = document.querySelector('.border-red-500, .border-amber-400, .border-amber-500, text-red-600, #submission-error-alert');
-                if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstError.focus?.();
-                }
-            }, 60);
+        if (step === 2) {
+            if (!data.district_id) err('district_id', label('Please select a district.', 'ضلع منتخب کریں۔'));
+            if (!data.tehsil_id)   err('tehsil_id',   label('Please select a tehsil.',  'تحصیل منتخب کریں۔'));
         }
-
-        return isValid;
+        if (step === 3) {
+            if (!data.department_id)          err('department_id', label('Please select a department.', 'محکمہ منتخب کریں۔'));
+            if (!data.subject.trim())         err('subject',       label('Subject is required.', 'موضوع ضروری ہے۔'));
+            else if (data.subject.length > 100) err('subject',     label('Subject must be under 100 characters.', 'موضوع 100 حروف سے کم ہونا چاہیے۔'));
+            if (data.details.trim().length < 50) err('details',    label('Please describe your complaint in at least 50 characters.', 'شکایت کم از کم 50 حروف میں بیان کریں۔'));
+        }
+        if (step === 4) {
+            if (!declarationAccepted) err('declaration', label('You must accept the declaration to submit.', 'جمع کرانے کے لیے اعلامیہ قبول کریں۔'));
+        }
+        if (!ok) focusFirstError();
+        return ok;
     };
 
-    // Step Navigation Handlers
-    const handleNext = () => {
-        if (validateStep(currentStep)) {
-            setCurrentStep((prev) => Math.min(prev + 1, 4));
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+    const goNext = () => { if (validate(currentStep)) { setCurrentStep(s => Math.min(s + 1, 4)); scrollTop(); } };
+    const goBack = () => { setCurrentStep(s => Math.max(s - 1, 1)); scrollTop(); };
+    const goTo   = (n) => {
+        if (n < currentStep) { setCurrentStep(n); scrollTop(); return; }
+        for (let s = currentStep; s < n; s++) if (!validate(s)) return;
+        setCurrentStep(n); scrollTop();
     };
 
-    const handleBack = () => {
-        setCurrentStep((prev) => Math.max(prev - 1, 1));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const goToStep = (step) => {
-        // Can always jump back to earlier steps
-        if (step < currentStep) {
-            setCurrentStep(step);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-
-        // To jump forward, ensure all intermediate steps are valid
-        for (let s = currentStep; s < step; s++) {
-            if (!validateStep(s)) {
-                return;
-            }
-        }
-        setCurrentStep(step);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // Final Submission from Step 4
     const handleSubmit = (e) => {
-        e.preventDefault();
-        clearErrors();
-
-        // Validate all 4 steps sequentially
-        if (!validateStep(1)) {
-            setCurrentStep(1);
-            return;
-        }
-        if (!validateStep(2)) {
-            setCurrentStep(2);
-            return;
-        }
-        if (!validateStep(3)) {
-            setCurrentStep(3);
-            return;
-        }
-        if (!validateStep(4)) {
-            setCurrentStep(4);
-            return;
-        }
-
-        // Submit form via Inertia POST
+        e.preventDefault(); clearErrors();
+        if (!validate(1)) { setCurrentStep(1); return; }
+        if (!validate(2)) { setCurrentStep(2); return; }
+        if (!validate(3)) { setCurrentStep(3); return; }
+        if (!validate(4)) { setCurrentStep(4); return; }
         post('/complaints', {
             forceFormData: true,
             onError: (errs) => {
-                // If backend validation fails on earlier step, jump to it
-                if (errs.name || errs.cnic || errs.mobile_number || errs.gender) {
-                    setCurrentStep(1);
-                } else if (errs.district_id || errs.tehsil_id) {
-                    setCurrentStep(2);
-                } else if (errs.department_id || errs.sub_department_id || errs.category_id || errs.sub_category_id || errs.subject || errs.details) {
-                    setCurrentStep(3);
-                } else {
-                    // Rate limit, general, or attachment error stays on Step 4
-                    setCurrentStep(4);
-                }
-
-                setTimeout(() => {
-                    const firstError = document.querySelector('.border-red-500, .border-amber-400, .border-amber-500, .animate-shake, #submission-error-alert');
-                    if (firstError) {
-                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstError.focus?.();
-                    }
-                }, 60);
+                if (errs.name || errs.cnic || errs.mobile_number) setCurrentStep(1);
+                else if (errs.district_id || errs.tehsil_id)      setCurrentStep(2);
+                else if (errs.department_id || errs.subject || errs.details) setCurrentStep(3);
+                else setCurrentStep(4);
+                focusFirstError();
             },
         });
     };
 
-    // Step configuration array
-    const steps = [
-        { id: 1, title: t('step1Title'), short: t('step1Short'), desc: t('step1Desc') },
-        { id: 2, title: t('step2Title'), short: t('step2Short'), desc: t('step2Desc') },
-        { id: 3, title: t('step3Title'), short: t('step3Short'), desc: t('step3Desc') },
-        { id: 4, title: t('step4Title'), short: t('step4Short'), desc: t('step4Desc') },
-    ];
+    // ── Review helpers ───────────────────────────────────────────────────────
+    const districtName    = useMemo(() => { const d = districts.find(d => String(d.id) === String(data.district_id)); return d ? dname(d) : '—'; }, [data.district_id, districts, lang]);
+    const tehsilName      = useMemo(() => { const t = availableTehsils.find(t => String(t.id) === String(data.tehsil_id)); return t ? dname(t) : '—'; }, [data.tehsil_id, availableTehsils, lang]);
+    const departmentName  = useMemo(() => { if (data.department_id === 'other') return label('Other / Unknown', 'دیگر / معلوم نہیں'); const d = departments.find(d => String(d.id) === String(data.department_id)); return d ? dname(d) : '—'; }, [data.department_id, departments, lang]);
+    const subDeptName     = useMemo(() => { const s = availableSubDepts.find(s => String(s.id) === String(data.sub_department_id)); return s ? dname(s) : label('None', 'کوئی نہیں'); }, [data.sub_department_id, availableSubDepts, lang]);
+    const categoryName    = useMemo(() => { if (data.category_id === 'other') return label('Other', 'دیگر'); const c = availableCategories.find(c => String(c.id) === String(data.category_id)); return c ? dname(c) : '—'; }, [data.category_id, availableCategories, lang]);
+    const subCategoryName = useMemo(() => { const s = availableSubCategories.find(s => String(s.id) === String(data.sub_category_id)); return s ? dname(s) : label('None', 'کوئی نہیں'); }, [data.sub_category_id, availableSubCategories, lang]);
 
-    const currentStepConfig = steps.find((s) => s.id === currentStep) || steps[0];
-
-    // Helper for review summary labels
-    const selectedDistrictName = useMemo(() => {
-        const d = districts.find((item) => String(item.id) === String(data.district_id));
-        if (!d) return '';
-        return lang === 'ur' ? d.name_ur || d.name : d.name;
-    }, [data.district_id, districts, lang]);
-
-    const selectedTehsilName = useMemo(() => {
-        const tItem = availableTehsils.find((item) => String(item.id) === String(data.tehsil_id));
-        if (!tItem) return '';
-        return lang === 'ur' ? tItem.name_ur || tItem.name : tItem.name;
-    }, [data.tehsil_id, availableTehsils, lang]);
-
-    const selectedDepartmentName = useMemo(() => {
-        if (data.department_id === 'other') return t('optOther');
-        const dept = departments.find((item) => String(item.id) === String(data.department_id));
-        if (!dept) return '';
-        return lang === 'ur' ? dept.name_ur || dept.name : dept.name;
-    }, [data.department_id, departments, lang, t]);
-
-    const selectedSubDepartmentName = useMemo(() => {
-        if (!data.sub_department_id) return t('reviewSubDeptNone');
-        const sd = availableSubDepartments.find((item) => String(item.id) === String(data.sub_department_id));
-        if (!sd) return t('reviewSubDeptNone');
-        return lang === 'ur' ? sd.name_ur || sd.name : sd.name;
-    }, [data.sub_department_id, availableSubDepartments, lang, t]);
-
-    const selectedCategoryName = useMemo(() => {
-        if (!data.category_id || data.category_id === 'other') return data.category_id === 'other' ? t('optOther') : '';
-        const cat = availableCategories.find((item) => String(item.id) === String(data.category_id));
-        if (!cat) return '';
-        return lang === 'ur' ? cat.name_ur || cat.name : cat.name;
-    }, [data.category_id, availableCategories, lang, t]);
-
-    const selectedSubCategoryName = useMemo(() => {
-        if (!data.sub_category_id) return t('reviewSubCatNone');
-        const sc = availableSubCategories.find((item) => String(item.id) === String(data.sub_category_id));
-        if (!sc) return t('reviewSubCatNone');
-        return lang === 'ur' ? sc.name_ur || sc.name : sc.name;
-    }, [data.sub_category_id, availableSubCategories, lang, t]);
-
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <PublicLayout>
-            <Head title={t('submitTitle')} />
+            <Head title={label('File a Complaint — PMCC', 'شکایت درج کریں — PMCC')} />
 
-            {/* Hidden canvas for taking snapshot photo */}
+            {/* Hidden canvas for photo capture */}
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Hidden native inputs for direct device camera capture fallback */}
-            <input
-                ref={nativePhotoInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-            />
-            <input
-                ref={nativeVideoInputRef}
-                type="file"
-                accept="video/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-            />
-            <input
-                ref={fileUploadInputRef}
-                type="file"
-                multiple
-                accept="image/*,audio/*,video/*,application/pdf"
-                className="hidden"
-                onChange={handleFileChange}
-            />
+            {/* Native file inputs for fallback */}
+            <input ref={fileInputRef}  type="file" multiple accept="image/*,audio/*,video/*,application/pdf" className="hidden" onChange={onFileChange} />
+            <input ref={photoInputRef} type="file" accept="image/*"  capture="environment" className="hidden" onChange={onFileChange} />
+            <input ref={videoInputRef} type="file" accept="video/*"  capture="environment" className="hidden" onChange={onFileChange} />
 
-            {/* Header Banner with AJK Badge */}
-            <div className="mb-6 text-center w-full max-w-screen-2xl mx-auto">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-amber-400/80 text-[#034d28] text-xs font-bold mb-3 shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>{lang === 'ur' ? 'حکومتِ آزاد کشمیر — عوامی شکایات پورٹل' : 'Govt of Azad Jammu & Kashmir — Citizen Grievance Portal'}</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight mb-2">
-                    {t('submitTitle')}
-                </h1>
-                <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                    {t('submitSubtitle')}
-                </p>
-                <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
-            </div>
+            {/* ═══════════════════════════════════════════════
+                CONTENT WRAP — matches V0 .content-wrap
+                ═══════════════════════════════════════════════ */}
+            <div className="content-wrap" dir={isRtl ? 'rtl' : 'ltr'}>
 
-            {/* 4-STEP WIZARD PROGRESS INDICATOR (Visually Distinct Segmented Pill Design) */}
-            <div className="w-full max-w-screen-2xl mx-auto mb-8 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-sm border border-emerald-900/10">
-                {/* Active Step Status Label */}
-                <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2.5">
-                        <span className="px-3 py-1 rounded-full text-xs font-black bg-[#034d28] text-amber-300 ring-2 ring-amber-400/60 shadow-xs">
-                            {lang === 'ur'
-                                ? `مرحلہ ${currentStep} از 4`
-                                : `Step ${currentStep} of 4`}
-                        </span>
-                        <h2 className="text-base sm:text-lg font-bold text-emerald-950">
-                            {currentStepConfig.title}
-                        </h2>
+                {/* ── Hero / Intro ── */}
+                <section className="intro" aria-labelledby="page-title">
+                    <div>
+                        <p className="overline">
+                            {label(
+                                `Complaint submission · 0${currentStep} / 04`,
+                                `شکایت جمع کرائیں · 0${currentStep} / 04`,
+                            )}
+                        </p>
+                        <h1 id="page-title">
+                            {label("Let's get your", 'آئیے آپ کی')}
+                            <br />
+                            <em>{label('voice heard.', 'آواز سنوائیں۔')}</em>
+                        </h1>
                     </div>
-                    <span className="text-xs text-slate-500 hidden sm:inline-block">
-                        {currentStepConfig.desc}
-                    </span>
-                </div>
+                    <p className="intro-copy">
+                        {label(
+                            'Start by telling us a little about yourself. Your information is kept secure and used only to follow up on your complaint.',
+                            'اپنے بارے میں کچھ بتا کر شروع کریں۔ آپ کی معلومات محفوظ رکھی جاتی ہیں اور صرف آپ کی شکایت پر کارروائی کے لیے استعمال ہوتی ہیں۔',
+                        )}
+                    </p>
+                </section>
 
-                {/* Segmented Step Pills (Mirrored in RTL) */}
-                <div className={`grid grid-cols-4 gap-2 sm:gap-3 ${isRtl ? 'direction-rtl' : ''}`}>
-                    {steps.map((step) => {
-                        const isCompleted = step.id < currentStep;
-                        const isCurrent = step.id === currentStep;
-
+                {/* ── 4-Step Journey — exactly like V0 ── */}
+                <section className="journey" aria-label={label('Complaint submission progress', 'شکایت جمع کرانے کا عمل')}>
+                    <div className="journey-line" aria-hidden="true" />
+                    {steps.map((step, idx) => {
+                        const stepNum  = idx + 1;
+                        const isCurrent   = stepNum === currentStep;
+                        const isCompleted = stepNum < currentStep;
                         return (
                             <button
-                                key={step.id}
+                                key={step.number}
                                 type="button"
-                                onClick={() => goToStep(step.id)}
-                                disabled={step.id > currentStep}
-                                className={`group relative flex flex-col sm:flex-row items-center sm:items-start gap-2 p-2.5 sm:p-3 rounded-xl transition-all text-left ${
-                                    isCurrent
-                                        ? 'bg-gradient-to-br from-emerald-50 via-amber-50/40 to-emerald-50 border-2 border-[#046A38] ring-3 ring-amber-400/40 shadow-sm'
-                                        : isCompleted
-                                        ? 'bg-emerald-50/80 border border-emerald-200 hover:bg-emerald-100/80 cursor-pointer'
-                                        : 'bg-slate-50/90 border border-slate-200/80 opacity-70 cursor-not-allowed'
-                                }`}
+                                onClick={() => goTo(stepNum)}
+                                disabled={stepNum > currentStep}
+                                aria-current={isCurrent ? 'step' : undefined}
+                                className={`journey-step${isCurrent ? ' current' : ''}${isCompleted ? ' completed' : ''}`}
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: stepNum > currentStep ? 'default' : 'pointer', textAlign: isRtl ? 'right' : 'left' }}
                             >
-                                {/* Step Badge */}
-                                <div
-                                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 transition-transform ${
-                                        isCurrent
-                                            ? 'bg-[#034d28] text-amber-300 shadow-sm scale-105'
-                                            : isCompleted
-                                            ? 'bg-emerald-600 text-white shadow-xs'
-                                            : 'bg-slate-200 text-slate-600'
-                                    }`}
-                                >
-                                    {isCompleted ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    ) : (
-                                        <span>{step.id}</span>
-                                    )}
-                                </div>
-
-                                {/* Step Text */}
-                                <div className="hidden sm:block truncate min-w-0">
-                                    <span
-                                        className={`text-xs font-bold block truncate ${
-                                            isCurrent ? 'text-emerald-950 font-black' : isCompleted ? 'text-emerald-900' : 'text-slate-600'
-                                        }`}
-                                    >
-                                        {step.short}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 block truncate">
-                                        {isCompleted ? (lang === 'ur' ? 'مکمل' : 'Done') : isCurrent ? (lang === 'ur' ? 'جاری' : 'Active') : ''}
-                                    </span>
+                                <span aria-hidden="true">
+                                    {isCompleted
+                                        ? <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                        : step.number
+                                    }
+                                </span>
+                                <div>
+                                    <strong>{step.title}</strong>
+                                    <small>{step.caption}</small>
                                 </div>
                             </button>
                         );
                     })}
-                </div>
-            </div>
+                </section>
 
-            {/* Error Banners */}
-            {errors.general && (
-                <div className="mb-6 w-full max-w-screen-2xl mx-auto relative overflow-hidden bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-2 border-red-400 text-red-950 p-5 rounded-2xl shadow-md flex items-start gap-4 animate-shake">
-                    <div className="p-2.5 bg-red-500 text-white rounded-xl shrink-0 shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div className="space-y-1 flex-1">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-mono font-black bg-red-200 text-red-900 border border-red-300 inline-block">
-                            {errors.error_code || 'ERR_SUBMISSION_FAILED'}
-                        </span>
-                        <p className="text-sm font-semibold text-red-900 leading-relaxed pt-1">
-                            {errors.general}
-                        </p>
-                    </div>
-                </div>
-            )}
+                {/* ═══════════════════════════════════════════════════════
+                    FORM
+                    ═══════════════════════════════════════════════════════ */}
+                <form onSubmit={handleSubmit}>
 
-            {errors.rate_limit && (
-                <div className="mb-6 w-full max-w-screen-2xl mx-auto p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="space-y-1 text-sm">
-                        <h4 className="font-bold text-amber-950">{t('valRateLimitTitle')}</h4>
-                        <p>{t('valRateLimitRecent', { time: errors.rate_limit })}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* FORM BODY CONTAINER */}
-            <form onSubmit={handleSubmit} className="w-full max-w-screen-2xl mx-auto space-y-6">
-                {/* ========================================================================= */}
-                {/* STEP 1: YOUR DETAILS */}
-                {/* ========================================================================= */}
-                {currentStep === 1 && (
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500 animate-fade-in">
-                        <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">1</span>
-                            {t('sectionPersonal')}
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Full Name */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelName')} <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.name}
-                                    maxLength={100}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    placeholder={t('placeholderName')}
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.name ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                />
-                                {errors.name && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.name}</p>}
-                            </div>
-
-                            {/* CNIC */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelCnic')} <span className="text-red-500">*</span>
-                                </label>
-                                <IMaskInput
-                                    mask="00000-0000000-0"
-                                    value={data.cnic}
-                                    dir="ltr"
-                                    unmask={true}
-                                    onAccept={(value) => setData('cnic', value)}
-                                    onBlur={handleCnicBlur}
-                                    placeholder="00000-0000000-0"
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.cnic ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                />
-                                {errors.cnic && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.cnic}</p>}
-                            </div>
-
-                            {/* Mobile Number */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelMobile')} <span className="text-red-500">*</span>
-                                </label>
-                                <IMaskInput
-                                    mask="0000-0000000"
-                                    value={data.mobile_number}
-                                    dir="ltr"
-                                    unmask={true}
-                                    onAccept={(value) => setData('mobile_number', value)}
-                                    placeholder="0300-0000000"
-                                    className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                        errors.mobile_number ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                    }`}
-                                />
-                                {errors.mobile_number && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.mobile_number}</p>}
-                            </div>
-
-                            {/* Gender (Optional) */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelGender')}
-                                </label>
-                                <Select
-                                    styles={selectStyles}
-                                    hasError={!!errors.gender}
-                                    options={[
-                                        { value: 'male', label: t('optMale') },
-                                        { value: 'female', label: t('optFemale') }
-                                    ]}
-                                    value={data.gender ? { value: data.gender, label: data.gender === 'male' ? t('optMale') : t('optFemale') } : null}
-                                    onChange={(selectedOption) => setData('gender', selectedOption ? selectedOption.value : '')}
-                                    placeholder={t('selectGender')}
-                                    isClearable
-                                />
-                                {errors.gender && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.gender}</p>}
-                            </div>
-                        </div>
-
-                        {/* Step 1 Footer Navigation */}
-                        <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleNext}
-                                className="w-full sm:w-auto px-8 py-3.5 bg-[#034d28] hover:bg-[#023b1f] text-white font-bold text-sm sm:text-base rounded-xl shadow-md hover:shadow-lg transition-all border-b-4 border-amber-500 flex items-center justify-center gap-2"
-                            >
-                                <span>{t('btnNext')}</span>
-                                <span className={isRtl ? 'rotate-180' : ''}>→</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ========================================================================= */}
-                {/* STEP 2: LOCATION */}
-                {/* ========================================================================= */}
-                {currentStep === 2 && (
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500 animate-fade-in">
-                        <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">2</span>
-                            {t('step2Title')}
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* District */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelDistrict')} <span className="text-red-500">*</span>
-                                </label>
-                                <Select
-                                    styles={selectStyles}
-                                    hasError={!!errors.district_id}
-                                    options={districts.map(d => ({ value: d.id, label: lang === 'ur' ? d.name_ur || d.name : d.name }))}
-                                    value={data.district_id ? { value: data.district_id, label: districts.find(d => String(d.id) === String(data.district_id)) ? (lang === 'ur' ? districts.find(d => String(d.id) === String(data.district_id)).name_ur || districts.find(d => String(d.id) === String(data.district_id)).name : districts.find(d => String(d.id) === String(data.district_id)).name) : '' } : null}
-                                    onChange={(selectedOption) => handleDistrictChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
-                                    placeholder={t('selectDistrict')}
-                                    isClearable
-                                />
-                                {errors.district_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.district_id}</p>}
-                            </div>
-
-                            {/* Tehsil */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelTehsil')} <span className="text-red-500">*</span>
-                                </label>
-                                <Select
-                                    styles={selectStyles}
-                                    hasError={!!errors.tehsil_id}
-                                    isDisabled={!data.district_id}
-                                    options={availableTehsils.map(tItem => ({ value: tItem.id, label: lang === 'ur' ? tItem.name_ur || tItem.name : tItem.name }))}
-                                    value={data.tehsil_id ? { value: data.tehsil_id, label: availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)) ? (lang === 'ur' ? availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name_ur || availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name : availableTehsils.find(tItem => String(tItem.id) === String(data.tehsil_id)).name) : '' } : null}
-                                    onChange={(selectedOption) => setData('tehsil_id', selectedOption ? selectedOption.value : '')}
-                                    placeholder={data.district_id ? t('selectTehsilActive') : t('selectTehsil')}
-                                    isClearable
-                                />
-                                {errors.tehsil_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.tehsil_id}</p>}
-                            </div>
-                        </div>
-
-                        {/* Step 2 Footer Navigation */}
-                        <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between gap-4">
-                            <button
-                                type="button"
-                                onClick={handleBack}
-                                className="px-6 py-3 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm sm:text-base rounded-xl transition-all flex items-center gap-2"
-                            >
-                                <span className={isRtl ? 'rotate-180' : ''}>←</span>
-                                <span>{t('btnBack')}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleNext}
-                                className="px-8 py-3.5 bg-[#034d28] hover:bg-[#023b1f] text-white font-bold text-sm sm:text-base rounded-xl shadow-md hover:shadow-lg transition-all border-b-4 border-amber-500 flex items-center gap-2"
-                            >
-                                <span>{t('btnNext')}</span>
-                                <span className={isRtl ? 'rotate-180' : ''}>→</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ========================================================================= */}
-                {/* STEP 3: COMPLAINT */}
-                {/* ========================================================================= */}
-                {currentStep === 3 && (
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500 animate-fade-in space-y-6">
-                        <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-6 flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">3</span>
-                            {t('step3Title')}
-                        </h2>
-
-                        {/* Department & Categorization */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Department */}
-                            <div>
-                                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                    {t('labelDepartment')} <span className="text-red-500">*</span>
-                                </label>
-                                <Select
-                                    styles={selectStyles}
-                                    hasError={!!errors.department_id}
-                                    options={[
-                                        ...departments.map(dept => ({ value: dept.id, label: lang === 'ur' ? dept.name_ur || dept.name : dept.name })),
-                                        { value: 'other', label: t('optOther') }
-                                    ]}
-                                    value={data.department_id ? { value: data.department_id, label: data.department_id === 'other' ? t('optOther') : (departments.find(dept => String(dept.id) === String(data.department_id)) ? (lang === 'ur' ? departments.find(dept => String(dept.id) === String(data.department_id)).name_ur || departments.find(dept => String(dept.id) === String(data.department_id)).name : departments.find(dept => String(dept.id) === String(data.department_id)).name) : '') } : null}
-                                    onChange={(selectedOption) => handleDepartmentChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
-                                    placeholder={t('selectDepartment')}
-                                    isClearable
-                                />
-                                {errors.department_id && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.department_id}</p>}
-                            </div>
-
-                            {/* Sub-Department */}
-                            {data.department_id && data.department_id !== 'other' && availableSubDepartments.length > 0 && (
+                    {/* ─────────────────────────────────────────
+                        STEP 1 — Your details (V0 Step 1)
+                        ───────────────────────────────────────── */}
+                    {currentStep === 1 && (
+                        <section className="form-card" id="complaint" aria-labelledby="form-title">
+                            <div className="section-heading">
                                 <div>
-                                    <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                        {t('labelSubDepartment')}
-                                    </label>
-                                    <Select
-                                        styles={selectStyles}
-                                        options={availableSubDepartments.map(sd => ({ value: sd.id, label: lang === 'ur' ? sd.name_ur || sd.name : sd.name }))}
-                                        value={data.sub_department_id ? { value: data.sub_department_id, label: availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)) ? (lang === 'ur' ? availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name_ur || availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name : availableSubDepartments.find(sd => String(sd.id) === String(data.sub_department_id)).name) : '' } : null}
-                                        onChange={(selectedOption) => setData('sub_department_id', selectedOption ? selectedOption.value : '')}
-                                        placeholder={t('selectSubDepartment')}
-                                        isClearable
-                                    />
+                                    <p className="section-kicker">{label('Step one', 'پہلا قدم')}</p>
+                                    <h2 id="form-title">{label('About you', 'آپ کے بارے میں')}</h2>
                                 </div>
-                            )}
-
-                            {/* Category */}
-                            {data.department_id && data.department_id !== 'other' && (
-                                <div>
-                                    <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                        {t('labelCategory')}
-                                    </label>
-                                    <Select
-                                        styles={selectStyles}
-                                        options={[
-                                            ...availableCategories.map(cat => ({ value: cat.id, label: lang === 'ur' ? cat.name_ur || cat.name : cat.name })),
-                                            { value: 'other', label: t('optOther') }
-                                        ]}
-                                        value={data.category_id ? { value: data.category_id, label: data.category_id === 'other' ? t('optOther') : (availableCategories.find(cat => String(cat.id) === String(data.category_id)) ? (lang === 'ur' ? availableCategories.find(cat => String(cat.id) === String(data.category_id)).name_ur || availableCategories.find(cat => String(cat.id) === String(data.category_id)).name : availableCategories.find(cat => String(cat.id) === String(data.category_id)).name) : '') } : null}
-                                        onChange={(selectedOption) => handleCategoryChange({ target: { value: selectedOption ? selectedOption.value : '' }})}
-                                        placeholder={t('selectCategory')}
-                                        isClearable
-                                    />
-                                </div>
-                            )}
-
-                            {/* Sub-Category */}
-                            {data.category_id && data.category_id !== 'other' && availableSubCategories.length > 0 && (
-                                <div>
-                                    <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                        {t('labelSubCategory')}
-                                    </label>
-                                    <Select
-                                        styles={selectStyles}
-                                        options={availableSubCategories.map(sc => ({ value: sc.id, label: lang === 'ur' ? sc.name_ur || sc.name : sc.name }))}
-                                        value={data.sub_category_id ? { value: data.sub_category_id, label: availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)) ? (lang === 'ur' ? availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name_ur || availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name : availableSubCategories.find(sc => String(sc.id) === String(data.sub_category_id)).name) : '' } : null}
-                                        onChange={(selectedOption) => setData('sub_category_id', selectedOption ? selectedOption.value : '')}
-                                        placeholder={t('selectSubCategory')}
-                                        isClearable
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Subject */}
-                        <div>
-                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                {t('labelSubject')} <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={data.subject}
-                                maxLength={100}
-                                onChange={(e) => setData('subject', e.target.value)}
-                                placeholder={t('placeholderSubject')}
-                                className={`w-full h-12 rounded-xl border px-4 text-base transition-all focus:outline-none focus:ring-2 ${
-                                    errors.subject ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                }`}
-                            />
-                            <div className="flex justify-between items-center mt-1 text-xs">
-                                {errors.subject ? (
-                                    <p className="text-red-600 font-medium">{errors.subject}</p>
-                                ) : <span />}
-                                <span className="text-slate-400 font-mono">{data.subject.length}/100</span>
+                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
                             </div>
-                        </div>
 
-                        {/* Details */}
-                        <div>
-                            <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                                {t('labelDetails')} <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                                rows={6}
-                                value={data.details}
-                                onChange={(e) => setData('details', e.target.value)}
-                                placeholder={t('placeholderDetails')}
-                                className={`w-full rounded-xl border px-4 py-3.5 min-h-[140px] text-base leading-relaxed transition-all focus:outline-none focus:ring-2 ${
-                                    errors.details ? 'border-red-500 focus:ring-red-400 bg-red-50/20' : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-400'
-                                }`}
-                            />
-                            <div className="flex justify-between items-center mt-1.5 text-xs">
-                                {errors.details ? (
-                                    <p className="text-red-600 font-medium">{errors.details}</p>
-                                ) : (
-                                    <span className="text-slate-500">{t('charCounter', { count: data.details.length })}</span>
+                            <div className="form-grid">
+                                {/* Full name */}
+                                <label>
+                                    {label('Full name', 'پورا نام')} <span>*</span>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={data.name}
+                                        maxLength={100}
+                                        onChange={e => setData('name', e.target.value)}
+                                        placeholder={label('Enter your full name', 'اپنا مکمل نام درج کریں')}
+                                        data-error={!!errors.name}
+                                        style={errors.name ? { borderColor: '#e53e3e' } : {}}
+                                    />
+                                    {errors.name && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.name}</span>}
+                                </label>
+
+                                {/* CNIC */}
+                                <label>
+                                    {label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span>*</span>
+                                    <IMaskInput
+                                        mask="00000-0000000-0"
+                                        value={data.cnic}
+                                        dir="ltr"
+                                        unmask={false}
+                                        onAccept={val => setData('cnic', val)}
+                                        onBlur={handleCnicBlur}
+                                        placeholder="00000-0000000-0"
+                                        data-error={!!errors.cnic}
+                                        style={errors.cnic ? { borderColor: '#e53e3e' } : {}}
+                                    />
+                                    {errors.cnic && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.cnic}</span>}
+                                </label>
+
+                                {/* Mobile */}
+                                <label>
+                                    {label('Mobile number', 'موبائل نمبر')} <span>*</span>
+                                    <IMaskInput
+                                        mask="0000-0000000"
+                                        value={data.mobile_number}
+                                        dir="ltr"
+                                        unmask={false}
+                                        onAccept={val => setData('mobile_number', val)}
+                                        placeholder="0300-0000000"
+                                        data-error={!!errors.mobile_number}
+                                        style={errors.mobile_number ? { borderColor: '#e53e3e' } : {}}
+                                    />
+                                    {errors.mobile_number && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.mobile_number}</span>}
+                                </label>
+
+                                {/* Gender — plain <select> exactly like V0 */}
+                                <label>
+                                    {label('Gender', 'جنس')} <em>{label('Optional', 'اختیاری')}</em>
+                                    <select
+                                        value={data.gender}
+                                        onChange={e => setData('gender', e.target.value)}
+                                    >
+                                        <option value="">{label('Prefer not to say', 'بتانا نہیں چاہتے')}</option>
+                                        <option value="male">{label('Male', 'مرد')}</option>
+                                        <option value="female">{label('Female', 'خاتون')}</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            {/* Footer — V0 exact layout */}
+                            <div className="form-footer">
+                                <p>
+                                    <span className="privacy-dot" aria-hidden="true" />
+                                    {label('Your details are protected and never shared publicly.', 'آپ کی تفصیلات محفوظ ہیں اور کبھی عوامی سطح پر شیئر نہیں کی جاتیں۔')}
+                                </p>
+                                <button type="button" onClick={goNext} className="continue-button" id="step1-continue">
+                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ─────────────────────────────────────────
+                        STEP 2 — Location
+                        ───────────────────────────────────────── */}
+                    {currentStep === 2 && (
+                        <section className="form-card" aria-labelledby="step2-title">
+                            <div className="section-heading">
+                                <div>
+                                    <p className="section-kicker">{label('Step two', 'دوسرا قدم')}</p>
+                                    <h2 id="step2-title">{label('Location', 'مقام')}</h2>
+                                </div>
+                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
+                            </div>
+
+                            <div className="form-grid">
+                                {/* District */}
+                                <label>
+                                    {label('District', 'ضلع')} <span>*</span>
+                                    <select
+                                        value={data.district_id}
+                                        onChange={e => setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }))}
+                                        style={errors.district_id ? { borderColor: '#e53e3e' } : {}}
+                                    >
+                                        <option value="">{label('Select district', 'ضلع منتخب کریں')}</option>
+                                        {districts.map(d => <option key={d.id} value={d.id}>{dname(d)}</option>)}
+                                    </select>
+                                    {errors.district_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.district_id}</span>}
+                                </label>
+
+                                {/* Tehsil */}
+                                <label>
+                                    {label('Tehsil', 'تحصیل')} <span>*</span>
+                                    <select
+                                        value={data.tehsil_id}
+                                        onChange={e => setData('tehsil_id', e.target.value)}
+                                        disabled={!data.district_id}
+                                        style={errors.tehsil_id ? { borderColor: '#e53e3e' } : {}}
+                                    >
+                                        <option value="">{data.district_id ? label('Select tehsil', 'تحصیل منتخب کریں') : label('Select district first', 'پہلے ضلع منتخب کریں')}</option>
+                                        {availableTehsils.map(t => <option key={t.id} value={t.id}>{dname(t)}</option>)}
+                                    </select>
+                                    {errors.tehsil_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.tehsil_id}</span>}
+                                </label>
+                            </div>
+
+                            <div className="form-footer">
+                                <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                                    <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
+                                </button>
+                                <button type="button" onClick={goNext} className="continue-button">
+                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ─────────────────────────────────────────
+                        STEP 3 — Your complaint
+                        ───────────────────────────────────────── */}
+                    {currentStep === 3 && (
+                        <section className="form-card" aria-labelledby="step3-title">
+                            <div className="section-heading">
+                                <div>
+                                    <p className="section-kicker">{label('Step three', 'تیسرا قدم')}</p>
+                                    <h2 id="step3-title">{label('Your complaint', 'آپ کی شکایت')}</h2>
+                                </div>
+                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
+                            </div>
+
+                            <div className="form-grid">
+                                {/* Department */}
+                                <label>
+                                    {label('Department', 'محکمہ')} <span>*</span>
+                                    <select
+                                        value={data.department_id}
+                                        onChange={e => setData(prev => ({ ...prev, department_id: e.target.value, sub_department_id: '', category_id: '', sub_category_id: '' }))}
+                                        style={errors.department_id ? { borderColor: '#e53e3e' } : {}}
+                                    >
+                                        <option value="">{label('Select department', 'محکمہ منتخب کریں')}</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{dname(d)}</option>)}
+                                        <option value="other">{label('Other / Unknown', 'دیگر / معلوم نہیں')}</option>
+                                    </select>
+                                    {errors.department_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.department_id}</span>}
+                                </label>
+
+                                {/* Sub-Department */}
+                                {data.department_id && data.department_id !== 'other' && availableSubDepts.length > 0 && (
+                                    <label>
+                                        {label('Sub-department', 'ذیلی محکمہ')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <select value={data.sub_department_id} onChange={e => setData('sub_department_id', e.target.value)}>
+                                            <option value="">{label('Select sub-department', 'ذیلی محکمہ منتخب کریں')}</option>
+                                            {availableSubDepts.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
+                                        </select>
+                                    </label>
                                 )}
-                                <span className={`font-mono font-semibold ${data.details.length < 50 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                    {data.details.length} chars
-                                </span>
-                            </div>
-                        </div>
 
-                        {/* Step 3 Footer Navigation */}
-                        <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between gap-4">
-                            <button
-                                type="button"
-                                onClick={handleBack}
-                                className="px-6 py-3 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm sm:text-base rounded-xl transition-all flex items-center gap-2"
-                            >
-                                <span className={isRtl ? 'rotate-180' : ''}>←</span>
-                                <span>{t('btnBack')}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleNext}
-                                className="px-8 py-3.5 bg-[#034d28] hover:bg-[#023b1f] text-white font-bold text-sm sm:text-base rounded-xl shadow-md hover:shadow-lg transition-all border-b-4 border-amber-500 flex items-center gap-2"
-                            >
-                                <span>{t('btnNext')}</span>
-                                <span className={isRtl ? 'rotate-180' : ''}>→</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
+                                {/* Category */}
+                                {data.department_id && data.department_id !== 'other' && availableCategories.length > 0 && (
+                                    <label>
+                                        {label('Category', 'قسم')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <select value={data.category_id} onChange={e => setData(prev => ({ ...prev, category_id: e.target.value, sub_category_id: '' }))}>
+                                            <option value="">{label('Select category', 'قسم منتخب کریں')}</option>
+                                            {availableCategories.map(c => <option key={c.id} value={c.id}>{dname(c)}</option>)}
+                                            <option value="other">{label('Other', 'دیگر')}</option>
+                                        </select>
+                                    </label>
+                                )}
 
-                {/* ========================================================================= */}
-                {/* STEP 4: ATTACHMENTS & REVIEW */}
-                {/* ========================================================================= */}
-                {currentStep === 4 && (
-                    <div className="space-y-6 animate-fade-in">
-                        {/* 4A: Attachments & Media Capture */}
-                        <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-500 before:via-[#046A38] before:to-amber-500">
-                            <h2 className="text-lg font-bold text-emerald-950 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2.5">
-                                <span className="w-7 h-7 rounded-full bg-[#034d28] text-amber-300 ring-2 ring-amber-400/80 flex items-center justify-center text-xs font-black shadow-sm">4</span>
-                                {t('sectionAttachments')}
-                            </h2>
-
-                            <p className="text-xs text-slate-500 mb-4">{t('attachmentsHint')}</p>
-
-                            {/* Capture Options Bar (Upload File, Take a Photo, Record a Video) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                                {/* Option 1: Choose File */}
-                                <button
-                                    type="button"
-                                    onClick={() => fileUploadInputRef.current?.click()}
-                                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-emerald-50 hover:border-emerald-300 text-slate-800 transition-all flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm shadow-xs"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                    </svg>
-                                    <span>{t('captureChooseFile')}</span>
-                                </button>
-
-                                {/* Option 2: Take a Photo */}
-                                <button
-                                    type="button"
-                                    onClick={() => openCameraModal('photo')}
-                                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-emerald-50 hover:border-emerald-300 text-slate-800 transition-all flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm shadow-xs"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span>{t('captureTakePhoto')}</span>
-                                </button>
-
-                                {/* Option 3: Record a Video (capped at 60s) */}
-                                <button
-                                    type="button"
-                                    onClick={() => openCameraModal('video')}
-                                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-emerald-50 hover:border-emerald-300 text-slate-800 transition-all flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm shadow-xs"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                    <span>{t('captureRecordVideo')}</span>
-                                </button>
+                                {/* Sub-category */}
+                                {data.category_id && data.category_id !== 'other' && availableSubCategories.length > 0 && (
+                                    <label>
+                                        {label('Sub-category', 'ذیلی قسم')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <select value={data.sub_category_id} onChange={e => setData('sub_category_id', e.target.value)}>
+                                            <option value="">{label('Select sub-category', 'ذیلی قسم منتخب کریں')}</option>
+                                            {availableSubCategories.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
+                                        </select>
+                                    </label>
+                                )}
                             </div>
 
-                            {/* Camera Denied Warning Banner (if camera fails/denied) */}
-                            {cameraError && (
-                                <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs sm:text-sm flex items-start gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <div className="space-y-1">
-                                        <p className="font-bold">{cameraError}</p>
-                                        <div className="flex gap-2 pt-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => nativePhotoInputRef.current?.click()}
-                                                className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 font-semibold hover:bg-amber-100"
-                                            >
-                                                {t('captureTakePhoto')} (Device)
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => nativeVideoInputRef.current?.click()}
-                                                className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 font-semibold hover:bg-amber-100"
-                                            >
-                                                {t('captureRecordVideo')} (Device)
-                                            </button>
-                                        </div>
+                            {/* Subject — full width below grid */}
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
+                                    {label('Subject', 'موضوع')} <span style={{ color: 'var(--coral)' }}>*</span>
+                                    <input
+                                        type="text"
+                                        value={data.subject}
+                                        maxLength={100}
+                                        onChange={e => setData('subject', e.target.value)}
+                                        placeholder={label('Brief title for your complaint', 'شکایت کا مختصر عنوان')}
+                                        style={errors.subject ? { borderColor: '#e53e3e' } : {}}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        {errors.subject ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.subject}</span> : <span />}
+                                        <span style={{ fontSize: '.72rem', color: 'var(--muted)', fontFamily: 'monospace' }}>{data.subject.length}/100</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* Details — full width */}
+                            <div style={{ marginTop: '1.25rem' }}>
+                                <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
+                                    {label('Details', 'تفصیل')} <span style={{ color: 'var(--coral)' }}>*</span>
+                                    <textarea
+                                        rows={6}
+                                        value={data.details}
+                                        onChange={e => setData('details', e.target.value)}
+                                        placeholder={label('Describe your complaint clearly — what happened, when, where, and who is involved.', 'اپنی شکایت واضح الفاظ میں بیان کریں — کیا ہوا، کب، کہاں، اور کون ملوث ہے۔')}
+                                        style={{ resize: 'vertical', minHeight: '10rem', ...(errors.details ? { borderColor: '#e53e3e' } : {}) }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        {errors.details
+                                            ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.details}</span>
+                                            : <span style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{label('Minimum 50 characters', 'کم از کم 50 حروف')}</span>}
+                                        <span style={{ fontSize: '.72rem', fontFamily: 'monospace', color: data.details.length < 50 ? 'var(--coral)' : '#237653', fontWeight: 700 }}>{data.details.length}</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div className="form-footer">
+                                <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                                    <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
+                                </button>
+                                <button type="button" onClick={goNext} className="continue-button">
+                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ─────────────────────────────────────────
+                        STEP 4 — Review & Attachments
+                        ───────────────────────────────────────── */}
+                    {currentStep === 4 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                            {/* Attachments card */}
+                            <section className="form-card" aria-labelledby="attach-title">
+                                <div className="section-heading">
+                                    <div>
+                                        <p className="section-kicker">{label('Step four', 'چوتھا قدم')}</p>
+                                        <h2 id="attach-title">{label('Attachments', 'دستاویزات')}</h2>
                                     </div>
                                 </div>
-                            )}
+                                <p style={{ margin: '.75rem 0 1rem', fontSize: '.82rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+                                    {label('Add photos, videos, or documents as evidence (optional). Max 5 files, 10 MB each.', 'ثبوت کے طور پر تصاویر، ویڈیو یا دستاویزات شامل کریں (اختیاری)۔ زیادہ سے زیادہ 5 فائلز، ہر ایک 10 MB۔')}
+                                </p>
 
-                            {/* File Errors */}
-                            {fileError && (
-                                <div className="mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <span>{fileError}</span>
+                                {/* Upload buttons */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                                    {[
+                                        { icon: '📎', text: label('Upload file', 'فائل اپ لوڈ کریں'), action: () => fileInputRef.current?.click() },
+                                        { icon: '📷', text: label('Take photo', 'تصویر لیں'),        action: () => openCamera('photo') },
+                                        { icon: '🎥', text: label('Record video', 'ویڈیو ریکارڈ کریں'), action: () => openCamera('video') },
+                                    ].map(btn => (
+                                        <button key={btn.text} type="button" onClick={btn.action}
+                                            style={{ padding: '.85rem .75rem', borderRadius: '.75rem', border: '1.5px solid var(--line)', background: 'var(--background)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.4rem', fontWeight: 700, fontSize: '.8rem', color: 'var(--foreground)', transition: 'border-color .15s' }}>
+                                            <span style={{ fontSize: '1.4rem' }}>{btn.icon}</span>
+                                            {btn.text}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
 
-                            {/* Attachment List */}
-                            {attachmentFiles.length > 0 ? (
-                                <div className="mt-4 space-y-2">
-                                    <p className="text-xs font-semibold text-emerald-700">
-                                        {t('filesSelected', { count: attachmentFiles.length })}
-                                    </p>
-                                    <ul className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 text-xs">
-                                        {attachmentFiles.map((file, idx) => (
-                                            <li key={idx} className="px-4 py-2.5 flex justify-between items-center text-slate-700 hover:bg-slate-100/60">
-                                                <div className="flex items-center gap-2 truncate max-w-sm sm:max-w-md">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                                                    <span className="truncate font-medium">{file.name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <span className="text-slate-400 font-mono text-[11px]">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeAttachment(idx)}
-                                                        className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50"
-                                                        title="Remove"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
+                                {/* Camera error fallback */}
+                                {cameraError && (
+                                    <div style={{ margin: '0 0 .75rem', padding: '.75rem 1rem', borderRadius: '.65rem', background: '#fffbeb', border: '1px solid #f6c431', color: '#7a4f00', fontSize: '.82rem', display: 'flex', gap: '.5rem' }}>
+                                        <span>⚠️</span> <span>{cameraError}</span>
+                                    </div>
+                                )}
+
+                                {/* File error */}
+                                {fileError && (
+                                    <div style={{ margin: '0 0 .75rem', padding: '.75rem 1rem', borderRadius: '.65rem', background: '#fff5f5', border: '1px solid #fc8181', color: '#c53030', fontSize: '.82rem', fontWeight: 600 }}>
+                                        {fileError}
+                                    </div>
+                                )}
+
+                                {/* File list */}
+                                {attachmentFiles.length > 0 ? (
+                                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid var(--line)', borderRadius: '.75rem', overflow: 'hidden' }}>
+                                        {attachmentFiles.map((f, i) => (
+                                            <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 1rem', borderBottom: i < attachmentFiles.length - 1 ? '1px solid var(--line)' : 'none', fontSize: '.82rem', background: 'var(--surface)' }}>
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                                                    <span style={{ width: '.4rem', height: '.4rem', borderRadius: '50%', background: '#237653', flexShrink: 0 }} />
+                                                    {f.name}
+                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
+                                                    <span style={{ fontFamily: 'monospace', fontSize: '.72rem', color: 'var(--muted)' }}>{(f.size / 1048576).toFixed(2)} MB</span>
+                                                    <button type="button" onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: '1rem', padding: '.2rem', lineHeight: 1 }}>✕</button>
                                                 </div>
                                             </li>
                                         ))}
                                     </ul>
-                                </div>
-                            ) : (
-                                <div className="p-3 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                                    {t('reviewNoAttachments')}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 4B: Read-Only Review Summary of Steps 1–3 */}
-                        <div className="relative overflow-hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
-                            <div className="border-b border-slate-100 pb-4">
-                                <h3 className="text-lg font-black text-emerald-950">
-                                    {t('reviewTitle')}
-                                </h3>
-                                <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                                    {t('reviewSubtitle')}
-                                </p>
-                            </div>
-
-                            {/* Section 1 Review: Citizen Information */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        {t('reviewPersonal')}
-                                    </h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => goToStep(1)}
-                                        className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2.5 py-1 rounded-lg hover:bg-emerald-100/60 transition-colors"
-                                    >
-                                        ✏️ {t('btnEdit')}
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelName')}:</span>
-                                        <span className="font-bold text-slate-800">{data.name || '—'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelCnic')}:</span>
-                                        <span className="font-mono font-bold text-slate-800">{data.cnic || '—'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelMobile')}:</span>
-                                        <span className="font-mono font-bold text-slate-800">{data.mobile_number || '—'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelGender')}:</span>
-                                        <span className="font-bold text-slate-800">
-                                            {data.gender === 'male' ? t('optMale') : data.gender === 'female' ? t('optFemale') : t('reviewGenderNotSpecified')}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Section 2 Review: Location Information */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        {t('reviewLocation')}
-                                    </h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => goToStep(2)}
-                                        className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2.5 py-1 rounded-lg hover:bg-emerald-100/60 transition-colors"
-                                    >
-                                        ✏️ {t('btnEdit')}
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelDistrict')}:</span>
-                                        <span className="font-bold text-slate-800">{selectedDistrictName || '—'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelTehsil')}:</span>
-                                        <span className="font-bold text-slate-800">{selectedTehsilName || '—'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Section 3 Review: Complaint Details */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        {t('reviewComplaint')}
-                                    </h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => goToStep(3)}
-                                        className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2.5 py-1 rounded-lg hover:bg-emerald-100/60 transition-colors"
-                                    >
-                                        ✏️ {t('btnEdit')}
-                                    </button>
-                                </div>
-                                <div className="space-y-3 text-xs sm:text-sm">
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        <div>
-                                            <span className="text-slate-400 block text-[11px]">{t('labelDepartment')}:</span>
-                                            <span className="font-bold text-slate-800">{selectedDepartmentName || '—'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-400 block text-[11px]">{t('labelSubDepartment')}:</span>
-                                            <span className="font-semibold text-slate-700">{selectedSubDepartmentName}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-400 block text-[11px]">{t('labelCategory')}:</span>
-                                            <span className="font-semibold text-slate-700">{selectedCategoryName || '—'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-400 block text-[11px]">{t('labelSubCategory')}:</span>
-                                            <span className="font-semibold text-slate-700">{selectedSubCategoryName}</span>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelSubject')}:</span>
-                                        <p className="font-bold text-emerald-950 mt-0.5">{data.subject || '—'}</p>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-slate-400 block text-[11px]">{t('labelDetails')}:</span>
-                                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed mt-0.5 bg-white p-3 rounded-lg border border-slate-200/80">
-                                            {data.details || '—'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 4C: Citizen Declaration & Affirmation */}
-                        <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all ${
-                            errors.declaration ? 'bg-red-50/50 border-red-400' : 'bg-gradient-to-r from-emerald-50/60 via-amber-50/40 to-emerald-50/60 border-amber-300 shadow-xs'
-                        }`}>
-                            <label className="flex items-start gap-3.5 cursor-pointer select-none">
-                                <input
-                                    type="checkbox"
-                                    id="declaration"
-                                    checked={declarationAccepted}
-                                    onChange={(e) => {
-                                        setDeclarationAccepted(e.target.checked);
-                                        if (errors.declaration) clearErrors('declaration');
-                                    }}
-                                    className="mt-1 h-5 w-5 rounded-md border-slate-300 text-[#034d28] focus:ring-[#034d28] cursor-pointer shrink-0"
-                                />
-                                <span className="text-xs sm:text-sm font-semibold text-slate-800 leading-relaxed">
-                                    {t('confDeclarationCheckbox')} <span className="text-red-500">*</span>
-                                </span>
-                            </label>
-                            {errors.declaration && (
-                                <p className="mt-2.5 text-xs text-red-600 font-bold flex items-center gap-1.5 animate-shake">
-                                    <span>⚠️</span> {errors.declaration}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* 4D: In-Step Submission Alert Banner (Rate Limit, Server Error, Attachments) */}
-                        {(errors.rate_limit || errors.general || errors.attachments || Object.keys(errors).some(k => k.startsWith('attachments'))) && (
-                            <div id="submission-error-alert" className="p-4 sm:p-5 rounded-2xl bg-amber-50/95 border-2 border-amber-400 text-amber-950 space-y-3 shadow-md animate-shake">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 font-bold text-lg shadow-xs">
-                                        ⚠️
-                                    </div>
-                                    <div className="space-y-1.5 flex-1 text-xs sm:text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-black bg-amber-200 text-amber-950 border border-amber-300 uppercase">
-                                                {errors.rate_limit ? 'ERR_RATE_LIMIT_EXCEEDED' : errors.general ? 'ERR_SUBMISSION_FAILED' : 'ERR_ATTACHMENTS_INVALID'}
-                                            </span>
-                                            <h4 className="font-extrabold text-amber-950">
-                                                {errors.rate_limit ? t('valRateLimitTitle') : t('errSubmissionFailedTitle')}
-                                            </h4>
-                                        </div>
-                                        {errors.rate_limit && (
-                                            <p className="leading-relaxed font-medium">
-                                                {t('valRateLimitRecent', { time: errors.rate_limit })}
-                                            </p>
-                                        )}
-                                        {errors.general && (
-                                            <p className="leading-relaxed font-medium">
-                                                {errors.general}
-                                            </p>
-                                        )}
-                                        {errors.attachments && (
-                                            <p className="leading-relaxed font-medium text-red-700">
-                                                {errors.attachments}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                {errors.rate_limit && (
-                                    <div className="pt-2 border-t border-amber-200/80 flex justify-end">
-                                        <a
-                                            href="/complaints/track"
-                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#034d28] hover:bg-[#023b1f] text-white font-bold text-xs shadow-sm transition-all"
-                                        >
-                                            <span>{t('btnTrackNow')}</span>
-                                            <span className={isRtl ? 'rotate-180' : ''}>→</span>
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Step 4 Footer Navigation & Final Submission */}
-                        <div className="flex items-center justify-between gap-4 pt-2">
-                            <button
-                                type="button"
-                                onClick={handleBack}
-                                className="px-6 py-3.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm sm:text-base rounded-xl transition-all flex items-center gap-2"
-                            >
-                                <span className={isRtl ? 'rotate-180' : ''}>←</span>
-                                <span>{t('btnBack')}</span>
-                            </button>
-
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="px-10 py-4 bg-gradient-to-r from-[#034d28] via-[#046A38] to-[#034d28] hover:from-[#023b1f] hover:to-[#034d28] text-white font-extrabold text-base rounded-xl shadow-lg hover:shadow-xl transition-all border-b-4 border-amber-500 active:border-b-0 active:translate-y-1 disabled:opacity-50 flex items-center justify-center gap-2.5"
-                            >
-                                {processing ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span>{t('btnSubmitting')}</span>
-                                    </>
                                 ) : (
-                                    <span>{t('btnSubmit')}</span>
+                                    <div style={{ padding: '.75rem', textAlign: 'center', fontSize: '.8rem', color: 'var(--muted)', border: '1.5px dashed var(--line)', borderRadius: '.75rem' }}>
+                                        {label('No attachments added', 'کوئی منسلکات نہیں')}
+                                    </div>
                                 )}
-                            </button>
+                            </section>
+
+                            {/* Review summary card */}
+                            <section className="form-card" aria-labelledby="review-title">
+                                <div style={{ paddingBottom: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--line)' }}>
+                                    <h2 id="review-title" style={{ margin: 0, color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-.04em' }}>{label('Review', 'جائزہ')}</h2>
+                                    <p style={{ margin: '.3rem 0 0', fontSize: '.82rem', color: 'var(--muted)' }}>{label('Check your details before submitting.', 'جمع کرانے سے پہلے اپنی تفصیلات جانچ لیں۔')}</p>
+                                </div>
+
+                                {/* Review blocks */}
+                                {[
+                                    {
+                                        titleEn: 'Your details', titleUr: 'آپ کی تفصیلات', step: 1,
+                                        rows: [
+                                            [label('Full name', 'پورا نام'), data.name || '—'],
+                                            [label('CNIC', 'قومی شناختی کارڈ'), data.cnic || '—'],
+                                            [label('Mobile', 'موبائل'), data.mobile_number || '—'],
+                                            [label('Gender', 'جنس'), data.gender === 'male' ? label('Male', 'مرد') : data.gender === 'female' ? label('Female', 'خاتون') : label('Not specified', 'غیر متعین')],
+                                        ],
+                                    },
+                                    {
+                                        titleEn: 'Location', titleUr: 'مقام', step: 2,
+                                        rows: [
+                                            [label('District', 'ضلع'), districtName],
+                                            [label('Tehsil', 'تحصیل'), tehsilName],
+                                        ],
+                                    },
+                                    {
+                                        titleEn: 'Complaint', titleUr: 'شکایت', step: 3,
+                                        rows: [
+                                            [label('Department', 'محکمہ'), departmentName],
+                                            ...(data.sub_department_id ? [[label('Sub-dept', 'ذیلی محکمہ'), subDeptName]] : []),
+                                            ...(data.category_id ? [[label('Category', 'قسم'), categoryName]] : []),
+                                            ...(data.sub_category_id ? [[label('Sub-category', 'ذیلی قسم'), subCategoryName]] : []),
+                                            [label('Subject', 'موضوع'), data.subject || '—'],
+                                        ],
+                                    },
+                                ].map(block => (
+                                    <div key={block.step} style={{ padding: '1rem', borderRadius: '.75rem', background: '#f4f7f6', border: '1px solid var(--line)', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
+                                            <h3 style={{ margin: 0, fontSize: '.72rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>{isRtl ? block.titleUr : block.titleEn}</h3>
+                                            <button type="button" onClick={() => goTo(block.step)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '.78rem', fontWeight: 700, color: 'var(--ring)', padding: '.2rem .5rem' }}>✏ {label('Edit', 'ترمیم')}</button>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '.6rem .75rem', fontSize: '.84rem' }}>
+                                            {block.rows.map(([lbl, val]) => (
+                                                <div key={lbl}>
+                                                    <span style={{ display: 'block', fontSize: '.7rem', color: 'var(--muted)', marginBottom: '.15rem' }}>{lbl}</span>
+                                                    <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{val}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {block.step === 3 && data.details && (
+                                            <div style={{ marginTop: '.75rem', paddingTop: '.75rem', borderTop: '1px solid var(--line)' }}>
+                                                <span style={{ display: 'block', fontSize: '.7rem', color: 'var(--muted)', marginBottom: '.3rem' }}>{label('Details', 'تفصیل')}</span>
+                                                <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.65, fontSize: '.84rem', color: 'var(--foreground)', padding: '.65rem .85rem', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '.5rem' }}>{data.details}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Declaration */}
+                                <div style={{ padding: '1rem 1.25rem', borderRadius: '.75rem', border: `2px solid ${errors.declaration ? '#e53e3e' : 'var(--coral)'}`, background: errors.declaration ? '#fff5f5' : '#fffbeb', marginBottom: '1rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '.85rem', cursor: 'pointer', userSelect: 'none', fontWeight: 600, fontSize: '.88rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={declarationAccepted}
+                                            onChange={e => { setDeclarationAccepted(e.target.checked); if (errors.declaration) clearErrors('declaration'); }}
+                                            style={{ marginTop: '.2rem', width: '1.1rem', height: '1.1rem', cursor: 'pointer', flexShrink: 0, accentColor: 'var(--primary)' }}
+                                        />
+                                        {label(
+                                            'I declare that the information provided is true and correct to the best of my knowledge.',
+                                            'میں اعلان کرتا / کرتی ہوں کہ فراہم کردہ معلومات میری بہترین معلومات کے مطابق درست ہیں۔',
+                                        )} <span style={{ color: '#e53e3e' }}>*</span>
+                                    </label>
+                                    {errors.declaration && <p style={{ margin: '.4rem 0 0 1.95rem', fontSize: '.78rem', color: '#e53e3e', fontWeight: 700 }}>⚠ {errors.declaration}</p>}
+                                </div>
+
+                                {/* Server errors */}
+                                {(errors.general || errors.rate_limit) && (
+                                    <div style={{ padding: '1rem', borderRadius: '.75rem', background: '#fffbeb', border: '2px solid var(--yellow)', marginBottom: '1rem', fontSize: '.85rem', color: '#7a4f00' }}>
+                                        {errors.rate_limit
+                                            ? <><strong>{label('Too many submissions.', 'بہت زیادہ جمع کرانے کی کوشش۔')}</strong> {errors.rate_limit}</>
+                                            : <><strong>{label('Submission failed.', 'جمع کرانا ناکام ہوا۔')}</strong> {errors.general}</>}
+                                    </div>
+                                )}
+
+                                <div className="form-footer">
+                                    <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                                        <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="continue-button"
+                                        id="final-submit"
+                                        style={{ opacity: processing ? .6 : 1, paddingLeft: '2rem', paddingRight: '2rem' }}
+                                    >
+                                        {processing
+                                            ? label('Submitting…', 'جمع ہو رہا ہے…')
+                                            : <>{label('Submit complaint', 'شکایت جمع کریں')} <span aria-hidden="true">✓</span></>}
+                                    </button>
+                                </div>
+                            </section>
                         </div>
-                    </div>
-                )}
-            </form>
+                    )}
+                </form>
 
-            {/* IN-BROWSER CAMERA / VIDEO CAPTURE MODAL */}
-            {cameraModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs">
-                    <div className="relative w-full max-w-lg bg-slate-900 text-white rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
-                        {/* Modal Header */}
-                        <div className="p-4 bg-slate-800/90 flex justify-between items-center border-b border-slate-700">
-                            <h3 className="font-bold text-sm sm:text-base flex items-center gap-2">
-                                <span className={`w-2.5 h-2.5 rounded-full ${captureMode === 'video' ? 'bg-red-500 animate-pulse' : 'bg-amber-400'}`}></span>
-                                <span>{captureMode === 'video' ? t('captureRecordVideo') : t('captureTakePhoto')}</span>
-                            </h3>
-                            <button
-                                type="button"
-                                onClick={closeCameraModal}
-                                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700"
-                            >
-                                ✕
-                            </button>
+                {/* Help line — V0 exact */}
+                <p className="help-line">
+                    {label('Need help? Call ', 'مدد چاہیے؟ کال کریں ')}
+                    <strong>0800-786-01</strong>
+                    {label(' · Available in English and Urdu', ' · اردو اور انگریزی میں دستیاب')}
+                </p>
+            </div>
+
+            {/* ═══════════════════════════════════════════════
+                IN-BROWSER CAMERA MODAL
+                ═══════════════════════════════════════════════ */}
+            {cameraOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.8)', padding: '1rem', backdropFilter: 'blur(4px)' }}>
+                    <div style={{ width: '100%', maxWidth: '30rem', background: '#0f172a', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,.6)', border: '1px solid #334155' }}>
+                        <div style={{ padding: '.85rem 1rem', background: '#1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
+                            <strong style={{ color: '#fff', fontSize: '.9rem' }}>{captureMode === 'video' ? label('Record video', 'ویڈیو ریکارڈ کریں') : label('Take photo', 'تصویر لیں')}</strong>
+                            <button type="button" onClick={closeCamera} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.1rem' }}>✕</button>
                         </div>
-
-                        {/* Video Viewport */}
-                        <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[450px] overflow-hidden">
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="w-full h-full object-cover"
-                            />
-
-                            {/* Video Timer Pill (60s countdown) */}
-                            {captureMode === 'video' && (
-                                <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2 border border-red-500/50">
-                                    <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-ping' : 'bg-slate-400'}`}></span>
-                                    <span>{isRecording ? t('captureTimeRemaining', { sec: recordingTimeLeft }) : t('captureMaxTimeNotice')}</span>
+                        <div style={{ position: 'relative', background: '#000', minHeight: '15rem', maxHeight: '24rem', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', objectFit: 'cover' }} />
+                            {captureMode === 'video' && isRecording && (
+                                <div style={{ position: 'absolute', top: '.75rem', right: '.75rem', background: 'rgba(239,68,68,.9)', color: '#fff', padding: '.25rem .65rem', borderRadius: '999px', fontSize: '.72rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                                    ● {timeLeft}s
                                 </div>
                             )}
-
-                            {/* Permission error prompt inside viewport */}
                             {cameraError && (
-                                <div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center space-y-3">
-                                    <p className="text-xs sm:text-sm text-amber-300 font-semibold">{cameraError}</p>
-                                    <button
-                                        type="button"
-                                        onClick={closeCameraModal}
-                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold"
-                                    >
-                                        {t('captureClose')}
-                                    </button>
+                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', textAlign: 'center' }}>
+                                    <p style={{ color: '#fcd34d', fontSize: '.88rem' }}>{cameraError}</p>
                                 </div>
                             )}
                         </div>
-
-                        {/* Modal Action Controls */}
                         {!cameraError && (
-                            <div className="p-4 bg-slate-800/90 flex items-center justify-between gap-3 border-t border-slate-700">
-                                <button
-                                    type="button"
-                                    onClick={closeCameraModal}
-                                    className="px-4 py-2.5 text-xs text-slate-300 hover:text-white"
-                                >
-                                    {t('captureClose')}
-                                </button>
-
-                                {captureMode === 'photo' ? (
-                                    <button
-                                        type="button"
-                                        onClick={capturePhoto}
-                                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-sm rounded-xl shadow-md flex items-center gap-2"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        </svg>
-                                        <span>{t('captureSnapPhoto')}</span>
-                                    </button>
-                                ) : (
-                                    <>
-                                        {!isRecording ? (
-                                            <button
-                                                type="button"
-                                                onClick={startVideoRecording}
-                                                className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-black text-sm rounded-xl shadow-md flex items-center gap-2"
-                                            >
-                                                <span className="w-3 h-3 rounded-full bg-white"></span>
-                                                <span>{t('captureStartRecord')}</span>
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={stopVideoRecording}
-                                                className="px-6 py-2.5 bg-slate-100 hover:bg-white text-red-700 font-black text-sm rounded-xl shadow-md flex items-center gap-2 animate-pulse"
-                                            >
-                                                <span className="w-3 h-3 rounded-xs bg-red-600"></span>
-                                                <span>{t('captureStopRecord')}</span>
-                                            </button>
-                                        )}
-                                    </>
-                                )}
+                            <div style={{ padding: '.85rem 1rem', background: '#1e293b', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #334155' }}>
+                                <button type="button" onClick={closeCamera} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontWeight: 600, fontSize: '.85rem' }}>{label('Cancel', 'منسوخ')}</button>
+                                {captureMode === 'photo'
+                                    ? <button type="button" onClick={snapPhoto} style={{ padding: '.55rem 1.25rem', background: 'var(--coral)', border: 'none', borderRadius: '.65rem', color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Capture', 'تصویر لیں')}</button>
+                                    : !isRecording
+                                        ? <button type="button" onClick={startRecording} style={{ padding: '.55rem 1.25rem', background: '#ef4444', border: 'none', borderRadius: '.65rem', color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Record', 'ریکارڈ کریں')}</button>
+                                        : <button type="button" onClick={stopRecording} style={{ padding: '.55rem 1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '.65rem', color: '#ef4444', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Stop', 'رکیں')}</button>
+                                }
                             </div>
                         )}
                     </div>

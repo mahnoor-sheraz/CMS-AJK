@@ -8,7 +8,7 @@ export default function ComplaintShow({ complaint }) {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold leading-tight text-gray-800 dark:text-gray-100">
-                            Grievance Inspection: {complaint.complaint_number}
+                            Complaint Inspection: {complaint.complaint_number}
                         </h2>
                         <p className="text-xs text-gray-500 mt-0.5">
                             Lodged on {new Date(complaint.created_at).toLocaleString()} via Web Portal
