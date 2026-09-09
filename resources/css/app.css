@@ -84,7 +84,7 @@ button, input, select { font: inherit; }
     /* Intro / Hero */
     .intro { display: flex; justify-content: space-between; align-items: end; gap: 3rem; }
     .overline, .section-kicker { margin: 0 0 .85rem; color: var(--coral); font-size: .72rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
-    .intro h1 { margin: 0; color: var(--primary); font-size: clamp(2.7rem, 7vw, 5.8rem); line-height: .93; letter-spacing: -.07em; }
+    .intro h1 { margin: 0; color: var(--primary); font-size: clamp(2.2rem, 4.8vw, 3.8rem); line-height: .98; letter-spacing: -.05em; }
     .intro h1 em { color: var(--coral); font-style: normal; }
     .intro-copy { max-width: 25rem; margin: 0 0 .4rem; color: var(--muted); font-size: 1rem; line-height: 1.65; }
 
@@ -163,7 +163,8 @@ button, input, select { font: inherit; }
     [dir="rtl"] .continue-button span { transform: scaleX(-1); }
     [dir="rtl"] .footer-note { margin-left: 0; margin-right: auto; }
     [dir="rtl"] .intro h1 {
-        line-height: 1.55;
+        font-size: clamp(1.85rem, 3.8vw, 3rem);
+        line-height: 1.45;
         letter-spacing: 0;
         padding-bottom: .25rem;
     }
@@ -223,6 +224,7 @@ button, input, select { font: inherit; }
 @media (max-width: 430px) {
     .journey { grid-template-columns: repeat(2, 1fr); row-gap: 1.5rem; }
     .journey-line { display: none; }
-    .intro h1 { font-size: 3.5rem; }
+    .intro h1 { font-size: 2.2rem; }
+    [dir="rtl"] .intro h1 { font-size: 1.85rem; }
     .site-footer { font-size: .75rem; }
 }
