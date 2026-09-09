@@ -105,7 +105,7 @@ function PublicLayoutContent({ children }) {
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-grow flex flex-col justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full relative z-10">
+            <main className="flex-grow flex flex-col justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative z-10">
                 {children}
             </main>
 
