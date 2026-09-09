@@ -111,13 +111,31 @@ button, input, select { font: inherit; }
     /* Form grid & fields */
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; padding-top: 2rem; }
     .form-card label { display: grid; gap: .55rem; color: var(--foreground); font-size: .9rem; font-weight: 800; }
-    .form-card label em { color: var(--muted); font-size: .78rem; font-style: normal; font-weight: 400; }
-    .form-card input,
+    .form-label-title { display: inline-flex; align-items: center; gap: .35rem; }
+    .form-label-title span.req-star,
+    .form-label-title span { color: var(--coral); }
+    .form-label-title em { color: var(--muted); font-size: .78rem; font-style: normal; font-weight: 400; margin-inline-start: .35rem; }
+
+    .form-card input:not([type="checkbox"]):not([type="radio"]),
     .form-card select,
     .form-card textarea { width: 100%; min-height: 3.5rem; padding: .85rem 1rem; border: 1.5px solid var(--border); border-radius: .65rem; background: #fbfcfe; color: var(--foreground); outline: none; transition: border-color 0.15s, box-shadow 0.15s; font-family: inherit; font-size: .95rem; }
-    .form-card input:focus,
+    .form-card input:not([type="checkbox"]):not([type="radio"]):focus,
     .form-card select:focus,
     .form-card textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 4px #0b7a5026; background: #fff; }
+
+    /* Checkbox & radio styles */
+    .form-card input[type="checkbox"],
+    input[type="checkbox"] {
+        width: 1.15rem !important;
+        height: 1.15rem !important;
+        min-height: 1.15rem !important;
+        max-height: 1.15rem !important;
+        padding: 0 !important;
+        border-radius: .25rem !important;
+        cursor: pointer;
+        flex-shrink: 0;
+        accent-color: var(--primary);
+    }
 
     /* Form footer */
     .form-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
@@ -144,6 +162,40 @@ button, input, select { font: inherit; }
     [dir="rtl"] .nav-link span { margin-left: 0; margin-right: .25rem; }
     [dir="rtl"] .continue-button span { transform: scaleX(-1); }
     [dir="rtl"] .footer-note { margin-left: 0; margin-right: auto; }
+    [dir="rtl"] .intro h1 {
+        line-height: 1.55;
+        letter-spacing: 0;
+        padding-bottom: .25rem;
+    }
+    [dir="rtl"] .overline,
+    [dir="rtl"] .section-kicker {
+        letter-spacing: 0;
+        text-transform: none;
+        font-size: .85rem;
+    }
+    [dir="rtl"] .intro-copy {
+        line-height: 2;
+        font-size: .95rem;
+    }
+    [dir="rtl"] .journey-step strong {
+        line-height: 1.45;
+        font-size: .88rem;
+    }
+    [dir="rtl"] .journey-step small {
+        line-height: 1.45;
+        font-size: .75rem;
+        margin-top: .3rem;
+    }
+    [dir="rtl"] .section-heading h2 {
+        line-height: 1.4;
+        letter-spacing: 0;
+    }
+    [dir="rtl"] .form-card label {
+        letter-spacing: 0;
+    }
+    [dir="rtl"] .form-footer p {
+        line-height: 1.8;
+    }
 }
 
 /* ============================================================

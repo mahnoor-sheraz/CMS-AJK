@@ -356,7 +356,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             <div className="form-grid">
                                 {/* Full name */}
                                 <label>
-                                    {label('Full name', 'پورا نام')} <span>*</span>
+                                    <span className="form-label-title">{label('Full name', 'پورا نام')} <span className="req-star">*</span></span>
                                     <input
                                         type="text"
                                         required
@@ -372,7 +372,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                 {/* CNIC */}
                                 <label>
-                                    {label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span>*</span>
+                                    <span className="form-label-title">{label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span className="req-star">*</span></span>
                                     <IMaskInput
                                         mask="00000-0000000-0"
                                         value={data.cnic}
@@ -389,7 +389,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                 {/* Mobile */}
                                 <label>
-                                    {label('Mobile number', 'موبائل نمبر')} <span>*</span>
+                                    <span className="form-label-title">{label('Mobile number', 'موبائل نمبر')} <span className="req-star">*</span></span>
                                     <IMaskInput
                                         mask="0000-0000000"
                                         value={data.mobile_number}
@@ -405,7 +405,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                 {/* Gender — plain <select> exactly like V0 */}
                                 <label>
-                                    {label('Gender', 'جنس')} <em>{label('Optional', 'اختیاری')}</em>
+                                    <span className="form-label-title">{label('Gender', 'جنس')} <em>{label('Optional', 'اختیاری')}</em></span>
                                     <select
                                         value={data.gender}
                                         onChange={e => setData('gender', e.target.value)}
@@ -446,7 +446,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             <div className="form-grid">
                                 {/* District */}
                                 <label>
-                                    {label('District', 'ضلع')} <span>*</span>
+                                    <span className="form-label-title">{label('District', 'ضلع')} <span className="req-star">*</span></span>
                                     <select
                                         value={data.district_id}
                                         onChange={e => setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }))}
@@ -460,7 +460,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                 {/* Tehsil */}
                                 <label>
-                                    {label('Tehsil', 'تحصیل')} <span>*</span>
+                                    <span className="form-label-title">{label('Tehsil', 'تحصیل')} <span className="req-star">*</span></span>
                                     <select
                                         value={data.tehsil_id}
                                         onChange={e => setData('tehsil_id', e.target.value)}
@@ -501,7 +501,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             <div className="form-grid">
                                 {/* Department */}
                                 <label>
-                                    {label('Department', 'محکمہ')} <span>*</span>
+                                    <span className="form-label-title">{label('Department', 'محکمہ')} <span className="req-star">*</span></span>
                                     <select
                                         value={data.department_id}
                                         onChange={e => setData(prev => ({ ...prev, department_id: e.target.value, sub_department_id: '', category_id: '', sub_category_id: '' }))}
@@ -517,7 +517,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 {/* Sub-Department */}
                                 {data.department_id && data.department_id !== 'other' && availableSubDepts.length > 0 && (
                                     <label>
-                                        {label('Sub-department', 'ذیلی محکمہ')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <span className="form-label-title">{label('Sub-department', 'ذیلی محکمہ')} <em>{label('Optional', 'اختیاری')}</em></span>
                                         <select value={data.sub_department_id} onChange={e => setData('sub_department_id', e.target.value)}>
                                             <option value="">{label('Select sub-department', 'ذیلی محکمہ منتخب کریں')}</option>
                                             {availableSubDepts.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
@@ -528,7 +528,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 {/* Category */}
                                 {data.department_id && data.department_id !== 'other' && availableCategories.length > 0 && (
                                     <label>
-                                        {label('Category', 'قسم')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <span className="form-label-title">{label('Category', 'قسم')} <em>{label('Optional', 'اختیاری')}</em></span>
                                         <select value={data.category_id} onChange={e => setData(prev => ({ ...prev, category_id: e.target.value, sub_category_id: '' }))}>
                                             <option value="">{label('Select category', 'قسم منتخب کریں')}</option>
                                             {availableCategories.map(c => <option key={c.id} value={c.id}>{dname(c)}</option>)}
@@ -540,7 +540,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 {/* Sub-category */}
                                 {data.category_id && data.category_id !== 'other' && availableSubCategories.length > 0 && (
                                     <label>
-                                        {label('Sub-category', 'ذیلی قسم')} <em>{label('Optional', 'اختیاری')}</em>
+                                        <span className="form-label-title">{label('Sub-category', 'ذیلی قسم')} <em>{label('Optional', 'اختیاری')}</em></span>
                                         <select value={data.sub_category_id} onChange={e => setData('sub_category_id', e.target.value)}>
                                             <option value="">{label('Select sub-category', 'ذیلی قسم منتخب کریں')}</option>
                                             {availableSubCategories.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
@@ -552,7 +552,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             {/* Subject — full width below grid */}
                             <div style={{ marginTop: '1.5rem' }}>
                                 <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
-                                    {label('Subject', 'موضوع')} <span style={{ color: 'var(--coral)' }}>*</span>
+                                    <span className="form-label-title">{label('Subject', 'موضوع')} <span className="req-star">*</span></span>
                                     <input
                                         type="text"
                                         value={data.subject}
@@ -562,7 +562,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         style={errors.subject ? { borderColor: '#e53e3e' } : {}}
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        {errors.subject ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.subject}</span> : <span />}
+                                         {errors.subject ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.subject}</span> : <span />}
                                         <span style={{ fontSize: '.72rem', color: 'var(--muted)', fontFamily: 'monospace' }}>{data.subject.length}/100</span>
                                     </div>
                                 </label>
@@ -571,7 +571,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             {/* Details — full width */}
                             <div style={{ marginTop: '1.25rem' }}>
                                 <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
-                                    {label('Details', 'تفصیل')} <span style={{ color: 'var(--coral)' }}>*</span>
+                                    <span className="form-label-title">{label('Details', 'تفصیل')} <span className="req-star">*</span></span>
                                     <textarea
                                         rows={6}
                                         value={data.details}
@@ -729,19 +729,22 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                 {/* Declaration */}
                                 <div style={{ padding: '1rem 1.25rem', borderRadius: '.75rem', border: `2px solid ${errors.declaration ? '#e53e3e' : 'var(--coral)'}`, background: errors.declaration ? '#fff5f5' : '#fffbeb', marginBottom: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '.85rem', cursor: 'pointer', userSelect: 'none', fontWeight: 600, fontSize: '.88rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '.85rem', cursor: 'pointer', userSelect: 'none', fontWeight: 600, fontSize: '.88rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
                                         <input
                                             type="checkbox"
+                                            className="declaration-checkbox"
                                             checked={declarationAccepted}
                                             onChange={e => { setDeclarationAccepted(e.target.checked); if (errors.declaration) clearErrors('declaration'); }}
-                                            style={{ marginTop: '.2rem', width: '1.1rem', height: '1.1rem', cursor: 'pointer', flexShrink: 0, accentColor: 'var(--primary)' }}
+                                            style={{ margin: 0, width: '1.15rem', height: '1.15rem', minHeight: '1.15rem', maxHeight: '1.15rem', padding: 0, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--primary)' }}
                                         />
-                                        {label(
-                                            'I declare that the information provided is true and correct to the best of my knowledge.',
-                                            'میں اعلان کرتا / کرتی ہوں کہ فراہم کردہ معلومات میری بہترین معلومات کے مطابق درست ہیں۔',
-                                        )} <span style={{ color: '#e53e3e' }}>*</span>
+                                        <span>
+                                            {label(
+                                                'I declare that the information provided is true and correct to the best of my knowledge.',
+                                                'میں اعلان کرتا / کرتی ہوں کہ فراہم کردہ معلومات میری بہترین معلومات کے مطابق درست ہیں۔',
+                                            )} <span style={{ color: 'var(--coral)' }}>*</span>
+                                        </span>
                                     </label>
-                                    {errors.declaration && <p style={{ margin: '.4rem 0 0 1.95rem', fontSize: '.78rem', color: '#e53e3e', fontWeight: 700 }}>⚠ {errors.declaration}</p>}
+                                    {errors.declaration && <p style={{ margin: '.4rem 0 0 2rem', fontSize: '.78rem', color: '#e53e3e', fontWeight: 700 }}>⚠ {errors.declaration}</p>}
                                 </div>
 
                                 {/* Server errors */}
