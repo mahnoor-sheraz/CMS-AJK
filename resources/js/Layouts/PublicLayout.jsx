@@ -8,6 +8,7 @@ function PublicLayoutContent({ children }) {
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
     const isTrackActive = currentPath.startsWith('/complaints/track');
+    const isNewActive = currentPath === '/complaints/new' || currentPath === '/' || currentPath === '';
 
     return (
         <div
@@ -46,7 +47,7 @@ function PublicLayoutContent({ children }) {
             {/* ── Forest Green Main Header ── */}
             <header
                 style={{
-                    background: '#14603a',
+                    background: '#344e41',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -70,7 +71,7 @@ function PublicLayoutContent({ children }) {
                             height: '46px',
                             borderRadius: '50%',
                             background: '#fff',
-                            color: '#14603a',
+                            color: '#344e41',
                             display: 'grid',
                             placeItems: 'center',
                             fontFamily: "'Archivo', sans-serif",
@@ -108,28 +109,31 @@ function PublicLayoutContent({ children }) {
                 </Link>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <Link
-                        href="/complaints/new"
-                        style={{
-                            background: '#ec3013',
-                            color: '#fff',
-                            border: 0,
-                            borderRadius: '999px',
-                            fontFamily: isUrdu ? "'Noto Naskh Arabic', sans-serif" : "'Archivo', sans-serif",
-                            fontWeight: 700,
-                            fontSize: '13.5px',
-                            padding: '12px 22px',
-                            cursor: 'pointer',
-                            textDecoration: 'none',
-                            boxShadow: '0 6px 16px rgba(0,0,0,.18)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            transition: 'transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s',
-                        }}
-                    >
-                        {isUrdu ? 'شکایت درج کریں' : 'File a complaint'}
-                    </Link>
+                    {/* Only show 'File a complaint' button if NOT on the file complaint form */}
+                    {!isNewActive && (
+                        <Link
+                            href="/complaints/new"
+                            style={{
+                                background: '#ec3013',
+                                color: '#fff',
+                                border: 0,
+                                borderRadius: '999px',
+                                fontFamily: isUrdu ? "'Noto Naskh Arabic', sans-serif" : "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                fontSize: '13.5px',
+                                padding: '12px 22px',
+                                cursor: 'pointer',
+                                textDecoration: 'none',
+                                boxShadow: '0 6px 16px rgba(0,0,0,.18)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s',
+                            }}
+                        >
+                            {isUrdu ? 'شکایت درج کریں' : 'File a complaint'}
+                        </Link>
+                    )}
 
                     <Link
                         href="/complaints/track"
@@ -182,13 +186,14 @@ function PublicLayoutContent({ children }) {
                 </div>
             </header>
 
-            {/* ── Main Children Container ── */}
+            {/* ── Main Children Container (Balanced padding for seamless viewport fit) ── */}
             <main
                 style={{
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    padding: 'clamp(16px, 2.6vw, 34px) clamp(12px, 3vw, 44px) clamp(22px, 3vw, 40px)',
+                    justifyContent: 'center',
+                    padding: 'clamp(14px, 2vw, 24px) clamp(12px, 3vw, 44px) clamp(14px, 2vw, 20px)',
                 }}
             >
                 {children}
@@ -197,9 +202,9 @@ function PublicLayoutContent({ children }) {
             {/* ── Helpline Bar ── */}
             <div
                 style={{
-                    padding: '4px clamp(16px, 4vw, 56px) 26px',
+                    padding: '4px clamp(16px, 4vw, 56px) 14px',
                     textAlign: 'center',
-                    fontSize: '13.5px',
+                    fontSize: '13px',
                     color: '#6b645e',
                     fontFamily: isUrdu ? "'Noto Nastaliq Urdu', serif" : "'Archivo', sans-serif",
                 }}
@@ -212,9 +217,9 @@ function PublicLayoutContent({ children }) {
             {/* ── Forest Green Footer ── */}
             <footer
                 style={{
-                    background: '#14603a',
+                    background: '#344e41',
                     color: 'rgba(255,255,255,.72)',
-                    padding: '18px clamp(16px, 4vw, 56px)',
+                    padding: '14px clamp(16px, 4vw, 56px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -228,7 +233,7 @@ function PublicLayoutContent({ children }) {
                     <span
                         style={{
                             background: '#eeb84e',
-                            color: '#14603a',
+                            color: '#344e41',
                             borderRadius: '999px',
                             fontFamily: "'Archivo', sans-serif",
                             fontWeight: 800,

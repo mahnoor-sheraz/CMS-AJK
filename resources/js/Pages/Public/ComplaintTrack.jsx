@@ -53,7 +53,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                         minWidth: 0,
                         position: 'relative',
                         overflow: 'hidden',
-                        background: 'linear-gradient(158deg, #14603a, #0d472b)',
+                        background: 'linear-gradient(158deg, #344e41, #283d33)',
                         color: '#f6fbf7',
                         borderRadius: '28px',
                         padding: 'clamp(26px, 3vw, 40px)',
@@ -199,7 +199,7 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                             style={{
                                 fontFamily: displayFont,
                                 fontWeight: 800,
-                                color: '#14603a',
+                                color: '#344e41',
                                 fontSize: isUrdu ? 'clamp(22px, 2.6vw, 30px)' : 'clamp(24px, 2.8vw, 32px)',
                                 margin: '14px 0 0',
                             }}
@@ -297,14 +297,14 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                         <div className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between', background: '#faf7f2', borderRadius: '22px', padding: '18px 20px' }}>
                                 <div style={{ minWidth: 0 }}>
-                                    <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(20px, 2.6vw, 26px)', color: '#14603a' }}>
+                                    <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(20px, 2.6vw, 26px)', color: '#344e41' }}>
                                         {complaint.complaint_number}
                                     </div>
                                     <div style={{ fontSize: '14px', color: '#6b645e', marginTop: '6px' }}>
                                         {complaint.subject}
                                     </div>
                                 </div>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#eaf1eb', borderRadius: '999px', color: '#14603a', fontFamily: uiFont, fontWeight: 700, fontSize: '13px', padding: '10px 16px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#eaf1eb', borderRadius: '999px', color: '#344e41', fontFamily: uiFont, fontWeight: 700, fontSize: '13px', padding: '10px 16px' }}>
                                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#c8891a', display: 'block', animation: 'pmccRing 2s infinite' }} />
                                     {complaint.status}
                                 </span>

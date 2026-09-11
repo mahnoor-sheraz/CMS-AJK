@@ -325,7 +325,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             {cameraOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
                     <div style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', maxWidth: '520px', width: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '14px 20px', background: '#14603a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ padding: '14px 20px', background: '#344e41', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 700, fontFamily: uiFont }}>{captureMode === 'photo' ? label('Take Photo', 'تصویر لیں') : label('Record Video', 'ویڈیو ریکارڈ کریں')}</span>
                             <button type="button" onClick={closeCamera} style={{ background: 'none', border: 0, color: '#fff', fontSize: '18px', cursor: 'pointer' }}>✕</button>
                         </div>
@@ -340,7 +340,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                         </div>
                         <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '12px', background: '#faf7f2' }}>
                             {captureMode === 'photo' ? (
-                                <button type="button" onClick={snapPhoto} style={{ background: '#14603a', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
+                                <button type="button" onClick={snapPhoto} style={{ background: '#344e41', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
                                     {label('Capture Photo', 'تصویر محفوظ کریں')}
                                 </button>
                             ) : (
@@ -349,7 +349,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         {label('Stop Recording', 'ریکارڈنگ روکیں')}
                                     </button>
                                 ) : (
-                                    <button type="button" onClick={startRecording} style={{ background: '#14603a', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
+                                    <button type="button" onClick={startRecording} style={{ background: '#344e41', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
                                         {label('Start Recording', 'ریکارڈنگ شروع کریں')}
                                     </button>
                                 )
@@ -371,13 +371,13 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                         minWidth: 0,
                         position: 'relative',
                         overflow: 'hidden',
-                        background: 'linear-gradient(158deg, #14603a, #0d472b)',
+                        background: 'linear-gradient(158deg, #344e41, #283d33)',
                         color: '#f6fbf7',
                         borderRadius: '28px',
-                        padding: 'clamp(26px, 3vw, 40px)',
+                        padding: 'clamp(20px, 2.2vw, 30px)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 'clamp(22px, 2.6vw, 32px)',
+                        gap: 'clamp(14px, 1.8vw, 22px)',
                         boxShadow: '0 16px 40px rgba(42,38,35,.1)',
                     }}
                 >
@@ -487,7 +487,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             fontWeight: 800,
                                             fontSize: '14px',
                                             background: isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.2)' : 'transparent',
-                                            color: isActive ? '#14603a' : isDone ? '#eeb84e' : 'rgba(255,255,255,.5)',
+                                            color: isActive ? '#344e41' : isDone ? '#eeb84e' : 'rgba(255,255,255,.5)',
                                             border: `2px solid ${isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.55)' : 'rgba(255,255,255,.22)'}`,
                                             transition: 'background .3s, color .3s, border-color .3s',
                                         }}
@@ -567,10 +567,10 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                     <form
                         onSubmit={handleSubmit}
                         style={{
-                            padding: 'clamp(24px, 3vw, 44px)',
+                            padding: 'clamp(20px, 2.2vw, 32px)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '24px',
+                            gap: '18px',
                             flex: 1,
                         }}
                     >
@@ -595,7 +595,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     style={{
                                         fontFamily: displayFont,
                                         fontWeight: 800,
-                                        color: '#14603a',
+                                        color: '#344e41',
                                         fontSize: isRtl ? 'clamp(22px, 2.6vw, 30px)' : 'clamp(24px, 2.8vw, 32px)',
                                         letterSpacing: isRtl ? 'normal' : '-.015em',
                                         margin: '14px 0 0',
@@ -644,7 +644,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineStart: '46px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -686,7 +686,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineStart: '46px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -727,7 +727,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineStart: '46px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -761,7 +761,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineEnd: '44px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -808,7 +808,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineEnd: '44px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -855,7 +855,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineEnd: '44px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -915,7 +915,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                         borderRadius: '16px',
                                                         font: 'inherit',
                                                         fontSize: '15px',
-                                                        padding: '15px 18px',
+                                                        padding: '13px 16px',
                                                         paddingInlineEnd: '44px',
                                                         color: '#2a2623',
                                                         outline: 'none',
@@ -960,7 +960,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                             borderRadius: '16px',
                                                             font: 'inherit',
                                                             fontSize: '15px',
-                                                            padding: '15px 18px',
+                                                            padding: '13px 16px',
                                                             paddingInlineEnd: '44px',
                                                             color: '#2a2623',
                                                             outline: 'none',
@@ -1012,7 +1012,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     borderRadius: '16px',
                                                     font: 'inherit',
                                                     fontSize: '15px',
-                                                    padding: '15px 18px',
+                                                    padding: '13px 16px',
                                                     paddingInlineStart: '46px',
                                                     color: '#2a2623',
                                                     outline: 'none',
@@ -1088,7 +1088,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
                                                 {label('What happened', 'کیا ہوا')} <span style={{ color: '#ec3013' }}>*</span>
                                             </label>
-                                            <span style={{ fontSize: '12px', color: data.details.length >= 20 ? '#14603a' : '#8b847d' }}>
+                                            <span style={{ fontSize: '12px', color: data.details.length >= 20 ? '#344e41' : '#8b847d' }}>
                                                 {data.details.length} {label('characters', 'حروف')} (min 20)
                                             </span>
                                         </div>
@@ -1112,7 +1112,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 font: 'inherit',
                                                 fontSize: '15px',
                                                 lineHeight: 1.7,
-                                                padding: '15px 18px',
+                                                padding: '13px 16px',
                                                 color: '#2a2623',
                                                 outline: 'none',
                                                 resize: 'vertical',
@@ -1149,7 +1149,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 }}
                                             >
                                                 <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M21.5 12.5 12 22a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8.5-8.5" />
                                                     </svg>
                                                 </span>
@@ -1175,7 +1175,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 }}
                                             >
                                                 <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M3 8h3l2-3h8l2 3h3v12H3z" /><circle cx="12" cy="13" r="4" />
                                                     </svg>
                                                 </span>
@@ -1201,7 +1201,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 }}
                                             >
                                                 <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M2.5 6.5h12v11h-12z" /><path d="m14.5 10.5 7-4v12l-7-4" />
                                                     </svg>
                                                 </span>
@@ -1226,11 +1226,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                             borderRadius: '999px',
                                                             padding: '9px 14px',
                                                             fontSize: '12.5px',
-                                                            color: '#14603a',
+                                                            color: '#344e41',
                                                             animation: 'pmccEnterA .25s both',
                                                         }}
                                                     >
-                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="2.4" strokeLinecap="round">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="2.4" strokeLinecap="round">
                                                             <path d="M20 6 9 17l-5-5" />
                                                         </svg>
                                                         <span style={{ maxWidth: '190px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
@@ -1259,7 +1259,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     {/* Review group: About you */}
                                     <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('About you', 'آپ کے بارے میں')}</span>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('About you', 'آپ کے بارے میں')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(1)}
@@ -1296,7 +1296,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     {/* Review group: Location */}
                                     <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('Location', 'مقام')}</span>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('Location', 'مقام')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(2)}
@@ -1331,7 +1331,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     {/* Review group: Complaint */}
                                     <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('Complaint', 'شکایت')}</span>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('Complaint', 'شکایت')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(3)}
@@ -1385,7 +1385,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 setDeclarationAccepted(e.target.checked);
                                                 if (errors.declaration) clearErrors('declaration');
                                             }}
-                                            style={{ width: '20px', height: '20px', margin: '1px 0 0', accentColor: '#14603a', flex: 'none', cursor: 'pointer' }}
+                                            style={{ width: '20px', height: '20px', margin: '1px 0 0', accentColor: '#344e41', flex: 'none', cursor: 'pointer' }}
                                         />
                                         <span style={{ fontSize: '13.5px', color: '#5c4713', lineHeight: 1.55 }}>
                                             {label(
@@ -1405,9 +1405,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                         </div>
 
                         {/* Bottom Footer Actions */}
-                        <div style={{ marginTop: 'auto', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: 'auto', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '12.5px', color: '#6b645e' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.9" strokeLinecap="round">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.9" strokeLinecap="round">
                                     <rect x="4" y="10" width="16" height="10" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
                                 </svg>
                                 <span>{label('Your information is kept safe and confidential.', 'آپ کی معلومات مکمل طور پر محفوظ اور رازدارانہ رکھی جائیں گی۔')}</span>
@@ -1420,7 +1420,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         onClick={goBack}
                                         style={{
                                             background: '#faf7f2',
-                                            color: '#14603a',
+                                            color: '#344e41',
                                             border: '1.5px solid #e6ded2',
                                             borderRadius: '999px',
                                             fontFamily: "'Archivo', sans-serif",

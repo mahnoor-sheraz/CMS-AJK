@@ -26,7 +26,7 @@ export default function ComplaintConfirmation({ complaint }) {
             <PublicLayout>
                 <Head title={isUrdu ? 'شکایت نہیں ملی' : 'Complaint Not Found'} />
                 <div style={{ maxWidth: '640px', margin: '40px auto', background: '#fff', borderRadius: '24px', padding: '36px', textAlign: 'center', boxShadow: '0 16px 40px rgba(0,0,0,.08)' }}>
-                    <h2 style={{ fontFamily: displayFont, color: '#14603a' }}>{isUrdu ? 'شکایت نہیں ملی' : 'Complaint Not Found'}</h2>
+                    <h2 style={{ fontFamily: displayFont, color: '#344e41' }}>{isUrdu ? 'شکایت نہیں ملی' : 'Complaint Not Found'}</h2>
                     <p style={{ color: '#6b645e', margin: '12px 0 24px' }}>
                         {isUrdu ? 'شکایت کی تفصیلات دستیاب نہیں ہیں۔' : 'Complaint details are unavailable.'}
                     </p>
@@ -51,7 +51,7 @@ export default function ComplaintConfirmation({ complaint }) {
                         minWidth: 0,
                         position: 'relative',
                         overflow: 'hidden',
-                        background: 'linear-gradient(158deg, #14603a, #0d472b)',
+                        background: 'linear-gradient(158deg, #344e41, #283d33)',
                         color: '#f6fbf7',
                         borderRadius: '28px',
                         padding: 'clamp(26px, 3vw, 40px)',
@@ -183,7 +183,7 @@ export default function ComplaintConfirmation({ complaint }) {
                         <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '13px', color: '#8b847d', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                             {isUrdu ? 'ٹریکنگ نمبر' : 'Tracking number'}
                         </span>
-                        <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(26px, 4vw, 40px)', color: '#14603a', letterSpacing: '.03em' }}>
+                        <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(26px, 4vw, 40px)', color: '#344e41', letterSpacing: '.03em' }}>
                             {complaint.complaint_number}
                         </div>
                         <p style={{ fontSize: '13.5px', color: '#6b645e', margin: 0, maxWidth: '42ch' }}>
@@ -195,7 +195,7 @@ export default function ComplaintConfirmation({ complaint }) {
                             style={{
                                 marginTop: '4px',
                                 background: '#fff',
-                                color: '#14603a',
+                                color: '#344e41',
                                 border: '1.5px solid #e6ded2',
                                 borderRadius: '999px',
                                 fontFamily: "'Archivo', sans-serif",
@@ -257,7 +257,7 @@ export default function ComplaintConfirmation({ complaint }) {
                             href="/complaints/new"
                             style={{
                                 background: '#faf7f2',
-                                color: '#14603a',
+                                color: '#344e41',
                                 border: '1.5px solid #e6ded2',
                                 borderRadius: '999px',
                                 fontFamily: "'Archivo', sans-serif",

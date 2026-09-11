@@ -4,6 +4,18 @@ All notable changes to this project are documented here in reverse chronological
 
 ---
 
+## [2026-09-11] — Color Update (#344e41), Screen Height Viewport Fit & Header Refinement
+
+### Changes Made
+
+| # | What Changed | Files Modified |
+|---|---|---|
+| 1 | **Color Palette Transition to `#344e41`** — Updated the primary forest green shade from `#14603a` to `#344e41` across the top navbar, left poster card gradient (`#344e41` to `#283d33`), step title headings, footer, and icons. | `PublicLayout.jsx`, `ComplaintSubmit.jsx`, `ComplaintTrack.jsx`, `ComplaintConfirmation.jsx` |
+| 2 | **Viewport Screen Height Optimization** — Adjusted container padding (`clamp(14px, 2vw, 24px)`) and gaps so the full 2-column modernist interface fits seamlessly within typical screen heights without awkward page scrolling. | `PublicLayout.jsx`, `ComplaintSubmit.jsx` |
+| 3 | **Header Button Conditional Visibility** — Removed the redundant "File a complaint" button from the main complaint form navbar, keeping it visible only on the Track Complaint screen. | `PublicLayout.jsx` |
+
+---
+
 ## [2026-09-11] — Full Modernist 2-Column Redesign Matching Prototype (`akj-.zip`)
 
 ### Changes Made
