@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
+  <!-- Top Left Orange / Saffron Field -->
+  <rect width="450" height="300" fill="#f79c05" />
+  <!-- Top Right Deep Green Field -->
+  <rect x="450" width="450" height="300" fill="#004d25" />
+  <!-- Bottom 8 stripes (4 white, 4 green) -->
+  <rect y="300" width="900" height="37.5" fill="#ffffff" />
+  <rect y="337.5" width="900" height="37.5" fill="#004d25" />
+  <rect y="375" width="900" height="37.5" fill="#ffffff" />
+  <rect y="412.5" width="900" height="37.5" fill="#004d25" />
+  <rect y="450" width="900" height="37.5" fill="#ffffff" />
+  <rect y="487.5" width="900" height="37.5" fill="#004d25" />
+  <rect y="525" width="900" height="37.5" fill="#ffffff" />
+  <rect y="562.5" width="900" height="37.5" fill="#004d25" />
+  <!-- Crescent and Star in the upper right green field -->
+  <g transform="translate(675, 150) rotate(-40)">
+    <!-- Crescent -->
+    <circle cx="0" cy="0" r="92" fill="#ffffff" />
+    <circle cx="28" cy="0" r="80" fill="#004d25" />
+    <!-- 5-pointed Star -->
+    <polygon points="68,0 76,26 103,26 81,42 89,68 68,52 46,68 54,42 33,26 59,26" fill="#ffffff" transform="translate(10,-45) scale(0.65)" />
+  </g>
+</svg>

@@ -25,6 +25,7 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "lucide-react": "^1.44.0",
         "react-imask": "^7.6.1",
         "react-select": "^5.10.2"
     }

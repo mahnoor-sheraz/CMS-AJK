@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-05bc495c-c1dd-4e11-acc2-e5b73683eb26/styles.css">
+<script src="_ds/modernist-05bc495c-c1dd-4e11-acc2-e5b73683eb26/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin:0; background:#faf7f2; }
+* { -webkit-font-smoothing: antialiased; }
+@keyframes pmccEnterA { from { opacity:0; transform: translateY(16px) scale(.995); } to { opacity:1; transform:none; } }
+@keyframes pmccEnterB { from { opacity:0; transform: translateY(16px) scale(.995); } to { opacity:1; transform:none; } }
+@keyframes pmccRise { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform:none; } }
+@keyframes pmccShake { 10%,90%{transform:translateX(-1px)} 20%,80%{transform:translateX(2px)} 30%,50%,70%{transform:translateX(-3px)} 40%,60%{transform:translateX(3px)} }
+@keyframes pmccRing { 0%{box-shadow:0 0 0 0 rgba(200,137,26,.5)} 70%{box-shadow:0 0 0 13px rgba(200,137,26,0)} 100%{box-shadow:0 0 0 0 rgba(200,137,26,0)} }
+@keyframes pmccStamp { 0%{opacity:0;transform:scale(.78) rotate(-8deg)} 60%{opacity:1;transform:scale(1.05) rotate(2deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
+@keyframes pmccDraw { from { stroke-dashoffset: 48; } to { stroke-dashoffset: 0; } }
+@keyframes pmccFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+a { color:#14603a; text-underline-offset:3px; }
+a:hover { color:#ec3013; }
+::selection { background:rgba(200,137,26,.3); }
+</style>
+</helmet>
+
+<div dir="{{ dir }}" style="min-height:100vh;display:flex;flex-direction:column;background:#faf7f2;color:#2a2623;font-family:{{ bodyFont }};line-height:{{ lh }};font-size:15px">
+
+  <sc-if value="{{ govStrip }}" hint-placeholder-val="{{ true }}">
+    <div style="background:linear-gradient(90deg,#c8891a,#d49f34);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:8px clamp(16px,4vw,56px);font-size:12.5px;letter-spacing:.01em">
+      <span>{{ t.govt }}</span>
+      <span style="opacity:.9">{{ t.portal }}</span>
+    </div>
+  </sc-if>
+
+  <header style="background:#14603a;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:14px clamp(16px,4vw,56px)">
+    <div style="display:flex;align-items:center;gap:13px">
+      <div style="width:46px;height:46px;border-radius:50%;background:#fff;color:#14603a;display:grid;place-items:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.16)">PM</div>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:.03em;line-height:1.05">PMCC</span>
+        <span style="font-size:12px;color:#efd9ab">{{ t.brandSub }}</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button type="button" onClick="{{ goWizard }}" style="background:{{ accent }};color:#fff;border:0;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;padding:12px 22px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.18);transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s" style-hover="transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.24)" style-active="transform:translateY(0)">{{ t.navFile }}</button>
+      <button type="button" onClick="{{ goTrack }}" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:999px;font-family:'Archivo',sans-serif;font-weight:600;font-size:13.5px;padding:11px 19px;cursor:pointer;transition:background .2s,transform .18s" style-hover="background:rgba(255,255,255,.18);transform:translateY(-1px)">{{ t.navTrack }}</button>
+      <button type="button" onClick="{{ toggleLang }}" title="English / اردو" style="background:transparent;color:#efd9ab;border:1px solid rgba(239,217,171,.45);border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:12.5px;padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .2s,transform .18s" style-hover="background:rgba(200,137,26,.22);transform:translateY(-1px)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"></path></svg>
+        {{ t.langSwitch }}
+      </button>
+    </div>
+  </header>
+
+  <main style="flex:1;display:flex;flex-direction:column;padding:clamp(16px,2.6vw,34px) clamp(12px,3vw,44px) clamp(22px,3vw,40px)">
+
+    <sc-if value="{{ isWizard }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-wrap:wrap;gap:clamp(16px,2vw,26px);align-items:stretch;width:100%;max-width:1320px;margin:0 auto">
+
+        <aside style="flex:1 1 340px;min-width:0;position:relative;overflow:hidden;background:{{ posterBg }};color:{{ posterInk }};border-radius:28px;padding:clamp(26px,3vw,40px);display:flex;flex-direction:column;gap:clamp(22px,2.6vw,32px);box-shadow:0 16px 40px rgba(42,38,35,.1)">
+          <div style="position:absolute;inset-inline-end:-70px;top:-70px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle at 32% 32%,rgba(200,137,26,.34),rgba(200,137,26,0) 70%);pointer-events:none;animation:pmccFloat 9s ease-in-out infinite"></div>
+          <div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-family:'Archivo',sans-serif;font-weight:700;letter-spacing:.02em;color:#e2ae4e;background:rgba(200,137,26,.15);border-radius:999px;padding:7px 14px;width:fit-content">
+              <span style="width:7px;height:7px;border-radius:50%;background:#e2ae4e;display:block"></span>{{ t.kicker }}
+            </div>
+            <h1 style="font-family:{{ displayFont }};font-weight:800;color:#eeb84e;font-size:{{ heroSize }};line-height:{{ heroLh }};letter-spacing:-.015em;margin:18px 0 0;text-wrap:pretty">{{ t.heroTitle }}</h1>
+            <p style="margin:16px 0 0;font-size:15.5px;max-width:40ch;color:{{ posterMuted }};text-wrap:pretty">{{ t.heroSub }}</p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ rail }}" as="s" hint-placeholder-count="4">
+              <button type="button" onClick="{{ s.go }}" style="width:100%;background:{{ s.rowBg }};border:0;border-radius:18px;padding:13px 14px;font:inherit;color:inherit;text-align:start;cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;transition:background .25s,transform .25s cubic-bezier(.2,.8,.2,1)" style-hover="background:rgba(255,255,255,.09);transform:translateY(-2px)">
+                <span style="width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;background:{{ s.badgeBg }};color:{{ s.badgeFg }};border:2px solid {{ s.badgeBd }};animation:{{ s.pulse }};transition:background .3s,color .3s,border-color .3s">{{ s.n }}</span>
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-family:{{ uiFont }};font-weight:700;font-size:15px;color:{{ s.titleC }};transition:color .3s">{{ s.t }}</span>
+                  <span style="font-size:12.5px;color:{{ s.descC }}">{{ s.d }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:auto;display:flex;align-items:center;gap:10px;font-size:12.5px;color:{{ posterMuted }};background:rgba(255,255,255,.07);border-radius:16px;padding:12px 14px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            {{ t.safe }}
+          </div>
+        </aside>
+
+        <section style="flex:2 1 560px;background:#fff;border-radius:28px;display:flex;flex-direction:column;min-width:0;overflow:hidden;box-shadow:0 18px 46px rgba(42,38,35,.1)">
+          <div style="height:5px;background:#f0eae0">
+            <div style="height:100%;background:linear-gradient(90deg,#c8891a,#eeb84e);border-end-end-radius:999px;border-start-end-radius:999px;width:{{ pct }};transition:width .7s cubic-bezier(.2,.8,.2,1)"></div>
+          </div>
+
+          <div style="padding:clamp(24px,3vw,44px);display:flex;flex-direction:column;gap:24px;flex:1">
+
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div>
+                <span style="display:inline-block;background:#fdf3e0;color:#8a5c07;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:12px;padding:7px 14px">{{ stepOf }}</span>
+                <h2 style="font-family:{{ displayFont }};font-weight:800;color:#14603a;font-size:{{ h2Size }};line-height:{{ h2Lh }};letter-spacing:-.015em;margin:14px 0 0">{{ stepTitle }}</h2>
+                <p style="margin:8px 0 0;font-size:15px;color:#6b645e;max-width:52ch;text-wrap:pretty">{{ stepBlurb }}</p>
+              </div>
+              <span style="font-size:12.5px;color:#6b645e;white-space:nowrap"><span style="color:{{ accent }};font-weight:700">*</span> {{ t.required }}</span>
+            </div>
+
+            <div style="animation:{{ anim }} .5s cubic-bezier(.2,.8,.2,1) both;display:flex;flex-direction:column;gap:24px">
+
+              <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px">
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.fullName }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <span style="position:absolute;inset-inline-start:16px;top:50%;transform:translateY(-50%);color:#a9a29b;pointer-events:none;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg></span>
+                      <input value="{{ d.name }}" onInput="{{ onName }}" placeholder="{{ t.fullNameP }}" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdName }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-start:46px;color:#2a2623;outline:none;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                    </div>
+                    <sc-if value="{{ errName }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};display:flex;align-items:center;gap:6px;animation:pmccShake .45s both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>{{ errName }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.cnic }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <span style="position:absolute;inset-inline-start:16px;top:50%;transform:translateY(-50%);color:#a9a29b;pointer-events:none;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="3"></rect><path d="M7 15h4M15 10.5h2"></path><circle cx="8.5" cy="10.5" r="1.6"></circle></svg></span>
+                      <input value="{{ d.cnic }}" onInput="{{ onCnic }}" inputMode="numeric" placeholder="00000-0000000-0" dir="ltr" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdCnic }};border-radius:16px;font:inherit;font-size:15px;letter-spacing:.04em;padding:15px 18px;padding-inline-start:46px;color:#2a2623;outline:none;text-align:{{ ltrAlign }};transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                    </div>
+                    <sc-if value="{{ errCnic }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};display:flex;align-items:center;gap:6px;animation:pmccShake .45s both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>{{ errCnic }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.mobile }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <span style="position:absolute;inset-inline-start:16px;top:50%;transform:translateY(-50%);color:#a9a29b;pointer-events:none;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="3"></rect><path d="M11 18.5h2"></path></svg></span>
+                      <input value="{{ d.mobile }}" onInput="{{ onMobile }}" inputMode="tel" placeholder="0300-0000000" dir="ltr" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdMobile }};border-radius:16px;font:inherit;font-size:15px;letter-spacing:.04em;padding:15px 18px;padding-inline-start:46px;color:#2a2623;outline:none;text-align:{{ ltrAlign }};transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                    </div>
+                    <sc-if value="{{ errMobile }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};display:flex;align-items:center;gap:6px;animation:pmccShake .45s both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>{{ errMobile }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.gender }} <span style="color:#a9a29b;font-weight:500">{{ t.optional }}</span></label>
+                    <div style="position:relative;display:flex">
+                      <select value="{{ d.gender }}" onChange="{{ onGender }}" style="width:100%;box-sizing:border-box;appearance:none;background:#faf7f2;border:1.5px solid #e6ded2;border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-end:44px;color:#2a2623;outline:none;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                        <sc-for list="{{ genderOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                      </select>
+                      <span style="position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);color:#6b645e;pointer-events:none;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px">
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.district }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <select value="{{ d.district }}" onChange="{{ onDistrict }}" style="width:100%;box-sizing:border-box;appearance:none;background:#faf7f2;border:1.5px solid {{ bdDistrict }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-end:44px;color:#2a2623;outline:none;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                        <sc-for list="{{ districtOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                      </select>
+                      <span style="position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);color:#6b645e;pointer-events:none;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                    </div>
+                    <sc-if value="{{ errDistrict }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errDistrict }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.tehsil }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <select value="{{ d.tehsil }}" onChange="{{ onTehsil }}" disabled="{{ tehsilDisabled }}" style="width:100%;box-sizing:border-box;appearance:none;background:#faf7f2;border:1.5px solid {{ bdTehsil }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-end:44px;color:#2a2623;outline:none;cursor:pointer;opacity:{{ tehsilOpacity }};transition:border-color .2s,box-shadow .2s,opacity .25s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                        <sc-for list="{{ tehsilOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                      </select>
+                      <span style="position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);color:#6b645e;pointer-events:none;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                    </div>
+                    <sc-if value="{{ errTehsil }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errTehsil }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.uc }} <span style="color:#a9a29b;font-weight:500">{{ t.optional }}</span></label>
+                    <input value="{{ d.uc }}" onInput="{{ onUc }}" placeholder="{{ t.ucP }}" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid #e6ded2;border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;color:#2a2623;outline:none;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.landmark }} <span style="color:#a9a29b;font-weight:500">{{ t.optional }}</span></label>
+                    <input value="{{ d.address }}" onInput="{{ onAddress }}" placeholder="{{ t.landmarkP }}" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid #e6ded2;border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;color:#2a2623;outline:none;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:22px">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.dept }} <span style="color:{{ accent }}">*</span></label>
+                      <div style="position:relative;display:flex">
+                        <select value="{{ d.dept }}" onChange="{{ onDept }}" style="width:100%;box-sizing:border-box;appearance:none;background:#faf7f2;border:1.5px solid {{ bdDept }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-end:44px;color:#2a2623;outline:none;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                          <sc-for list="{{ deptOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                        </select>
+                        <span style="position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);color:#6b645e;pointer-events:none;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                      </div>
+                      <sc-if value="{{ errDept }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errDept }}</span></sc-if>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.cat }} <span style="color:{{ accent }}">*</span></label>
+                      <div style="position:relative;display:flex">
+                        <select value="{{ d.cat }}" onChange="{{ onCat }}" style="width:100%;box-sizing:border-box;appearance:none;background:#faf7f2;border:1.5px solid {{ bdCat }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-end:44px;color:#2a2623;outline:none;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                          <sc-for list="{{ catOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                        </select>
+                        <span style="position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);color:#6b645e;pointer-events:none;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                      </div>
+                      <sc-if value="{{ errCat }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errCat }}</span></sc-if>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px;position:relative">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.subject }} <span style="color:{{ accent }}">*</span></label>
+                    <div style="position:relative;display:flex">
+                      <span style="position:absolute;inset-inline-start:16px;top:50%;transform:translateY(-50%);color:#a9a29b;pointer-events:none;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span>
+                      <input value="{{ d.subject }}" onInput="{{ onSubject }}" onFocus="{{ openSubj }}" onBlur="{{ closeSubj }}" placeholder="{{ t.subjectP }}" autoComplete="off" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdSubject }};border-radius:16px;font:inherit;font-size:15px;padding:15px 18px;padding-inline-start:46px;color:#2a2623;outline:none;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+                    </div>
+                    <sc-if value="{{ subjOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;top:calc(100% + 6px);inset-inline-start:0;inset-inline-end:0;background:#fff;border:1.5px solid #e6ded2;border-radius:20px;z-index:20;max-height:250px;overflow:auto;padding:6px;box-shadow:0 18px 40px rgba(42,38,35,.16);animation:pmccEnterA .2s both">
+                        <sc-for list="{{ subjSuggestions }}" as="s" hint-placeholder-count="3">
+                          <button type="button" onMouseDown="{{ s.pick }}" style="display:block;width:100%;text-align:start;background:none;border:0;border-radius:14px;padding:12px 14px;font:inherit;font-size:14.5px;color:#2a2623;cursor:pointer;transition:background .16s" style-hover="background:#fdf3e0">{{ s.label }}</button>
+                        </sc-for>
+                        <div style="padding:10px 14px;font-size:12px;color:#8b847d">{{ t.subjectHint }}</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ errSubject }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errSubject }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+                      <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.detail }} <span style="color:{{ accent }}">*</span></label>
+                      <span style="font-size:12px;color:{{ countColor }}">{{ countLabel }}</span>
+                    </div>
+                    <textarea value="{{ d.detail }}" onInput="{{ onDetail }}" rows="6" placeholder="{{ t.detailP }}" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdDetail }};border-radius:18px;font:inherit;font-size:15px;line-height:1.7;padding:15px 18px;color:#2a2623;outline:none;resize:vertical;transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)"></textarea>
+                    <sc-if value="{{ errDetail }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errDetail }}</span></sc-if>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.evidence }} <span style="color:#a9a29b;font-weight:500">{{ t.optional }}</span></label>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:12px">
+                      <label style="display:flex;align-items:center;gap:12px;background:#faf7f2;border:1.5px dashed #ddd3c4;border-radius:20px;padding:16px;cursor:pointer;transition:border-color .2s,background .2s,transform .2s" style-hover="border-color:#14603a;background:#fdf3e0;transform:translateY(-2px)">
+                        <span style="width:40px;height:40px;border-radius:50%;background:#eaf1eb;display:grid;place-items:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5 12 22a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8.5-8.5"></path></svg></span>
+                        <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.attach }}</span><span style="font-size:11.5px;color:#8b847d">{{ t.attachHint }}</span></span>
+                        <input type="file" multiple onChange="{{ onFiles }}" style="display:none">
+                      </label>
+                      <label style="display:flex;align-items:center;gap:12px;background:#faf7f2;border:1.5px dashed #ddd3c4;border-radius:20px;padding:16px;cursor:pointer;transition:border-color .2s,background .2s,transform .2s" style-hover="border-color:#14603a;background:#fdf3e0;transform:translateY(-2px)">
+                        <span style="width:40px;height:40px;border-radius:50%;background:#eaf1eb;display:grid;place-items:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h3l2-3h8l2 3h3v12H3z"></path><circle cx="12" cy="13" r="4"></circle></svg></span>
+                        <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.capturePhoto }}</span><span style="font-size:11.5px;color:#8b847d">{{ t.captureHint }}</span></span>
+                        <input type="file" accept="image/*" capture="environment" onChange="{{ onFiles }}" style="display:none">
+                      </label>
+                      <label style="display:flex;align-items:center;gap:12px;background:#faf7f2;border:1.5px dashed #ddd3c4;border-radius:20px;padding:16px;cursor:pointer;transition:border-color .2s,background .2s,transform .2s" style-hover="border-color:#14603a;background:#fdf3e0;transform:translateY(-2px)">
+                        <span style="width:40px;height:40px;border-radius:50%;background:#eaf1eb;display:grid;place-items:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5h12v11h-12z"></path><path d="m14.5 10.5 7-4v12l-7-4"></path></svg></span>
+                        <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.captureVideo }}</span><span style="font-size:11.5px;color:#8b847d">{{ t.videoHint }}</span></span>
+                        <input type="file" accept="video/*" capture="environment" onChange="{{ onFiles }}" style="display:none">
+                      </label>
+                    </div>
+                    <sc-if value="{{ hasFiles }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-wrap:wrap;gap:9px">
+                        <sc-for list="{{ files }}" as="f" hint-placeholder-count="2">
+                          <span style="display:inline-flex;align-items:center;gap:9px;background:#eaf1eb;border-radius:999px;padding:9px 14px;font-size:12.5px;color:#14603a;animation:pmccEnterA .25s both">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14603a" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                            <span style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.name }}</span>
+                            <span style="color:#6f8c79">{{ f.size }}</span>
+                            <button type="button" onClick="{{ f.remove }}" aria-label="Remove" style="background:none;border:0;padding:0;margin:0;cursor:pointer;color:#6f8c79;display:flex;transition:color .15s" style-hover="color:#ec3013"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+                          </span>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:18px">
+                  <sc-for list="{{ reviewGroups }}" as="g" hint-placeholder-count="3">
+                    <div style="background:#faf7f2;border-radius:22px;overflow:hidden">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px">
+                        <span style="font-family:{{ uiFont }};font-weight:700;font-size:14.5px;color:#14603a">{{ g.title }}</span>
+                        <button type="button" onClick="{{ g.edit }}" style="background:#fff;border:1px solid #e6ded2;border-radius:999px;padding:7px 15px;font:inherit;font-size:12.5px;font-weight:700;color:{{ accent }};cursor:pointer;transition:background .18s,transform .18s" style-hover="background:#fdf3e0;transform:translateY(-1px)">{{ g.editLabel }}</button>
+                      </div>
+                      <div style="background:#fff;margin:0 6px 6px;border-radius:18px;padding:4px 0">
+                        <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+                          <div style="display:grid;grid-template-columns:minmax(120px,180px) 1fr;gap:16px;padding:11px 16px;font-size:14.5px">
+                            <span style="color:#6b645e">{{ i.k }}</span>
+                            <span style="font-weight:600;min-width:0;overflow-wrap:anywhere">{{ i.v }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+
+                  <label style="display:flex;align-items:flex-start;gap:13px;background:#fdf3e0;border-radius:20px;padding:17px;cursor:pointer">
+                    <input type="checkbox" checked="{{ d.consent }}" onChange="{{ onConsent }}" style="width:20px;height:20px;margin:1px 0 0;accent-color:#14603a;flex:none;cursor:pointer">
+                    <span style="font-size:13.5px;color:#5c4713;text-wrap:pretty">{{ t.consent }}</span>
+                  </label>
+                  <sc-if value="{{ errConsent }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errConsent }}</span></sc-if>
+                </div>
+              </sc-if>
+
+            </div>
+
+            <div style="margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#6b645e">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14603a" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="3"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+                {{ t.safeLong }}
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ back }}" style="background:#faf7f2;color:#14603a;border:1.5px solid #e6ded2;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;padding:14px 22px;cursor:pointer;transition:background .2s,transform .2s" style-hover="background:#f1ece3;transform:translateY(-1px)">{{ backArrow }} {{ t.back }}</button>
+                </sc-if>
+                <button type="button" onClick="{{ next }}" style="background:{{ accent }};color:#fff;border:0;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px;padding:15px 28px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;box-shadow:0 8px 20px rgba(236,48,19,.28);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s" style-hover="transform:translateY(-2px);box-shadow:0 12px 26px rgba(236,48,19,.34)" style-active="transform:translateY(0)">{{ nextLabel }} <span style="font-size:16px">{{ nextArrow }}</span></button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSuccess }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;max-width:1320px;margin:0 auto;flex:1;background:linear-gradient(160deg,#14603a,#0d472b);color:#fff;border-radius:32px;padding:clamp(28px,4.4vw,64px);display:flex;flex-direction:column;gap:clamp(26px,3.4vw,42px);position:relative;overflow:hidden;box-shadow:0 22px 50px rgba(20,96,58,.24);animation:pmccRise .55s cubic-bezier(.2,.8,.2,1) both">
+        <div style="position:absolute;inset-inline-end:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle at 34% 34%,rgba(200,137,26,.3),rgba(200,137,26,0) 70%);pointer-events:none;animation:pmccFloat 10s ease-in-out infinite"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:clamp(24px,3.4vw,52px);align-items:flex-start">
+          <div style="flex:1 1 360px;min-width:0">
+            <div style="width:70px;height:70px;border-radius:50%;background:rgba(200,137,26,.18);border:2px solid rgba(226,174,78,.7);display:grid;place-items:center;animation:pmccStamp .65s cubic-bezier(.2,.9,.2,1) both">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#eeb84e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="stroke-dasharray:48;animation:pmccDraw .7s .28s both"><path d="M20 6 9 17l-5-5"></path></svg>
+            </div>
+            <h1 style="font-family:{{ displayFont }};font-weight:800;color:#fff;font-size:{{ heroSize }};line-height:{{ heroLh }};letter-spacing:-.015em;margin:22px 0 0;text-wrap:pretty">{{ t.successTitle }}</h1>
+            <p style="margin:16px 0 0;font-size:16px;color:rgba(255,255,255,.8);max-width:44ch;text-wrap:pretty">{{ t.successSub }}</p>
+          </div>
+          <div style="flex:1 1 320px;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(226,174,78,.4);border-radius:26px;padding:clamp(22px,3vw,32px)">
+            <div style="font-size:12.5px;font-family:'Archivo',sans-serif;font-weight:700;color:#eeb84e">{{ t.ticketLabel }}</div>
+            <div dir="ltr" style="font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(27px,4.2vw,42px);letter-spacing:-.01em;margin:10px 0 0;color:#fff;text-align:{{ ltrAlign }};overflow-wrap:anywhere">{{ ticket }}</div>
+            <button type="button" onClick="{{ copyTicket }}" style="margin-top:18px;background:#eeb84e;color:#14603a;border:0;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:800;font-size:13.5px;padding:13px 20px;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:transform .2s,filter .2s" style-hover="transform:translateY(-2px);filter:brightness(1.05)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="3"></rect><path d="M5 15H3V3h12v2"></path></svg>{{ copyLabel }}
+            </button>
+            <p style="margin:16px 0 0;font-size:13px;color:rgba(255,255,255,.7)">{{ t.ticketNote }}</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px">
+          <sc-for list="{{ nextSteps }}" as="n" hint-placeholder-count="3">
+            <div style="background:rgba(255,255,255,.07);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:8px">
+              <span style="width:34px;height:34px;border-radius:50%;background:rgba(238,184,78,.2);color:#eeb84e;display:grid;place-items:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:12.5px">{{ n.n }}</span>
+              <span style="font-family:{{ uiFont }};font-weight:700;font-size:15.5px;color:#fff">{{ n.t }}</span>
+              <span style="font-size:13px;color:rgba(255,255,255,.72)">{{ n.d }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button type="button" onClick="{{ goTrack }}" style="background:{{ accent }};color:#fff;border:0;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px;padding:15px 28px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.22);transition:transform .2s" style-hover="transform:translateY(-2px)">{{ t.trackNow }}</button>
+          <button type="button" onClick="{{ restart }}" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px;padding:15px 26px;cursor:pointer;transition:background .2s,transform .2s" style-hover="background:rgba(255,255,255,.18);transform:translateY(-2px)">{{ t.fileAnother }}</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isTrack }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-wrap:wrap;gap:clamp(16px,2vw,26px);align-items:stretch;width:100%;max-width:1320px;margin:0 auto">
+        <aside style="flex:1 1 320px;min-width:0;position:relative;overflow:hidden;background:{{ posterBg }};color:{{ posterInk }};border-radius:28px;padding:clamp(26px,3vw,40px);display:flex;flex-direction:column;gap:18px;box-shadow:0 16px 40px rgba(42,38,35,.1)">
+          <div style="position:absolute;inset-inline-end:-70px;top:-70px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle at 32% 32%,rgba(200,137,26,.32),rgba(200,137,26,0) 70%);pointer-events:none;animation:pmccFloat 9s ease-in-out infinite"></div>
+          <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-family:'Archivo',sans-serif;font-weight:700;color:#e2ae4e;background:rgba(200,137,26,.15);border-radius:999px;padding:7px 14px;width:fit-content">
+            <span style="width:7px;height:7px;border-radius:50%;background:#e2ae4e;display:block"></span>{{ t.trackKicker }}
+          </div>
+          <h1 style="font-family:{{ displayFont }};font-weight:800;color:#eeb84e;font-size:{{ heroSize }};line-height:{{ heroLh }};letter-spacing:-.015em;margin:0;text-wrap:pretty">{{ t.trackTitle }}</h1>
+          <p style="margin:0;font-size:15.5px;color:{{ posterMuted }};max-width:38ch;text-wrap:pretty">{{ t.trackSub }}</p>
+        </aside>
+
+        <section style="flex:2 1 540px;background:#fff;border-radius:28px;min-width:0;padding:clamp(24px,3vw,44px);display:flex;flex-direction:column;gap:24px;box-shadow:0 18px 46px rgba(42,38,35,.1)">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:13.5px;font-weight:700;font-family:{{ uiFont }}">{{ t.trackField }}</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div style="position:relative;display:flex;flex:1 1 240px;min-width:0">
+                <span style="position:absolute;inset-inline-start:16px;top:50%;transform:translateY(-50%);color:#a9a29b;pointer-events:none;display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span>
+                <input value="{{ trackId }}" onInput="{{ onTrackId }}" onKeyDown="{{ onTrackKey }}" placeholder="PMCC-2026-000000" dir="ltr" style="width:100%;box-sizing:border-box;background:#faf7f2;border:1.5px solid {{ bdTrack }};border-radius:16px;font:inherit;font-size:15px;letter-spacing:.05em;padding:16px 18px;padding-inline-start:46px;color:#2a2623;outline:none;text-align:{{ ltrAlign }};transition:border-color .2s,box-shadow .2s,background .2s" style-focus="border-color:#14603a;background:#fff;box-shadow:0 0 0 4px rgba(20,96,58,.12)">
+              </div>
+              <button type="button" onClick="{{ runTrack }}" style="background:{{ accent }};color:#fff;border:0;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px;padding:16px 28px;cursor:pointer;box-shadow:0 8px 20px rgba(236,48,19,.26);transition:transform .2s" style-hover="transform:translateY(-2px)">{{ t.trackBtn }}</button>
+            </div>
+            <sc-if value="{{ errTrack }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ accent }};animation:pmccShake .45s both">{{ errTrack }}</span></sc-if>
+          </div>
+
+          <sc-if value="{{ hasTrackRes }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:pmccRise .45s both;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;background:#faf7f2;border-radius:22px;padding:18px 20px">
+                <div style="min-width:0">
+                  <div dir="ltr" style="font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(21px,3vw,29px);color:#14603a;text-align:{{ ltrAlign }}">{{ res.id }}</div>
+                  <div style="font-size:14px;color:#6b645e;margin-top:6px">{{ res.subject }}</div>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:9px;background:#eaf1eb;border-radius:999px;color:#14603a;font-family:{{ uiFont }};font-weight:700;font-size:13px;padding:10px 16px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#c8891a;display:block;animation:pmccRing 2s infinite"></span>{{ res.status }}
+                </span>
+              </div>
+
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px">
+                <sc-for list="{{ res.meta }}" as="m" hint-placeholder-count="3">
+                  <div style="background:#faf7f2;border-radius:18px;padding:15px 17px;display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:12px;color:#8b847d">{{ m.k }}</span>
+                    <span style="font-size:14.5px;font-weight:600">{{ m.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ res.timeline }}" as="e" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start">
+                    <div style="display:flex;flex-direction:column;align-items:center;align-self:stretch">
+                      <span style="width:16px;height:16px;border-radius:50%;background:{{ e.dot }};border:2.5px solid {{ e.dotBd }};flex:none;margin-top:3px"></span>
+                      <span style="flex:1;width:2.5px;border-radius:999px;background:{{ e.line }};min-height:22px"></span>
+                    </div>
+                    <div style="padding-bottom:22px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:{{ uiFont }};font-weight:700;font-size:15px;color:{{ e.titleC }}">{{ e.t }}</span>
+                      <span style="font-size:13px;color:#8b847d">{{ e.d }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <div style="padding:4px clamp(16px,4vw,56px) 26px;text-align:center;font-size:13.5px;color:#6b645e">
+    {{ t.helpLine }}
+  </div>
+  <footer style="background:#14603a;color:rgba(255,255,255,.72);padding:18px clamp(16px,4vw,56px);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12.5px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="background:#eeb84e;color:#14603a;border-radius:999px;font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.05em;padding:6px 11px">AJK</span>
+      <span style="color:#fff">{{ t.govt }}</span>
+    </div>
+    <span>{{ t.builtFor }}</span>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1080},&quot;defaultLang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;ur&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'ur'&quot;,&quot;section&quot;:&quot;Language&quot;},&quot;actionAccent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#ec3013&quot;,&quot;#14603a&quot;,&quot;#c8891a&quot;],&quot;default&quot;:&quot;#ec3013&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;},&quot;darkPoster&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;showGovStrip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+class Component extends DCLogic {
+  DIST = [
+    { v: 'muzaffarabad', en: 'Muzaffarabad', ur: 'مظفرآباد', t: [['Muzaffarabad', 'مظفرآباد'], ['Patika', 'پٹیکہ'], ['Nasirabad', 'ناصرآباد']] },
+    { v: 'mirpur', en: 'Mirpur', ur: 'میرپور', t: [['Mirpur', 'میرپور'], ['Dadyal', 'ڈڈیال'], ['Chakswari', 'چکسواری']] },
+    { v: 'bhimber', en: 'Bhimber', ur: 'بھمبر', t: [['Bhimber', 'بھمبر'], ['Samahni', 'سماہنی'], ['Barnala', 'برنالہ']] },
+    { v: 'kotli', en: 'Kotli', ur: 'کوٹلی', t: [['Kotli', 'کوٹلی'], ['Sehnsa', 'سہنسہ'], ['Khuiratta', 'کھوئی رٹہ'], ['Fatehpur Thakiala', 'فتح پور ٹھکیالہ']] },
+    { v: 'poonch', en: 'Poonch (Rawalakot)', ur: 'پونچھ (راولاکوٹ)', t: [['Rawalakot', 'راولاکوٹ'], ['Hajira', 'ہجیرہ'], ['Thorar', 'تھوراڑ'], ['Abbaspur', 'عباسپور']] },
+    { v: 'bagh', en: 'Bagh', ur: 'باغ', t: [['Bagh', 'باغ'], ['Dhirkot', 'ڈھیرکوٹ'], ['Harighel', 'ہڑی گہل']] },
+    { v: 'haveli', en: 'Haveli (Forward Kahuta)', ur: 'حویلی (فارورڈ کہوٹہ)', t: [['Kahuta', 'کہوٹہ'], ['Khurshidabad', 'خورشید آباد'], ['Mumtazabad', 'ممتاز آباد']] },
+    { v: 'neelum', en: 'Neelum', ur: 'نیلم', t: [['Athmuqam', 'اٹھمقام'], ['Sharda', 'شاردہ'], ['Keran', 'کیرن']] },
+    { v: 'sudhanoti', en: 'Sudhanoti', ur: 'سدھنوتی', t: [['Pallandri', 'پلندری'], ['Mang', 'منگ'], ['Baloch', 'بلوچ']] },
+    { v: 'jhelumvalley', en: 'Jhelum Valley', ur: 'وادیٔ جہلم', t: [['Hattian Bala', 'ہٹیاں بالا'], ['Chikar', 'چکار'], ['Leepa', 'لیپہ']] }
+  ];
+  DEPT = [
+    { v: 'health', en: 'Health', ur: 'محکمہ صحت' },
+    { v: 'education', en: 'Education', ur: 'محکمہ تعلیم' },
+    { v: 'police', en: 'Police', ur: 'پولیس' },
+    { v: 'lgrd', en: 'Local Government & Rural Development', ur: 'محکمہ بلدیات و دیہی ترقی' },
+    { v: 'cnw', en: 'Public Works (C&W)', ur: 'محکمہ تعمیرات عامہ' },
+    { v: 'power', en: 'Electricity', ur: 'محکمہ برقیات' },
+    { v: 'water', en: 'Water & Sanitation', ur: 'محکمہ آب رسانی و نکاسی' },
+    { v: 'revenue', en: 'Revenue', ur: 'محکمہ مال' },
+    { v: 'agri', en: 'Agriculture', ur: 'محکمہ زراعت' },
+    { v: 'social', en: 'Social Welfare', ur: 'محکمہ سماجی بہبود' }
+  ];
+  CAT = [
+    { v: 'delay', en: 'Service delay', ur: 'خدمات میں تاخیر' },
+    { v: 'absent', en: 'Staff absent from duty', ur: 'عملے کی غیر حاضری' },
+    { v: 'bribe', en: 'Bribery or corruption', ur: 'رشوت یا بدعنوانی' },
+    { v: 'infra', en: 'Damaged infrastructure', ur: 'تباہ شدہ انفراسٹرکچر' },
+    { v: 'billing', en: 'Billing or payment issue', ur: 'بلنگ یا ادائیگی کا مسئلہ' },
+    { v: 'licence', en: 'Licence or permit', ur: 'لائسنس یا اجازت نامہ' },
+    { v: 'conduct', en: 'Staff misconduct', ur: 'عملے کی بدسلوکی' },
+    { v: 'other', en: 'Other', ur: 'دیگر' }
+  ];
+  SUBJ = [
+    ['No electricity for three days', 'تین دن سے بجلی بند ہے'],
+    ['Overbilling on electricity bill', 'بجلی کے بل میں زائد رقم'],
+    ['Street lights not working', 'اسٹریٹ لائٹس خراب ہیں'],
+    ['Teacher absent from school', 'استاد اسکول سے غیر حاضر ہے'],
+    ['School building unsafe', 'اسکول کی عمارت غیر محفوظ ہے'],
+    ['Hospital medicines unavailable', 'اسپتال میں ادویات دستیاب نہیں'],
+    ['Ambulance service unavailable', 'ایمبولینس سروس دستیاب نہیں'],
+    ['Road damaged after landslide', 'لینڈ سلائیڈ کے بعد سڑک تباہ ہے'],
+    ['Water supply line broken', 'پانی کی سپلائی لائن ٹوٹی ہوئی ہے'],
+    ['Garbage not collected', 'کچرا نہیں اٹھایا جا رہا'],
+    ['Bribe demanded for land record', 'اراضی ریکارڈ کے لیے رشوت کا مطالبہ'],
+    ['FIR not registered', 'ایف آئی آر درج نہیں کی گئی']
+  ];
+  T = {
+    en: {
+      govt: 'Government of Azad Jammu & Kashmir', portal: '24/7 Citizen Service Portal',
+      brandSub: "Prime Minister's Contact Centre", navFile: 'File a complaint', navTrack: 'Track complaint',
+      langSwitch: 'اردو',
+      kicker: 'Citizen complaint', heroTitle: "Let's get your voice heard.",
+      heroSub: 'Four short steps, and your complaint reaches the department responsible and the Prime Minister’s Contact Centre.',
+      safe: 'Encrypted and confidential', safeLong: 'Your information is kept safe and confidential.',
+      required: 'Required fields', optional: '(optional)', back: 'Back', next: 'Next step', submit: 'Submit complaint',
+      fullName: 'Full name', fullNameP: 'Enter your full name', cnic: 'CNIC number', mobile: 'Mobile number',
+      gender: 'Gender', genderNone: 'Prefer not to say', male: 'Male', female: 'Female', other: 'Other',
+      district: 'District', districtP: 'Select a district', tehsil: 'Tehsil', tehsilP: 'Select a tehsil',
+      uc: 'Union council', ucP: 'e.g. Chattar Domel', landmark: 'Address or landmark', landmarkP: 'Nearest landmark, street or village',
+      dept: 'Department', deptP: 'Select the department', cat: 'Category', catP: 'Select a category',
+      subject: 'Subject', subjectP: 'Start typing — pick a suggestion or write your own',
+      subjectHint: 'No match? Keep typing — your own wording is accepted.',
+      detail: 'What happened', detailP: 'Describe the problem, when it started, and who you have already contacted.',
+      evidence: 'Evidence', attach: 'Attach files', attachHint: 'Photos, video, PDF',
+      capturePhoto: 'Capture photo', captureHint: 'Use your camera', captureVideo: 'Capture video', videoHint: 'Record on the spot',
+      consent: 'I confirm the information above is true to the best of my knowledge, and I allow PMCC to share it with the relevant department.',
+      editLabel: 'Edit',
+      gAbout: 'About you', gLocation: 'Location', gComplaint: 'Complaint',
+      successTitle: 'Your complaint is on record.', successSub: 'It has been forwarded to the department and to the Prime Minister’s Contact Centre. Save your tracking number.',
+      ticketLabel: 'Tracking number', ticketNote: 'An SMS with this number has been sent to your mobile.',
+      copy: 'Copy number', copied: 'Copied', trackNow: 'Track this complaint', fileAnother: 'File another complaint',
+      trackKicker: 'Complaint status', trackTitle: 'Where is my complaint?',
+      trackSub: 'Enter the tracking number from your SMS to see every step taken so far.',
+      trackField: 'Tracking number', trackBtn: 'Track',
+      helpLine: 'Need help? Call 0800-786-01 · Available in English and Urdu',
+      builtFor: 'Built for citizens',
+      eName: 'Please enter your full name.', eCnic: 'Enter a valid 13-digit CNIC.', eMobile: 'Enter a valid mobile number.',
+      eDistrict: 'Please choose a district.', eTehsil: 'Please choose a tehsil.', eDept: 'Please choose a department.',
+      eCat: 'Please choose a category.', eSubject: 'Please give your complaint a subject.',
+      eDetail: 'Please describe the problem in at least 20 characters.', eConsent: 'Please confirm before submitting.',
+      eTrack: 'Enter a tracking number in the format PMCC-2026-000000.',
+      chars: 'characters',
+      stepTitles: ['About you', 'Where it happened', 'Your complaint', 'Review and submit'],
+      stepBlurbs: [
+        'We need this to keep you updated and to verify the complaint.',
+        'Pinpointing the location routes your complaint to the right office.',
+        'Be specific. Details help the department act faster.',
+        'Check everything below. You can still go back and change it.'
+      ],
+      steps: [['Your details', 'Who you are'], ['Location', 'Where it happened'], ['Your complaint', 'What went wrong'], ['Review', 'Check and submit']],
+      nextSteps: [
+        ['01', 'Assigned within 24 hours', 'A case officer at the department takes ownership.'],
+        ['02', 'Updates by SMS', 'Every status change is sent to your mobile number.'],
+        ['03', 'Resolution in 15 working days', 'Unresolved cases escalate to the PMCC review desk.']
+      ],
+      tlLabels: [['Complaint received', 'Logged at the Contact Centre'], ['Assigned to department', 'Case officer notified'], ['Under investigation', 'Field verification in progress'], ['Resolution', 'Pending']],
+      statusOpen: 'Under investigation',
+      mSubmitted: 'Submitted', mDept: 'Department', mDue: 'Due by'
+    },
+    ur: {
+      govt: 'حکومت آزاد جموں و کشمیر', portal: 'عوامی خدمت پورٹل ۲۴/۷',
+      brandSub: 'وزیرِ اعظم رابطہ مرکز', navFile: 'شکایت درج کریں', navTrack: 'شکایت ٹریک کریں',
+      langSwitch: 'EN',
+      kicker: 'عوامی شکایت', heroTitle: 'آپ کی بات، براہِ راست وزیرِ اعظم تک',
+      heroSub: 'چار آسان مراحل، اور آپ کی شکایت متعلقہ محکمے اور وزیرِ اعظم رابطہ مرکز تک پہنچ جائے گی۔',
+      safe: 'محفوظ اور رازدارانہ', safeLong: 'آپ کی معلومات مکمل طور پر محفوظ اور رازدارانہ رکھی جائیں گی۔',
+      required: 'مطلوبہ خانے', optional: '(اختیاری)', back: 'پیچھے', next: 'اگلا مرحلہ', submit: 'شکایت جمع کروائیں',
+      fullName: 'پورا نام', fullNameP: 'اپنا مکمل نام درج کریں', cnic: 'قومی شناختی کارڈ نمبر', mobile: 'موبائل نمبر',
+      gender: 'جنس', genderNone: 'بتانا نہیں چاہتے', male: 'مرد', female: 'عورت', other: 'دیگر',
+      district: 'ضلع', districtP: 'ضلع منتخب کریں', tehsil: 'تحصیل', tehsilP: 'تحصیل منتخب کریں',
+      uc: 'یونین کونسل', ucP: 'مثلاً چھتر دومیل', landmark: 'پتہ یا نشانی', landmarkP: 'قریبی نشانی، گلی یا گاؤں',
+      dept: 'محکمہ', deptP: 'محکمہ منتخب کریں', cat: 'زمرہ', catP: 'زمرہ منتخب کریں',
+      subject: 'موضوع', subjectP: 'لکھنا شروع کریں — تجویز منتخب کریں یا اپنے الفاظ لکھیں',
+      subjectHint: 'کوئی تجویز موزوں نہیں؟ اپنے الفاظ میں لکھتے رہیں، وہ بھی قبول ہے۔',
+      detail: 'کیا ہوا', detailP: 'مسئلہ، اس کا آغاز اور اب تک آپ نے کس سے رابطہ کیا — تفصیل سے لکھیں۔',
+      evidence: 'ثبوت', attach: 'فائلیں منسلک کریں', attachHint: 'تصاویر، ویڈیو، پی ڈی ایف',
+      capturePhoto: 'تصویر لیں', captureHint: 'کیمرہ استعمال کریں', captureVideo: 'ویڈیو بنائیں', videoHint: 'موقع پر ریکارڈ کریں',
+      consent: 'میں تصدیق کرتا/کرتی ہوں کہ درج بالا معلومات میرے علم کے مطابق درست ہیں، اور PMCC انہیں متعلقہ محکمے کو بھیج سکتا ہے۔',
+      editLabel: 'ترمیم',
+      gAbout: 'آپ کے بارے میں', gLocation: 'مقام', gComplaint: 'شکایت',
+      successTitle: 'آپ کی شکایت درج ہو گئی۔', successSub: 'یہ متعلقہ محکمے اور وزیرِ اعظم رابطہ مرکز کو بھیج دی گئی ہے۔ اپنا ٹریکنگ نمبر محفوظ رکھیں۔',
+      ticketLabel: 'ٹریکنگ نمبر', ticketNote: 'یہ نمبر آپ کے موبائل پر ایس ایم ایس کے ذریعے بھیج دیا گیا ہے۔',
+      copy: 'نمبر کاپی کریں', copied: 'کاپی ہو گیا', trackNow: 'یہ شکایت ٹریک کریں', fileAnother: 'نئی شکایت درج کریں',
+      trackKicker: 'شکایت کی صورتحال', trackTitle: 'میری شکایت کہاں تک پہنچی؟',
+      trackSub: 'ایس ایم ایس میں موصول ٹریکنگ نمبر درج کریں اور اب تک کی ہر کارروائی دیکھیں۔',
+      trackField: 'ٹریکنگ نمبر', trackBtn: 'ٹریک کریں',
+      helpLine: 'مدد چاہیے؟ کال کریں 0800-786-01 · اردو اور انگریزی میں دستیاب',
+      builtFor: 'شہریوں کے لیے',
+      eName: 'براہِ کرم اپنا پورا نام درج کریں۔', eCnic: 'درست ۱۳ ہندسوں کا شناختی کارڈ نمبر درج کریں۔', eMobile: 'درست موبائل نمبر درج کریں۔',
+      eDistrict: 'براہِ کرم ضلع منتخب کریں۔', eTehsil: 'براہِ کرم تحصیل منتخب کریں۔', eDept: 'براہِ کرم محکمہ منتخب کریں۔',
+      eCat: 'براہِ کرم زمرہ منتخب کریں۔', eSubject: 'براہِ کرم شکایت کا موضوع لکھیں۔',
+      eDetail: 'براہِ کرم مسئلہ کم از کم ۲۰ حروف میں بیان کریں۔', eConsent: 'جمع کروانے سے پہلے تصدیق کریں۔',
+      eTrack: 'ٹریکنگ نمبر اس طرح درج کریں: PMCC-2026-000000',
+      chars: 'حروف',
+      stepTitles: ['آپ کے بارے میں', 'واقعہ کہاں پیش آیا', 'آپ کی شکایت', 'جائزہ اور اندراج'],
+      stepBlurbs: [
+        'یہ معلومات آپ کو باخبر رکھنے اور شکایت کی تصدیق کے لیے درکار ہیں۔',
+        'درست مقام سے آپ کی شکایت صحیح دفتر تک پہنچتی ہے۔',
+        'واضح لکھیں۔ تفصیل سے محکمہ تیزی سے کارروائی کر سکتا ہے۔',
+        'نیچے دی گئی تفصیلات دیکھ لیں۔ آپ اب بھی واپس جا کر تبدیلی کر سکتے ہیں۔'
+      ],
+      steps: [['آپ کی تفصیلات', 'آپ کون ہیں'], ['مقام', 'واقعہ کہاں ہوا'], ['آپ کی شکایت', 'کیا مسئلہ ہے'], ['جائزہ', 'دیکھ کر جمع کروائیں']],
+      nextSteps: [
+        ['۰۱', '۲۴ گھنٹے میں تفویض', 'محکمے کا افسر شکایت کی ذمہ داری لیتا ہے۔'],
+        ['۰۲', 'ایس ایم ایس پر اطلاع', 'ہر تبدیلی آپ کے موبائل نمبر پر بھیجی جائے گی۔'],
+        ['۰۳', '۱۵ کام کے دن میں حل', 'حل نہ ہونے پر معاملہ PMCC جائزہ ڈیسک کو جاتا ہے۔']
+      ],
+      tlLabels: [['شکایت موصول ہوئی', 'رابطہ مرکز میں درج'], ['محکمے کو بھیجی گئی', 'افسر کو اطلاع دے دی گئی'], ['تحقیقات جاری', 'موقع پر تصدیق جاری ہے'], ['حل', 'زیرِ التوا']],
+      statusOpen: 'تحقیقات جاری',
+      mSubmitted: 'تاریخِ اندراج', mDept: 'محکمہ', mDue: 'آخری تاریخ'
+    }
+  };
+
+  state = {
+    lang: this.props.defaultLang === 'ur' ? 'ur' : 'en',
+    screen: 'wizard', step: 1, anim: 0,
+    d: { name: '', cnic: '', mobile: '', gender: '', district: '', tehsil: '', uc: '', address: '', dept: '', cat: '', subject: '', detail: '', consent: false },
+    files: [], errs: {}, subjOpen: false, ticket: '', copied: false,
+    trackId: '', trackRes: null, trackErr: ''
+  };
+
+  L = (pair) => (this.state.lang === 'ur' ? pair[1] : pair[0]);
+  tr = () => this.T[this.state.lang];
+
+  set = (k) => (e) => {
+    const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    this.setState((s) => ({ d: { ...s.d, [k]: v }, errs: { ...s.errs, [k]: '' } }));
+  };
+
+  setCnic = (e) => {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 13);
+    if (v.length > 12) v = v.slice(0, 5) + '-' + v.slice(5, 12) + '-' + v.slice(12);
+    else if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+    this.setState((s) => ({ d: { ...s.d, cnic: v }, errs: { ...s.errs, cnic: '' } }));
+  };
+
+  setMobile = (e) => {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
+    this.setState((s) => ({ d: { ...s.d, mobile: v }, errs: { ...s.errs, mobile: '' } }));
+  };
+
+  setDistrict = (e) => {
+    const v = e.target.value;
+    this.setState((s) => ({ d: { ...s.d, district: v, tehsil: '' }, errs: { ...s.errs, district: '' } }));
+  };
+
+  onFiles = (e) => {
+    const picked = Array.from(e.target.files || []);
+    if (!picked.length) return;
+    this.setState((s) => ({ files: [...s.files, ...picked].slice(0, 8) }));
+    e.target.value = '';
+  };
+
+  removeFile = (i) => () => this.setState((s) => ({ files: s.files.filter((_, n) => n !== i) }));
+
+  validate(step) {
+    const t = this.tr(), d = this.state.d, e = {};
+    if (step === 1) {
+      if (d.name.trim().length < 3) e.name = t.eName;
+      if (d.cnic.replace(/\D/g, '').length !== 13) e.cnic = t.eCnic;
+      if (d.mobile.replace(/\D/g, '').length < 10) e.mobile = t.eMobile;
+    }
+    if (step === 2) {
+      if (!d.district) e.district = t.eDistrict;
+      if (!d.tehsil) e.tehsil = t.eTehsil;
+    }
+    if (step === 3) {
+      if (!d.dept) e.dept = t.eDept;
+      if (!d.cat) e.cat = t.eCat;
+      if (d.subject.trim().length < 4) e.subject = t.eSubject;
+      if (d.detail.trim().length < 20) e.detail = t.eDetail;
+    }
+    if (step === 4 && !d.consent) e.consent = t.eConsent;
+    return e;
+  }
+
+  jump = (n) => () => {
+    if (n <= this.state.step) this.setState((s) => ({ step: n, anim: 1 - s.anim, subjOpen: false }));
+  };
+
+  next = () => {
+    const errs = this.validate(this.state.step);
+    if (Object.keys(errs).length) { this.setState({ errs }); return; }
+    if (this.state.step === 4) {
+      const num = String(Math.floor(100000 + Math.random() * 899999));
+      this.setState({ screen: 'success', ticket: 'PMCC-2026-' + num, copied: false });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    this.setState((s) => ({ step: s.step + 1, anim: 1 - s.anim, errs: {}, subjOpen: false }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  back = () => this.setState((s) => ({ step: Math.max(1, s.step - 1), anim: 1 - s.anim, subjOpen: false }));
+
+  copyTicket = () => {
+    try { navigator.clipboard.writeText(this.state.ticket); } catch (err) { /* clipboard unavailable */ }
+    this.setState({ copied: true });
+    setTimeout(() => this.setState({ copied: false }), 1800);
+  };
+
+  restart = () => this.setState({
+    screen: 'wizard', step: 1, anim: 0, files: [], errs: {}, ticket: '',
+    d: { name: '', cnic: '', mobile: '', gender: '', district: '', tehsil: '', uc: '', address: '', dept: '', cat: '', subject: '', detail: '', consent: false }
+  });
+
+  runTrack = () => {
+    const id = this.state.trackId.trim().toUpperCase();
+    if (!/^PMCC-\d{4}-\d{6}$/.test(id)) { this.setState({ trackErr: this.tr().eTrack, trackRes: null }); return; }
+    this.setState({ trackErr: '', trackRes: id });
+  };
+
+  onTrackKey = (e) => { if (e.key === 'Enter') this.runTrack(); };
+
+  fmtDate(offset) {
+    const dt = new Date(Date.now() + offset * 86400000);
+    return dt.toLocaleDateString(this.state.lang === 'ur' ? 'ur-PK' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return Math.round(b / 1024) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  renderVals() {
+    const s = this.state, t = this.tr(), ur = s.lang === 'ur', d = s.d;
+    const accent = this.props.actionAccent || '#ec3013';
+    const dark = this.props.darkPoster !== false;
+    const uiFont = ur ? "'Noto Naskh Arabic', 'Archivo', sans-serif" : "'Archivo', sans-serif";
+    const displayFont = ur ? "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif" : "'Archivo', sans-serif";
+
+    const dist = this.DIST.find((x) => x.v === d.district);
+    const deptObj = this.DEPT.find((x) => x.v === d.dept);
+    const catObj = this.CAT.find((x) => x.v === d.cat);
+    const dash = '—';
+
+    const rail = t.steps.map((p, i) => {
+      const n = i + 1, active = s.step === n, done = s.step > n;
+      return {
+        n: ur ? ['۰۱', '۰۲', '۰۳', '۰۴'][i] : ['01', '02', '03', '04'][i],
+        t: p[0], d: p[1], go: this.jump(n),
+        rowBg: active ? (dark ? 'rgba(255,255,255,.12)' : 'rgba(20,96,58,.07)') : 'transparent',
+        badgeBg: active ? '#eeb84e' : done ? 'rgba(238,184,78,.2)' : 'transparent',
+        badgeFg: active ? '#14603a' : done ? '#eeb84e' : (dark ? 'rgba(255,255,255,.5)' : '#a9a29b'),
+        badgeBd: active ? '#eeb84e' : done ? 'rgba(238,184,78,.55)' : (dark ? 'rgba(255,255,255,.22)' : 'rgba(42,38,35,.18)'),
+        pulse: active ? 'pmccRing 2.4s infinite' : 'none',
+        titleC: active ? (dark ? '#fff' : '#14603a') : done ? (dark ? 'rgba(255,255,255,.82)' : '#4b453f') : (dark ? 'rgba(255,255,255,.55)' : '#8b847d'),
+        descC: dark ? 'rgba(255,255,255,.45)' : '#a9a29b'
+      };
+    });
+
+    const q = d.subject.trim().toLowerCase();
+    const subjSuggestions = this.SUBJ
+      .map((p) => ({ label: this.L(p) }))
+      .filter((x) => !q || x.label.toLowerCase().includes(q))
+      .slice(0, 6)
+      .map((x) => ({ label: x.label, pick: (e) => { e.preventDefault(); this.setState((st) => ({ d: { ...st.d, subject: x.label }, subjOpen: false, errs: { ...st.errs, subject: '' } })); } }));
+
+    const reviewGroups = [
+      {
+        title: t.gAbout, edit: this.jump(1), editLabel: t.editLabel,
+        items: [
+          { k: t.fullName, v: d.name || dash },
+          { k: t.cnic, v: d.cnic || dash },
+          { k: t.mobile, v: d.mobile || dash },
+          { k: t.gender, v: d.gender ? { male: t.male, female: t.female, other: t.other }[d.gender] || t.genderNone : t.genderNone }
+        ]
+      },
+      {
+        title: t.gLocation, edit: this.jump(2), editLabel: t.editLabel,
+        items: [
+          { k: t.district, v: dist ? (ur ? dist.ur : dist.en) : dash },
+          { k: t.tehsil, v: d.tehsil || dash },
+          { k: t.uc, v: d.uc || dash },
+          { k: t.landmark, v: d.address || dash }
+        ]
+      },
+      {
+        title: t.gComplaint, edit: this.jump(3), editLabel: t.editLabel,
+        items: [
+          { k: t.dept, v: deptObj ? (ur ? deptObj.ur : deptObj.en) : dash },
+          { k: t.cat, v: catObj ? (ur ? catObj.ur : catObj.en) : dash },
+          { k: t.subject, v: d.subject || dash },
+          { k: t.detail, v: d.detail || dash },
+          { k: t.evidence, v: s.files.length ? s.files.map((f) => f.name).join(', ') : dash }
+        ]
+      }
+    ];
+
+    const res = s.trackRes ? {
+      id: s.trackRes,
+      subject: d.subject || this.L(this.SUBJ[0]),
+      status: t.statusOpen,
+      meta: [
+        { k: t.mSubmitted, v: this.fmtDate(-4) },
+        { k: t.mDept, v: deptObj ? (ur ? deptObj.ur : deptObj.en) : (ur ? this.DEPT[5].ur : this.DEPT[5].en) },
+        { k: t.mDue, v: this.fmtDate(11) }
+      ],
+      timeline: t.tlLabels.map((p, i) => {
+        const done = i < 3;
+        return {
+          t: p[0], d: p[1],
+          dot: done ? '#14603a' : '#fff',
+          dotBd: done ? '#14603a' : '#ddd3c4',
+          line: i < 2 ? '#14603a' : '#e6ded2',
+          titleC: done ? '#2a2623' : '#a9a29b'
+        };
+      })
+    } : null;
+
+    const bd = (k) => (s.errs[k] ? accent : '#e6ded2');
+    const detailLen = d.detail.trim().length;
+
+    return {
+      t, dir: ur ? 'rtl' : 'ltr', accent, uiFont, displayFont,
+      bodyFont: uiFont, lh: ur ? 1.9 : 1.6,
+      heroSize: ur ? 'clamp(32px,4.2vw,54px)' : 'clamp(34px,4.4vw,56px)',
+      heroLh: ur ? 1.75 : 1.06,
+      h2Size: ur ? 'clamp(23px,2.5vw,33px)' : 'clamp(25px,2.7vw,36px)',
+      h2Lh: ur ? 1.7 : 1.12,
+      ltrAlign: ur ? 'right' : 'left',
+      govStrip: this.props.showGovStrip !== false,
+      posterBg: dark ? 'linear-gradient(158deg,#14603a,#0d472b)' : '#fff',
+      posterInk: dark ? '#fff' : '#2a2623',
+      posterMuted: dark ? 'rgba(255,255,255,.74)' : '#6b645e',
+
+      isWizard: s.screen === 'wizard', isSuccess: s.screen === 'success', isTrack: s.screen === 'track',
+      isStep1: s.step === 1, isStep2: s.step === 2, isStep3: s.step === 3, isStep4: s.step === 4,
+      anim: s.anim ? 'pmccEnterA' : 'pmccEnterB',
+      pct: (s.step / 4 * 100) + '%',
+      rail, d,
+      stepTitle: t.stepTitles[s.step - 1], stepBlurb: t.stepBlurbs[s.step - 1],
+      stepOf: ur ? ('مرحلہ ' + ['۱', '۲', '۳', '۴'][s.step - 1] + ' از ۴') : ('Step ' + s.step + ' of 4'),
+      canBack: s.step > 1, back: this.back, next: this.next,
+      nextLabel: s.step === 4 ? t.submit : t.next,
+      nextArrow: ur ? '←' : '→', backArrow: ur ? '→' : '←',
+
+      onName: this.set('name'), onCnic: this.setCnic, onMobile: this.setMobile, onGender: this.set('gender'),
+      onDistrict: this.setDistrict, onTehsil: this.set('tehsil'), onUc: this.set('uc'), onAddress: this.set('address'),
+      onDept: this.set('dept'), onCat: this.set('cat'), onDetail: this.set('detail'), onConsent: this.set('consent'),
+      onSubject: (e) => this.setState((st) => ({ d: { ...st.d, subject: e.target.value }, subjOpen: true, errs: { ...st.errs, subject: '' } })),
+      openSubj: () => this.setState({ subjOpen: true }),
+      closeSubj: () => setTimeout(() => this.setState({ subjOpen: false }), 130),
+      subjOpen: s.subjOpen && subjSuggestions.length > 0, subjSuggestions,
+
+      genderOpts: [{ v: '', label: t.genderNone }, { v: 'male', label: t.male }, { v: 'female', label: t.female }, { v: 'other', label: t.other }],
+      districtOpts: [{ v: '', label: t.districtP }].concat(this.DIST.map((x) => ({ v: x.v, label: ur ? x.ur : x.en }))),
+      tehsilOpts: [{ v: '', label: t.tehsilP }].concat((dist ? dist.t : []).map((p) => ({ v: this.L(p), label: this.L(p) }))),
+      tehsilDisabled: !dist, tehsilOpacity: dist ? 1 : 0.55,
+      deptOpts: [{ v: '', label: t.deptP }].concat(this.DEPT.map((x) => ({ v: x.v, label: ur ? x.ur : x.en }))),
+      catOpts: [{ v: '', label: t.catP }].concat(this.CAT.map((x) => ({ v: x.v, label: ur ? x.ur : x.en }))),
+
+      bdName: bd('name'), bdCnic: bd('cnic'), bdMobile: bd('mobile'), bdDistrict: bd('district'),
+      bdTehsil: bd('tehsil'), bdDept: bd('dept'), bdCat: bd('cat'), bdSubject: bd('subject'), bdDetail: bd('detail'),
+      bdTrack: s.trackErr ? accent : '#e6ded2',
+      errName: s.errs.name || '', errCnic: s.errs.cnic || '', errMobile: s.errs.mobile || '',
+      errDistrict: s.errs.district || '', errTehsil: s.errs.tehsil || '', errDept: s.errs.dept || '',
+      errCat: s.errs.cat || '', errSubject: s.errs.subject || '', errDetail: s.errs.detail || '',
+      errConsent: s.errs.consent || '', errTrack: s.trackErr,
+      countLabel: detailLen + ' ' + t.chars, countColor: detailLen >= 20 ? '#2f7a4f' : '#a9a29b',
+
+      files: s.files.map((f, i) => ({ name: f.name, size: this.fmtSize(f.size), remove: this.removeFile(i) })),
+      hasFiles: s.files.length > 0,
+      reviewGroups,
+
+      ticket: s.ticket, copyTicket: this.copyTicket, copyLabel: s.copied ? t.copied : t.copy,
+      nextSteps: t.nextSteps.map((p) => ({ n: p[0], t: p[1], d: p[2] })),
+      restart: this.restart,
+      goWizard: () => this.setState({ screen: 'wizard' }),
+      goTrack: () => this.setState((st) => ({ screen: 'track', trackId: st.ticket || st.trackId, trackErr: '' })),
+      toggleLang: () => this.setState((st) => ({ lang: st.lang === 'en' ? 'ur' : 'en', errs: {}, trackErr: '' })),
+
+      trackId: s.trackId, onTrackId: (e) => this.setState({ trackId: e.target.value, trackErr: '' }),
+      onTrackKey: this.onTrackKey, runTrack: this.runTrack,
+      hasTrackRes: !!res, res: res || { id: '', subject: '', status: '', meta: [], timeline: [] }
+    };
+  }
+}
+</script>
+</body>
+</html>

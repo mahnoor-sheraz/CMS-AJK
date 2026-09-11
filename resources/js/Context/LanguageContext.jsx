@@ -6,9 +6,9 @@ const LanguageContext = createContext();
 export function LanguageProvider({ children }) {
     const [lang, setLang] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('pmcc_lang') || 'ur';
+            return localStorage.getItem('pmcc_lang') || 'en';
         }
-        return 'ur';
+        return 'en';
     });
 
     useEffect(() => {

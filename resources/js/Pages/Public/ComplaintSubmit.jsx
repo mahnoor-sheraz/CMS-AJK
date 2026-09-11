@@ -4,30 +4,32 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 import { IMaskInput } from 'react-imask';
 
-// ─── Step definitions (mirrors V0 page.tsx) ─────────────────────────────────
-const STEPS_EN = [
-    { number: '01', title: 'Your details',   caption: 'Who are you?'    },
-    { number: '02', title: 'Location',        caption: 'Where is it?'    },
-    { number: '03', title: 'Your complaint',  caption: 'What happened?'  },
-    { number: '04', title: 'Review',          caption: 'Ready to send'   },
-];
-const STEPS_UR = [
-    { number: '01', title: 'آپ کی تفصیلات', caption: 'آپ کون ہیں؟'       },
-    { number: '02', title: 'مقام',           caption: 'کہاں کا مسئلہ ہے؟' },
-    { number: '03', title: 'آپ کی شکایت',   caption: 'کیا ہوا؟'           },
-    { number: '04', title: 'جائزہ',          caption: 'بھیجنے کے لیے تیار' },
+// Subject auto-suggestions
+const SUBJ_SUGGESTIONS = [
+    ['No electricity for three days', 'تین دن سے بجلی بند ہے'],
+    ['Overbilling on electricity bill', 'بجلی کے بل میں زائد رقم'],
+    ['Street lights not working', 'اسٹریٹ لائٹس خراب ہیں'],
+    ['Teacher absent from school', 'استاد اسکول سے غیر حاضر ہے'],
+    ['School building unsafe', 'اسکول کی عمارت غیر محفوظ ہے'],
+    ['Hospital medicines unavailable', 'اسپتال میں ادویات دستیاب نہیں'],
+    ['Ambulance service unavailable', 'ایمبولینس سروس دستیاب نہیں'],
+    ['Road damaged after landslide', 'لینڈ سلائیڈ کے بعد سڑک تباہ ہے'],
+    ['Water supply line broken', 'پانی کی سپلائی لائن ٹوٹی ہوئی ہے'],
+    ['Garbage not collected', 'کچرا نہیں اٹھایا جا رہا'],
+    ['Bribe demanded for land record', 'اراضی ریکارڈ کے لیے رشوت کا مطالبہ'],
+    ['FIR not registered', 'ایف آئی آر درج نہیں کی گئی']
 ];
 
 export default function ComplaintSubmit({ districts: rawDistricts = [], departments: rawDepartments = [] }) {
     const { lang } = useLanguage();
-    const isRtl  = lang === 'ur';
-    const steps  = isRtl ? STEPS_UR : STEPS_EN;
+    const isRtl = lang === 'ur';
 
     const districts   = useMemo(() => Array.isArray(rawDistricts)   ? rawDistricts   : Object.values(rawDistricts   || {}), [rawDistricts]);
     const departments = useMemo(() => Array.isArray(rawDepartments) ? rawDepartments : Object.values(rawDepartments || {}), [rawDepartments]);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [declarationAccepted, setDeclarationAccepted] = useState(false);
+    const [subjOpen, setSubjOpen] = useState(false);
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         name: '',
@@ -65,7 +67,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
     const chunksRef                           = useRef([]);
     const timerRef                            = useRef(null);
 
-    useEffect(() => () => { stopStream(); if (timerRef.current) clearInterval(timerRef.current); }, []);
+    useEffect(() => () => {
+        stopStream();
+        if (timerRef.current) clearInterval(timerRef.current);
+        attachmentFiles.forEach(f => { if (f._preview) URL.revokeObjectURL(f._preview); });
+    }, []);
 
     // ── Derived lists ────────────────────────────────────────────────────────
     const availableTehsils = useMemo(() => {
@@ -99,16 +105,8 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     const label = (en, ur) => isRtl ? ur : en;
-
     const dname = (item) => (isRtl ? item.name_ur || item.name : item.name);
-
     const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    const focusFirstError = () =>
-        setTimeout(() => {
-            const el = document.querySelector('.field-error, [data-error="true"]');
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 60);
 
     // ── Citizen CNIC auto-fill ───────────────────────────────────────────────
     const handleCnicBlur = async () => {
@@ -130,20 +128,36 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
     // ── Attachments ──────────────────────────────────────────────────────────
     const addFiles = (newFiles) => {
         setFileError('');
-        const combined = [...attachmentFiles, ...newFiles];
-        if (combined.length > 5) { setFileError(label('Maximum 5 files allowed.', 'زیادہ سے زیادہ 5 فائلز کی اجازت ہے۔')); return false; }
+        const processed = Array.from(newFiles).map(f => {
+            if (f.type.startsWith('image/')) {
+                f._preview = URL.createObjectURL(f);
+            }
+            return f;
+        });
+        const combined = [...attachmentFiles, ...processed];
+        if (combined.length > 5) {
+            setFileError(label('Maximum 5 files allowed.', 'زیادہ سے زیادہ 5 فائلز کی اجازت ہے۔'));
+            return false;
+        }
         for (const f of newFiles) {
-            if (f.size > 10 * 1024 * 1024) { setFileError(label('Each file must be under 10 MB.', 'ہر فائل 10 MB سے کم ہونی چاہیے۔')); return false; }
+            if (f.size > 10 * 1024 * 1024) {
+                setFileError(label('Each file must be under 10 MB.', 'ہر فائل 10 MB سے کم ہونی چاہیے۔'));
+                return false;
+            }
         }
         setAttachmentFiles(combined);
         setData('attachments', combined);
         return true;
     };
+
     const removeFile = (i) => {
+        const fileToRemove = attachmentFiles[i];
+        if (fileToRemove?._preview) URL.revokeObjectURL(fileToRemove._preview);
         const updated = attachmentFiles.filter((_, idx) => idx !== i);
         setAttachmentFiles(updated);
         setData('attachments', updated);
     };
+
     const onFileChange = (e) => {
         if (e.target.files?.length) addFiles(Array.from(e.target.files));
         e.target.value = '';
@@ -205,26 +219,27 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
         clearErrors(); let ok = true;
         const err = (field, msg) => { setError(field, msg); ok = false; };
         if (step === 1) {
-            if (!data.name.trim())                                err('name', label('Full name is required.', 'پورا نام ضروری ہے۔'));
+            if (!data.name.trim())                                err('name', label('Please enter your full name.', 'براہِ کرم اپنا پورا نام درج کریں۔'));
             else if (data.name.trim().length < 2)                err('name', label('Name is too short.', 'نام بہت مختصر ہے۔'));
-            if ((data.cnic.replace(/\D/g, '')).length !== 13)    err('cnic', label('Enter a valid 13-digit CNIC.', 'درست 13 ہندسی CNIC درج کریں۔'));
-            if (!/^(03|\+?923)\d{9}$/.test(data.mobile_number.replace(/\D/g, '')))
-                err('mobile_number', label('Enter a valid Pakistani mobile number.', 'درست پاکستانی موبائل نمبر درج کریں۔'));
+            const cnicDigits = data.cnic.replace(/\D/g, '');
+            if (cnicDigits.length !== 13)                        err('cnic', label('Enter a valid 13-digit CNIC.', 'درست ۱۳ ہندسوں کا شناختی کارڈ نمبر درج کریں۔'));
+            const phoneDigits = data.mobile_number.replace(/\D/g, '');
+            if (!/^(03[0-7]\d{8}|923[0-7]\d{8})$/.test(phoneDigits))
+                err('mobile_number', label('Enter a valid mobile number.', 'درست موبائل نمبر درج کریں۔'));
         }
         if (step === 2) {
-            if (!data.district_id) err('district_id', label('Please select a district.', 'ضلع منتخب کریں۔'));
-            if (!data.tehsil_id)   err('tehsil_id',   label('Please select a tehsil.',  'تحصیل منتخب کریں۔'));
+            if (!data.district_id) err('district_id', label('Please choose a district.', 'براہِ کرم ضلع منتخب کریں۔'));
+            if (!data.tehsil_id)   err('tehsil_id',   label('Please choose a tehsil.',   'براہِ کرم تحصیل منتخب کریں۔'));
         }
         if (step === 3) {
-            if (!data.department_id)          err('department_id', label('Please select a department.', 'محکمہ منتخب کریں۔'));
-            if (!data.subject.trim())         err('subject',       label('Subject is required.', 'موضوع ضروری ہے۔'));
-            else if (data.subject.length > 100) err('subject',     label('Subject must be under 100 characters.', 'موضوع 100 حروف سے کم ہونا چاہیے۔'));
-            if (data.details.trim().length < 50) err('details',    label('Please describe your complaint in at least 50 characters.', 'شکایت کم از کم 50 حروف میں بیان کریں۔'));
+            if (!data.department_id)          err('department_id', label('Please choose a department.', 'براہِ کرم محکمہ منتخب کریں۔'));
+            if (!data.subject.trim())         err('subject',       label('Please give your complaint a subject.', 'براہِ کرم شکایت کا موضوع لکھیں۔'));
+            else if (data.subject.length > 100) err('subject',     label('Subject must be under 100 characters.', 'موضوع ۱۰۰ حروف سے کم ہونا چاہیے۔'));
+            if (data.details.trim().length < 20) err('details',    label('Please describe the problem in at least 20 characters.', 'براہِ کرم مسئلہ کم از کم ۲۰ حروف میں بیان کریں۔'));
         }
         if (step === 4) {
-            if (!declarationAccepted) err('declaration', label('You must accept the declaration to submit.', 'جمع کرانے کے لیے اعلامیہ قبول کریں۔'));
+            if (!declarationAccepted) err('declaration', label('Please confirm before submitting.', 'جمع کروانے سے پہلے تصدیق کریں۔'));
         }
-        if (!ok) focusFirstError();
         return ok;
     };
 
@@ -249,7 +264,6 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                 else if (errs.district_id || errs.tehsil_id)      setCurrentStep(2);
                 else if (errs.department_id || errs.subject || errs.details) setCurrentStep(3);
                 else setCurrentStep(4);
-                focusFirstError();
             },
         });
     };
@@ -262,576 +276,1224 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
     const categoryName    = useMemo(() => { if (data.category_id === 'other') return label('Other', 'دیگر'); const c = availableCategories.find(c => String(c.id) === String(data.category_id)); return c ? dname(c) : '—'; }, [data.category_id, availableCategories, lang]);
     const subCategoryName = useMemo(() => { const s = availableSubCategories.find(s => String(s.id) === String(data.sub_category_id)); return s ? dname(s) : label('None', 'کوئی نہیں'); }, [data.sub_category_id, availableSubCategories, lang]);
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // Typography & styles per design contract
+    const uiFont = isRtl ? "'Noto Naskh Arabic', 'Archivo', sans-serif" : "'Archivo', sans-serif";
+    const displayFont = isRtl ? "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif" : "'Archivo', sans-serif";
+
+    const stepTitles = [
+        label('About you', 'آپ کے بارے میں'),
+        label('Where it happened', 'واقعہ کہاں پیش آیا'),
+        label('Your complaint', 'آپ کی شکایت'),
+        label('Review and submit', 'جائزہ اور اندراج')
+    ];
+
+    const stepBlurbs = [
+        label('We need this to keep you updated and to verify the complaint.', 'یہ معلومات آپ کو باخبر رکھنے اور شکایت کی تصدیق کے لیے درکار ہیں۔'),
+        label('Pinpointing the location routes your complaint to the right office.', 'درست مقام سے آپ کی شکایت صحیح دفتر تک پہنچتی ہے۔'),
+        label('Be specific. Details help the department act faster.', 'واضح لکھیں۔ تفصیل سے محکمہ تیزی سے کارروائی کر سکتا ہے۔'),
+        label('Check everything below. You can still go back and change it.', 'نیچے دی گئی تفصیلات دیکھ لیں۔ آپ اب بھی واپس جا کر تبدیلی کر سکتے ہیں۔')
+    ];
+
+    const railItems = [
+        { nEn: '01', nUr: '۰۱', t: label('Your details', 'آپ کی تفصیلات'), d: label('Who you are', 'آپ کون ہیں') },
+        { nEn: '02', nUr: '۰۲', t: label('Location', 'مقام'), d: label('Where it happened', 'واقعہ کہاں ہوا') },
+        { nEn: '03', nUr: '۰۳', t: label('Your complaint', 'آپ کی شکایت'), d: label('What went wrong', 'کیا مسئلہ ہے') },
+        { nEn: '04', nUr: '۰۴', t: label('Review', 'جائزہ'), d: label('Check and submit', 'دیکھ کر جمع کروائیں') },
+    ];
+
+    const filteredSubj = useMemo(() => {
+        if (!data.subject) return SUBJ_SUGGESTIONS;
+        const q = data.subject.toLowerCase();
+        return SUBJ_SUGGESTIONS.filter(item => item[0].toLowerCase().includes(q) || item[1].includes(q));
+    }, [data.subject]);
+
+    const progressPct = `${currentStep * 25}%`;
+
     return (
         <PublicLayout>
             <Head title={label('File a Complaint — PMCC', 'شکایت درج کریں — PMCC')} />
 
-            {/* Hidden canvas for photo capture */}
-            <canvas ref={canvasRef} className="hidden" />
+            {/* Hidden canvas for camera fallback */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            {/* Native file inputs for fallback */}
-            <input ref={fileInputRef}  type="file" multiple accept="image/*,audio/*,video/*,application/pdf" className="hidden" onChange={onFileChange} />
-            <input ref={photoInputRef} type="file" accept="image/*"  capture="environment" className="hidden" onChange={onFileChange} />
-            <input ref={videoInputRef} type="file" accept="video/*"  capture="environment" className="hidden" onChange={onFileChange} />
+            {/* Native file inputs */}
+            <input ref={fileInputRef}  type="file" multiple accept="image/*,audio/*,video/*,application/pdf" style={{ display: 'none' }} onChange={onFileChange} />
+            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFileChange} />
+            <input ref={videoInputRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }} onChange={onFileChange} />
 
-            {/* ═══════════════════════════════════════════════
-                CONTENT WRAP — matches V0 .content-wrap
-                ═══════════════════════════════════════════════ */}
-            <div className="content-wrap" dir={isRtl ? 'rtl' : 'ltr'}>
-
-                {/* ── Hero / Intro ── */}
-                <section className="intro" aria-labelledby="page-title">
-                    <div>
-                        <p className="overline">
-                            {label(
-                                `Complaint submission · 0${currentStep} / 04`,
-                                `شکایت جمع کرائیں · 0${currentStep} / 04`,
-                            )}
-                        </p>
-                        <h1 id="page-title">
-                            {isRtl ? (
-                                <>
-                                    آپ کی بات،
-                                    <br />
-                                    <em>براہِ راست وزیرِ اعظم تک</em>
-                                </>
-                            ) : (
-                                <>
-                                    Let&apos;s get your
-                                    <br />
-                                    <em>voice heard.</em>
-                                </>
-                            )}
-                        </h1>
-                    </div>
-                    <p className="intro-copy">
-                        {label(
-                            'Start by telling us a little about yourself. Your information is kept secure and used only to follow up on your complaint.',
-                            'اپنے بارے میں کچھ بتا کر شروع کریں۔ آپ کی معلومات محفوظ رکھی جاتی ہیں اور صرف آپ کی شکایت پر کارروائی کے لیے استعمال ہوتی ہیں۔',
-                        )}
-                    </p>
-                </section>
-
-                {/* ── 4-Step Journey — exactly like V0 ── */}
-                <section className="journey" aria-label={label('Complaint submission progress', 'شکایت جمع کرانے کا عمل')}>
-                    <div className="journey-line" aria-hidden="true" />
-                    {steps.map((step, idx) => {
-                        const stepNum  = idx + 1;
-                        const isCurrent   = stepNum === currentStep;
-                        const isCompleted = stepNum < currentStep;
-                        return (
-                            <button
-                                key={step.number}
-                                type="button"
-                                onClick={() => goTo(stepNum)}
-                                disabled={stepNum > currentStep}
-                                aria-current={isCurrent ? 'step' : undefined}
-                                className={`journey-step${isCurrent ? ' current' : ''}${isCompleted ? ' completed' : ''}`}
-                                style={{ background: 'none', border: 'none', padding: 0, cursor: stepNum > currentStep ? 'default' : 'pointer', textAlign: isRtl ? 'right' : 'left' }}
-                            >
-                                <span aria-hidden="true">
-                                    {isCompleted
-                                        ? <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                        : step.number
-                                    }
-                                </span>
-                                <div>
-                                    <strong>{step.title}</strong>
-                                    <small>{step.caption}</small>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </section>
-
-                {/* ═══════════════════════════════════════════════════════
-                    FORM
-                    ═══════════════════════════════════════════════════════ */}
-                <form onSubmit={handleSubmit}>
-
-                    {/* ─────────────────────────────────────────
-                        STEP 1 — Your details (V0 Step 1)
-                        ───────────────────────────────────────── */}
-                    {currentStep === 1 && (
-                        <section className="form-card" id="complaint" aria-labelledby="form-title">
-                            <div className="section-heading">
-                                <div>
-                                    <p className="section-kicker">{label('Step one', 'پہلا قدم')}</p>
-                                    <h2 id="form-title">{label('About you', 'آپ کے بارے میں')}</h2>
-                                </div>
-                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
-                            </div>
-
-                            <div className="form-grid">
-                                {/* Full name */}
-                                <label>
-                                    <span className="form-label-title">{label('Full name', 'پورا نام')} <span className="req-star">*</span></span>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={data.name}
-                                        maxLength={100}
-                                        onChange={e => setData('name', e.target.value)}
-                                        placeholder={label('Enter your full name', 'اپنا مکمل نام درج کریں')}
-                                        data-error={!!errors.name}
-                                        style={errors.name ? { borderColor: '#e53e3e' } : {}}
-                                    />
-                                    {errors.name && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.name}</span>}
-                                </label>
-
-                                {/* CNIC */}
-                                <label>
-                                    <span className="form-label-title">{label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span className="req-star">*</span></span>
-                                    <IMaskInput
-                                        mask="00000-0000000-0"
-                                        value={data.cnic}
-                                        dir="ltr"
-                                        unmask={false}
-                                        onAccept={val => setData('cnic', val)}
-                                        onBlur={handleCnicBlur}
-                                        placeholder="00000-0000000-0"
-                                        data-error={!!errors.cnic}
-                                        style={errors.cnic ? { borderColor: '#e53e3e' } : {}}
-                                    />
-                                    {errors.cnic && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.cnic}</span>}
-                                </label>
-
-                                {/* Mobile */}
-                                <label>
-                                    <span className="form-label-title">{label('Mobile number', 'موبائل نمبر')} <span className="req-star">*</span></span>
-                                    <IMaskInput
-                                        mask="0000-0000000"
-                                        value={data.mobile_number}
-                                        dir="ltr"
-                                        unmask={false}
-                                        onAccept={val => setData('mobile_number', val)}
-                                        placeholder="0300-0000000"
-                                        data-error={!!errors.mobile_number}
-                                        style={errors.mobile_number ? { borderColor: '#e53e3e' } : {}}
-                                    />
-                                    {errors.mobile_number && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.mobile_number}</span>}
-                                </label>
-
-                                {/* Gender — plain <select> exactly like V0 */}
-                                <label>
-                                    <span className="form-label-title">{label('Gender', 'جنس')} <em>{label('Optional', 'اختیاری')}</em></span>
-                                    <select
-                                        value={data.gender}
-                                        onChange={e => setData('gender', e.target.value)}
-                                    >
-                                        <option value="">{label('Prefer not to say', 'بتانا نہیں چاہتے')}</option>
-                                        <option value="male">{label('Male', 'مرد')}</option>
-                                        <option value="female">{label('Female', 'خاتون')}</option>
-                                    </select>
-                                </label>
-                            </div>
-
-                            {/* Footer — V0 exact layout */}
-                            <div className="form-footer">
-                                <p>
-                                    <span className="privacy-dot" aria-hidden="true" />
-                                    {label('Your details are protected and never shared publicly.', 'آپ کی تفصیلات محفوظ ہیں اور کبھی عوامی سطح پر شیئر نہیں کی جاتیں۔')}
-                                </p>
-                                <button type="button" onClick={goNext} className="continue-button" id="step1-continue">
-                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
-                                </button>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* ─────────────────────────────────────────
-                        STEP 2 — Location
-                        ───────────────────────────────────────── */}
-                    {currentStep === 2 && (
-                        <section className="form-card" aria-labelledby="step2-title">
-                            <div className="section-heading">
-                                <div>
-                                    <p className="section-kicker">{label('Step two', 'دوسرا قدم')}</p>
-                                    <h2 id="step2-title">{label('Location', 'مقام')}</h2>
-                                </div>
-                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
-                            </div>
-
-                            <div className="form-grid">
-                                {/* District */}
-                                <label>
-                                    <span className="form-label-title">{label('District', 'ضلع')} <span className="req-star">*</span></span>
-                                    <select
-                                        value={data.district_id}
-                                        onChange={e => setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }))}
-                                        style={errors.district_id ? { borderColor: '#e53e3e' } : {}}
-                                    >
-                                        <option value="">{label('Select district', 'ضلع منتخب کریں')}</option>
-                                        {districts.map(d => <option key={d.id} value={d.id}>{dname(d)}</option>)}
-                                    </select>
-                                    {errors.district_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.district_id}</span>}
-                                </label>
-
-                                {/* Tehsil */}
-                                <label>
-                                    <span className="form-label-title">{label('Tehsil', 'تحصیل')} <span className="req-star">*</span></span>
-                                    <select
-                                        value={data.tehsil_id}
-                                        onChange={e => setData('tehsil_id', e.target.value)}
-                                        disabled={!data.district_id}
-                                        style={errors.tehsil_id ? { borderColor: '#e53e3e' } : {}}
-                                    >
-                                        <option value="">{data.district_id ? label('Select tehsil', 'تحصیل منتخب کریں') : label('Select district first', 'پہلے ضلع منتخب کریں')}</option>
-                                        {availableTehsils.map(t => <option key={t.id} value={t.id}>{dname(t)}</option>)}
-                                    </select>
-                                    {errors.tehsil_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.tehsil_id}</span>}
-                                </label>
-                            </div>
-
-                            <div className="form-footer">
-                                <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                                    <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
-                                </button>
-                                <button type="button" onClick={goNext} className="continue-button">
-                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
-                                </button>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* ─────────────────────────────────────────
-                        STEP 3 — Your complaint
-                        ───────────────────────────────────────── */}
-                    {currentStep === 3 && (
-                        <section className="form-card" aria-labelledby="step3-title">
-                            <div className="section-heading">
-                                <div>
-                                    <p className="section-kicker">{label('Step three', 'تیسرا قدم')}</p>
-                                    <h2 id="step3-title">{label('Your complaint', 'آپ کی شکایت')}</h2>
-                                </div>
-                                <p className="required-note"><span>*</span> {label('Required fields', 'مطلوبہ خانے')}</p>
-                            </div>
-
-                            <div className="form-grid">
-                                {/* Department */}
-                                <label>
-                                    <span className="form-label-title">{label('Department', 'محکمہ')} <span className="req-star">*</span></span>
-                                    <select
-                                        value={data.department_id}
-                                        onChange={e => setData(prev => ({ ...prev, department_id: e.target.value, sub_department_id: '', category_id: '', sub_category_id: '' }))}
-                                        style={errors.department_id ? { borderColor: '#e53e3e' } : {}}
-                                    >
-                                        <option value="">{label('Select department', 'محکمہ منتخب کریں')}</option>
-                                        {departments.map(d => <option key={d.id} value={d.id}>{dname(d)}</option>)}
-                                        <option value="other">{label('Other / Unknown', 'دیگر / معلوم نہیں')}</option>
-                                    </select>
-                                    {errors.department_id && <span className="field-error" style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600, marginTop: '.2rem', display: 'block' }}>{errors.department_id}</span>}
-                                </label>
-
-                                {/* Sub-Department */}
-                                {data.department_id && data.department_id !== 'other' && availableSubDepts.length > 0 && (
-                                    <label>
-                                        <span className="form-label-title">{label('Sub-department', 'ذیلی محکمہ')} <em>{label('Optional', 'اختیاری')}</em></span>
-                                        <select value={data.sub_department_id} onChange={e => setData('sub_department_id', e.target.value)}>
-                                            <option value="">{label('Select sub-department', 'ذیلی محکمہ منتخب کریں')}</option>
-                                            {availableSubDepts.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
-                                        </select>
-                                    </label>
-                                )}
-
-                                {/* Category */}
-                                {data.department_id && data.department_id !== 'other' && availableCategories.length > 0 && (
-                                    <label>
-                                        <span className="form-label-title">{label('Category', 'قسم')} <em>{label('Optional', 'اختیاری')}</em></span>
-                                        <select value={data.category_id} onChange={e => setData(prev => ({ ...prev, category_id: e.target.value, sub_category_id: '' }))}>
-                                            <option value="">{label('Select category', 'قسم منتخب کریں')}</option>
-                                            {availableCategories.map(c => <option key={c.id} value={c.id}>{dname(c)}</option>)}
-                                            <option value="other">{label('Other', 'دیگر')}</option>
-                                        </select>
-                                    </label>
-                                )}
-
-                                {/* Sub-category */}
-                                {data.category_id && data.category_id !== 'other' && availableSubCategories.length > 0 && (
-                                    <label>
-                                        <span className="form-label-title">{label('Sub-category', 'ذیلی قسم')} <em>{label('Optional', 'اختیاری')}</em></span>
-                                        <select value={data.sub_category_id} onChange={e => setData('sub_category_id', e.target.value)}>
-                                            <option value="">{label('Select sub-category', 'ذیلی قسم منتخب کریں')}</option>
-                                            {availableSubCategories.map(s => <option key={s.id} value={s.id}>{dname(s)}</option>)}
-                                        </select>
-                                    </label>
-                                )}
-                            </div>
-
-                            {/* Subject — full width below grid */}
-                            <div style={{ marginTop: '1.5rem' }}>
-                                <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
-                                    <span className="form-label-title">{label('Subject', 'موضوع')} <span className="req-star">*</span></span>
-                                    <input
-                                        type="text"
-                                        value={data.subject}
-                                        maxLength={100}
-                                        onChange={e => setData('subject', e.target.value)}
-                                        placeholder={label('Brief title for your complaint', 'شکایت کا مختصر عنوان')}
-                                        style={errors.subject ? { borderColor: '#e53e3e' } : {}}
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                         {errors.subject ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.subject}</span> : <span />}
-                                        <span style={{ fontSize: '.72rem', color: 'var(--muted)', fontFamily: 'monospace' }}>{data.subject.length}/100</span>
-                                    </div>
-                                </label>
-                            </div>
-
-                            {/* Details — full width */}
-                            <div style={{ marginTop: '1.25rem' }}>
-                                <label style={{ display: 'grid', gap: '.55rem', color: 'var(--foreground)', fontSize: '.9rem', fontWeight: 800 }}>
-                                    <span className="form-label-title">{label('Details', 'تفصیل')} <span className="req-star">*</span></span>
-                                    <textarea
-                                        rows={6}
-                                        value={data.details}
-                                        onChange={e => setData('details', e.target.value)}
-                                        placeholder={label('Describe your complaint clearly — what happened, when, where, and who is involved.', 'اپنی شکایت واضح الفاظ میں بیان کریں — کیا ہوا، کب، کہاں، اور کون ملوث ہے۔')}
-                                        style={{ resize: 'vertical', minHeight: '10rem', ...(errors.details ? { borderColor: '#e53e3e' } : {}) }}
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        {errors.details
-                                            ? <span style={{ color: '#e53e3e', fontSize: '.75rem', fontWeight: 600 }}>{errors.details}</span>
-                                            : <span style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{label('Minimum 50 characters', 'کم از کم 50 حروف')}</span>}
-                                        <span style={{ fontSize: '.72rem', fontFamily: 'monospace', color: data.details.length < 50 ? 'var(--coral)' : '#237653', fontWeight: 700 }}>{data.details.length}</span>
-                                    </div>
-                                </label>
-                            </div>
-
-                            <div className="form-footer">
-                                <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                                    <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
-                                </button>
-                                <button type="button" onClick={goNext} className="continue-button">
-                                    {label('Continue', 'جاری رکھیں')} <span aria-hidden="true">{isRtl ? '←' : '→'}</span>
-                                </button>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* ─────────────────────────────────────────
-                        STEP 4 — Review & Attachments
-                        ───────────────────────────────────────── */}
-                    {currentStep === 4 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-                            {/* Attachments card */}
-                            <section className="form-card" aria-labelledby="attach-title">
-                                <div className="section-heading">
-                                    <div>
-                                        <p className="section-kicker">{label('Step four', 'چوتھا قدم')}</p>
-                                        <h2 id="attach-title">{label('Attachments', 'دستاویزات')}</h2>
-                                    </div>
-                                </div>
-                                <p style={{ margin: '.75rem 0 1rem', fontSize: '.82rem', color: 'var(--muted)', lineHeight: 1.6 }}>
-                                    {label('Add photos, videos, or documents as evidence (optional). Max 5 files, 10 MB each.', 'ثبوت کے طور پر تصاویر، ویڈیو یا دستاویزات شامل کریں (اختیاری)۔ زیادہ سے زیادہ 5 فائلز، ہر ایک 10 MB۔')}
-                                </p>
-
-                                {/* Upload buttons */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem', marginBottom: '1rem' }}>
-                                    {[
-                                        { icon: '📎', text: label('Upload file', 'فائل اپ لوڈ کریں'), action: () => fileInputRef.current?.click() },
-                                        { icon: '📷', text: label('Take photo', 'تصویر لیں'),        action: () => openCamera('photo') },
-                                        { icon: '🎥', text: label('Record video', 'ویڈیو ریکارڈ کریں'), action: () => openCamera('video') },
-                                    ].map(btn => (
-                                        <button key={btn.text} type="button" onClick={btn.action}
-                                            style={{ padding: '.85rem .75rem', borderRadius: '.75rem', border: '1.5px solid var(--line)', background: 'var(--background)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.4rem', fontWeight: 700, fontSize: '.8rem', color: 'var(--foreground)', transition: 'border-color .15s' }}>
-                                            <span style={{ fontSize: '1.4rem' }}>{btn.icon}</span>
-                                            {btn.text}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Camera error fallback */}
-                                {cameraError && (
-                                    <div style={{ margin: '0 0 .75rem', padding: '.75rem 1rem', borderRadius: '.65rem', background: '#fffbeb', border: '1px solid #f6c431', color: '#7a4f00', fontSize: '.82rem', display: 'flex', gap: '.5rem' }}>
-                                        <span>⚠️</span> <span>{cameraError}</span>
-                                    </div>
-                                )}
-
-                                {/* File error */}
-                                {fileError && (
-                                    <div style={{ margin: '0 0 .75rem', padding: '.75rem 1rem', borderRadius: '.65rem', background: '#fff5f5', border: '1px solid #fc8181', color: '#c53030', fontSize: '.82rem', fontWeight: 600 }}>
-                                        {fileError}
-                                    </div>
-                                )}
-
-                                {/* File list */}
-                                {attachmentFiles.length > 0 ? (
-                                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid var(--line)', borderRadius: '.75rem', overflow: 'hidden' }}>
-                                        {attachmentFiles.map((f, i) => (
-                                            <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 1rem', borderBottom: i < attachmentFiles.length - 1 ? '1px solid var(--line)' : 'none', fontSize: '.82rem', background: 'var(--surface)' }}>
-                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                                                    <span style={{ width: '.4rem', height: '.4rem', borderRadius: '50%', background: '#237653', flexShrink: 0 }} />
-                                                    {f.name}
-                                                </span>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
-                                                    <span style={{ fontFamily: 'monospace', fontSize: '.72rem', color: 'var(--muted)' }}>{(f.size / 1048576).toFixed(2)} MB</span>
-                                                    <button type="button" onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: '1rem', padding: '.2rem', lineHeight: 1 }}>✕</button>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div style={{ padding: '.75rem', textAlign: 'center', fontSize: '.8rem', color: 'var(--muted)', border: '1.5px dashed var(--line)', borderRadius: '.75rem' }}>
-                                        {label('No attachments added', 'کوئی منسلکات نہیں')}
-                                    </div>
-                                )}
-                            </section>
-
-                            {/* Review summary card */}
-                            <section className="form-card" aria-labelledby="review-title">
-                                <div style={{ paddingBottom: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--line)' }}>
-                                    <h2 id="review-title" style={{ margin: 0, color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-.04em' }}>{label('Review', 'جائزہ')}</h2>
-                                    <p style={{ margin: '.3rem 0 0', fontSize: '.82rem', color: 'var(--muted)' }}>{label('Check your details before submitting.', 'جمع کرانے سے پہلے اپنی تفصیلات جانچ لیں۔')}</p>
-                                </div>
-
-                                {/* Review blocks */}
-                                {[
-                                    {
-                                        titleEn: 'Your details', titleUr: 'آپ کی تفصیلات', step: 1,
-                                        rows: [
-                                            [label('Full name', 'پورا نام'), data.name || '—'],
-                                            [label('CNIC', 'قومی شناختی کارڈ'), data.cnic || '—'],
-                                            [label('Mobile', 'موبائل'), data.mobile_number || '—'],
-                                            [label('Gender', 'جنس'), data.gender === 'male' ? label('Male', 'مرد') : data.gender === 'female' ? label('Female', 'خاتون') : label('Not specified', 'غیر متعین')],
-                                        ],
-                                    },
-                                    {
-                                        titleEn: 'Location', titleUr: 'مقام', step: 2,
-                                        rows: [
-                                            [label('District', 'ضلع'), districtName],
-                                            [label('Tehsil', 'تحصیل'), tehsilName],
-                                        ],
-                                    },
-                                    {
-                                        titleEn: 'Complaint', titleUr: 'شکایت', step: 3,
-                                        rows: [
-                                            [label('Department', 'محکمہ'), departmentName],
-                                            ...(data.sub_department_id ? [[label('Sub-dept', 'ذیلی محکمہ'), subDeptName]] : []),
-                                            ...(data.category_id ? [[label('Category', 'قسم'), categoryName]] : []),
-                                            ...(data.sub_category_id ? [[label('Sub-category', 'ذیلی قسم'), subCategoryName]] : []),
-                                            [label('Subject', 'موضوع'), data.subject || '—'],
-                                        ],
-                                    },
-                                ].map(block => (
-                                    <div key={block.step} style={{ padding: '1rem', borderRadius: '.75rem', background: '#f4f7f6', border: '1px solid var(--line)', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
-                                            <h3 style={{ margin: 0, fontSize: '.72rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>{isRtl ? block.titleUr : block.titleEn}</h3>
-                                            <button type="button" onClick={() => goTo(block.step)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '.78rem', fontWeight: 700, color: 'var(--ring)', padding: '.2rem .5rem' }}>✏ {label('Edit', 'ترمیم')}</button>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '.6rem .75rem', fontSize: '.84rem' }}>
-                                            {block.rows.map(([lbl, val]) => (
-                                                <div key={lbl}>
-                                                    <span style={{ display: 'block', fontSize: '.7rem', color: 'var(--muted)', marginBottom: '.15rem' }}>{lbl}</span>
-                                                    <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{val}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {block.step === 3 && data.details && (
-                                            <div style={{ marginTop: '.75rem', paddingTop: '.75rem', borderTop: '1px solid var(--line)' }}>
-                                                <span style={{ display: 'block', fontSize: '.7rem', color: 'var(--muted)', marginBottom: '.3rem' }}>{label('Details', 'تفصیل')}</span>
-                                                <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.65, fontSize: '.84rem', color: 'var(--foreground)', padding: '.65rem .85rem', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '.5rem' }}>{data.details}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-
-                                {/* Declaration */}
-                                <div style={{ padding: '1rem 1.25rem', borderRadius: '.75rem', border: `2px solid ${errors.declaration ? '#e53e3e' : 'var(--coral)'}`, background: errors.declaration ? '#fff5f5' : '#fffbeb', marginBottom: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '.85rem', cursor: 'pointer', userSelect: 'none', fontWeight: 600, fontSize: '.88rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
-                                        <input
-                                            type="checkbox"
-                                            className="declaration-checkbox"
-                                            checked={declarationAccepted}
-                                            onChange={e => { setDeclarationAccepted(e.target.checked); if (errors.declaration) clearErrors('declaration'); }}
-                                            style={{ margin: 0, width: '1.15rem', height: '1.15rem', minHeight: '1.15rem', maxHeight: '1.15rem', padding: 0, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--primary)' }}
-                                        />
-                                        <span>
-                                            {label(
-                                                'I declare that the information provided is true and correct to the best of my knowledge.',
-                                                'میں اعلان کرتا / کرتی ہوں کہ فراہم کردہ معلومات میری بہترین معلومات کے مطابق درست ہیں۔',
-                                            )} <span style={{ color: 'var(--coral)' }}>*</span>
-                                        </span>
-                                    </label>
-                                    {errors.declaration && <p style={{ margin: '.4rem 0 0 2rem', fontSize: '.78rem', color: '#e53e3e', fontWeight: 700 }}>⚠ {errors.declaration}</p>}
-                                </div>
-
-                                {/* Server errors */}
-                                {(errors.general || errors.rate_limit) && (
-                                    <div style={{ padding: '1rem', borderRadius: '.75rem', background: '#fffbeb', border: '2px solid var(--yellow)', marginBottom: '1rem', fontSize: '.85rem', color: '#7a4f00' }}>
-                                        {errors.rate_limit
-                                            ? <><strong>{label('Too many submissions.', 'بہت زیادہ جمع کرانے کی کوشش۔')}</strong> {errors.rate_limit}</>
-                                            : <><strong>{label('Submission failed.', 'جمع کرانا ناکام ہوا۔')}</strong> {errors.general}</>}
-                                    </div>
-                                )}
-
-                                <div className="form-footer">
-                                    <button type="button" onClick={goBack} style={{ background: 'none', border: '1.5px solid var(--line)', borderRadius: '.65rem', padding: '.85rem 1.25rem', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                                        <span aria-hidden="true">{isRtl ? '→' : '←'}</span> {label('Back', 'پیچھے')}
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="continue-button"
-                                        id="final-submit"
-                                        style={{ opacity: processing ? .6 : 1, paddingLeft: '2rem', paddingRight: '2rem' }}
-                                    >
-                                        {processing
-                                            ? label('Submitting…', 'جمع ہو رہا ہے…')
-                                            : <>{label('Submit complaint', 'شکایت جمع کریں')} <span aria-hidden="true">✓</span></>}
-                                    </button>
-                                </div>
-                            </section>
-                        </div>
-                    )}
-                </form>
-
-                {/* Help line — V0 exact */}
-                <p className="help-line">
-                    {label('Need help? Call ', 'مدد چاہیے؟ کال کریں ')}
-                    <strong>0800-786-01</strong>
-                    {label(' · Available in English and Urdu', ' · اردو اور انگریزی میں دستیاب')}
-                </p>
-            </div>
-
-            {/* ═══════════════════════════════════════════════
-                IN-BROWSER CAMERA MODAL
-                ═══════════════════════════════════════════════ */}
+            {/* Camera / Video Live Capture Modal */}
             {cameraOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.8)', padding: '1rem', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ width: '100%', maxWidth: '30rem', background: '#0f172a', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,.6)', border: '1px solid #334155' }}>
-                        <div style={{ padding: '.85rem 1rem', background: '#1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
-                            <strong style={{ color: '#fff', fontSize: '.9rem' }}>{captureMode === 'video' ? label('Record video', 'ویڈیو ریکارڈ کریں') : label('Take photo', 'تصویر لیں')}</strong>
-                            <button type="button" onClick={closeCamera} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.1rem' }}>✕</button>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                    <div style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', maxWidth: '520px', width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '14px 20px', background: '#14603a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, fontFamily: uiFont }}>{captureMode === 'photo' ? label('Take Photo', 'تصویر لیں') : label('Record Video', 'ویڈیو ریکارڈ کریں')}</span>
+                            <button type="button" onClick={closeCamera} style={{ background: 'none', border: 0, color: '#fff', fontSize: '18px', cursor: 'pointer' }}>✕</button>
                         </div>
-                        <div style={{ position: 'relative', background: '#000', minHeight: '15rem', maxHeight: '24rem', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', objectFit: 'cover' }} />
-                            {captureMode === 'video' && isRecording && (
-                                <div style={{ position: 'absolute', top: '.75rem', right: '.75rem', background: 'rgba(239,68,68,.9)', color: '#fff', padding: '.25rem .65rem', borderRadius: '999px', fontSize: '.72rem', fontFamily: 'monospace', fontWeight: 700 }}>
-                                    ● {timeLeft}s
-                                </div>
-                            )}
-                            {cameraError && (
-                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', textAlign: 'center' }}>
-                                    <p style={{ color: '#fcd34d', fontSize: '.88rem' }}>{cameraError}</p>
+                        <div style={{ position: 'relative', background: '#000', display: 'grid', placeItems: 'center', minHeight: '280px' }}>
+                            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxHeight: '340px', objectFit: 'contain' }} />
+                            {isRecording && (
+                                <div style={{ position: 'absolute', top: 12, insetInlineStart: 12, background: 'rgba(236,48,19,0.9)', color: '#fff', borderRadius: '999px', padding: '4px 12px', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+                                    <span>{timeLeft}s</span>
                                 </div>
                             )}
                         </div>
-                        {!cameraError && (
-                            <div style={{ padding: '.85rem 1rem', background: '#1e293b', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #334155' }}>
-                                <button type="button" onClick={closeCamera} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontWeight: 600, fontSize: '.85rem' }}>{label('Cancel', 'منسوخ')}</button>
-                                {captureMode === 'photo'
-                                    ? <button type="button" onClick={snapPhoto} style={{ padding: '.55rem 1.25rem', background: 'var(--coral)', border: 'none', borderRadius: '.65rem', color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Capture', 'تصویر لیں')}</button>
-                                    : !isRecording
-                                        ? <button type="button" onClick={startRecording} style={{ padding: '.55rem 1.25rem', background: '#ef4444', border: 'none', borderRadius: '.65rem', color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Record', 'ریکارڈ کریں')}</button>
-                                        : <button type="button" onClick={stopRecording} style={{ padding: '.55rem 1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '.65rem', color: '#ef4444', fontWeight: 900, cursor: 'pointer', fontSize: '.88rem' }}>{label('Stop', 'رکیں')}</button>
-                                }
-                            </div>
-                        )}
+                        <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '12px', background: '#faf7f2' }}>
+                            {captureMode === 'photo' ? (
+                                <button type="button" onClick={snapPhoto} style={{ background: '#14603a', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
+                                    {label('Capture Photo', 'تصویر محفوظ کریں')}
+                                </button>
+                            ) : (
+                                isRecording ? (
+                                    <button type="button" onClick={stopRecording} style={{ background: '#ec3013', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
+                                        {label('Stop Recording', 'ریکارڈنگ روکیں')}
+                                    </button>
+                                ) : (
+                                    <button type="button" onClick={startRecording} style={{ background: '#14603a', color: '#fff', border: 0, borderRadius: '999px', padding: '12px 24px', fontWeight: 700, cursor: 'pointer' }}>
+                                        {label('Start Recording', 'ریکارڈنگ شروع کریں')}
+                                    </button>
+                                )
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* ═════════════════════════════════════════════════════════════════
+                EXACT TWO-COLUMN MODERNIST POSTER CONTAINER (Matching akj-.zip)
+                ═════════════════════════════════════════════════════════════════ */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(16px, 2vw, 26px)', alignItems: 'stretch', width: '100%', maxWidth: '1320px', margin: '0 auto' }}>
+
+                {/* ── LEFT COLUMN: POSTER SIDEBAR ── */}
+                <aside
+                    style={{
+                        flex: '1 1 340px',
+                        minWidth: 0,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        background: 'linear-gradient(158deg, #14603a, #0d472b)',
+                        color: '#f6fbf7',
+                        borderRadius: '28px',
+                        padding: 'clamp(26px, 3vw, 40px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'clamp(22px, 2.6vw, 32px)',
+                        boxShadow: '0 16px 40px rgba(42,38,35,.1)',
+                    }}
+                >
+                    {/* Floating ambient radial gold glow orb */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            insetInlineEnd: '-70px',
+                            top: '-70px',
+                            width: '230px',
+                            height: '230px',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle at 32% 32%, rgba(200,137,26,.34), rgba(200,137,26,0) 70%)',
+                            pointerEvents: 'none',
+                            animation: 'pmccFloat 9s ease-in-out infinite',
+                        }}
+                    />
+
+                    <div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '9px',
+                                fontSize: '12px',
+                                fontFamily: "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                letterSpacing: '.02em',
+                                color: '#e2ae4e',
+                                background: 'rgba(200,137,26,.15)',
+                                borderRadius: '999px',
+                                padding: '7px 14px',
+                                width: 'fit-content',
+                            }}
+                        >
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e2ae4e', display: 'block' }} />
+                            {label('Citizen complaint', 'عوامی شکایت')}
+                        </div>
+
+                        <h1
+                            style={{
+                                fontFamily: displayFont,
+                                fontWeight: 800,
+                                color: '#eeb84e',
+                                fontSize: isRtl ? 'clamp(24px, 3vw, 34px)' : 'clamp(28px, 3.4vw, 40px)',
+                                lineHeight: isRtl ? 1.7 : 1.1,
+                                letterSpacing: isRtl ? 'normal' : '-.015em',
+                                margin: '18px 0 0',
+                            }}
+                        >
+                            {label("Let's get your voice heard.", 'آپ کی بات، براہِ راست وزیرِ اعظم تک')}
+                        </h1>
+
+                        <p
+                            style={{
+                                margin: '16px 0 0',
+                                fontSize: '15.5px',
+                                maxWidth: '40ch',
+                                color: 'rgba(255,255,255,.8)',
+                                lineHeight: 1.55,
+                            }}
+                        >
+                            {label(
+                                'Four short steps, and your complaint reaches the department responsible and the Prime Minister’s Contact Centre.',
+                                'چار آسان مراحل، اور آپ کی شکایت متعلقہ محکمے اور وزیرِ اعظم رابطہ مرکز تک پہنچ جائے گی۔'
+                            )}
+                        </p>
+                    </div>
+
+                    {/* 4-Step Vertical Progress Rail */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {railItems.map((s, idx) => {
+                            const stepNum = idx + 1;
+                            const isActive = currentStep === stepNum;
+                            const isDone = currentStep > stepNum;
+
+                            return (
+                                <button
+                                    key={stepNum}
+                                    type="button"
+                                    onClick={() => goTo(stepNum)}
+                                    style={{
+                                        width: '100%',
+                                        background: isActive ? 'rgba(255,255,255,.12)' : 'transparent',
+                                        border: 0,
+                                        borderRadius: '18px',
+                                        padding: '13px 14px',
+                                        font: 'inherit',
+                                        color: 'inherit',
+                                        textAlign: 'start',
+                                        cursor: 'pointer',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'auto 1fr',
+                                        gap: '14px',
+                                        alignItems: 'center',
+                                        transition: 'background .25s, transform .25s cubic-bezier(.2,.8,.2,1)',
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            width: '44px',
+                                            height: '44px',
+                                            borderRadius: '50%',
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            fontFamily: "'Archivo', sans-serif",
+                                            fontWeight: 800,
+                                            fontSize: '14px',
+                                            background: isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.2)' : 'transparent',
+                                            color: isActive ? '#14603a' : isDone ? '#eeb84e' : 'rgba(255,255,255,.5)',
+                                            border: `2px solid ${isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.55)' : 'rgba(255,255,255,.22)'}`,
+                                            transition: 'background .3s, color .3s, border-color .3s',
+                                        }}
+                                    >
+                                        {isRtl ? s.nUr : s.nEn}
+                                    </span>
+                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                        <span
+                                            style={{
+                                                fontFamily: uiFont,
+                                                fontWeight: 700,
+                                                fontSize: '15px',
+                                                color: isActive ? '#fff' : isDone ? '#f6fbf7' : 'rgba(255,255,255,.7)',
+                                                transition: 'color .3s',
+                                            }}
+                                        >
+                                            {s.t}
+                                        </span>
+                                        <span style={{ fontSize: '12.5px', color: 'rgba(255,255,255,.55)' }}>
+                                            {s.d}
+                                        </span>
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Encrypted & Confidential Lock Badge */}
+                    <div
+                        style={{
+                            marginTop: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontSize: '12.5px',
+                            color: 'rgba(255,255,255,.8)',
+                            background: 'rgba(255,255,255,.07)',
+                            borderRadius: '16px',
+                            padding: '12px 14px',
+                            fontFamily: uiFont,
+                        }}
+                    >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <span>{label('Encrypted and confidential', 'محفوظ اور رازدارانہ')}</span>
+                    </div>
+                </aside>
+
+                {/* ── RIGHT COLUMN: FORM CARD ── */}
+                <section
+                    style={{
+                        flex: '2 1 560px',
+                        background: '#fff',
+                        borderRadius: '28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        boxShadow: '0 18px 46px rgba(42,38,35,.1)',
+                    }}
+                >
+                    {/* Top Golden Progress Fill Bar */}
+                    <div style={{ height: '5px', background: '#f0eae0' }}>
+                        <div
+                            style={{
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #c8891a, #eeb84e)',
+                                borderEndEndRadius: '999px',
+                                borderStartEndRadius: '999px',
+                                width: progressPct,
+                                transition: 'width .7s cubic-bezier(.2,.8,.2,1)',
+                            }}
+                        />
+                    </div>
+
+                    <form
+                        onSubmit={handleSubmit}
+                        style={{
+                            padding: 'clamp(24px, 3vw, 44px)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '24px',
+                            flex: 1,
+                        }}
+                    >
+                        {/* Step Header Block */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                            <div>
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        background: '#fdf3e0',
+                                        color: '#8a5c07',
+                                        borderRadius: '999px',
+                                        fontFamily: "'Archivo', sans-serif",
+                                        fontWeight: 700,
+                                        fontSize: '12px',
+                                        padding: '7px 14px',
+                                    }}
+                                >
+                                    {isRtl ? `مرحلہ ${['۰۱', '۰۲', '۰۳', '۰۴'][currentStep - 1]} از ۰۴` : `Step ${currentStep} of 4`}
+                                </span>
+                                <h2
+                                    style={{
+                                        fontFamily: displayFont,
+                                        fontWeight: 800,
+                                        color: '#14603a',
+                                        fontSize: isRtl ? 'clamp(22px, 2.6vw, 30px)' : 'clamp(24px, 2.8vw, 32px)',
+                                        letterSpacing: isRtl ? 'normal' : '-.015em',
+                                        margin: '14px 0 0',
+                                    }}
+                                >
+                                    {stepTitles[currentStep - 1]}
+                                </h2>
+                                <p style={{ margin: '8px 0 0', fontSize: '15px', color: '#6b645e', maxWidth: '52ch', lineHeight: 1.55 }}>
+                                    {stepBlurbs[currentStep - 1]}
+                                </p>
+                            </div>
+                            <span style={{ fontSize: '12.5px', color: '#6b645e', whiteSpace: 'nowrap' }}>
+                                <span style={{ color: '#ec3013', fontWeight: 700 }}>*</span> {label('Required fields', 'مطلوبہ خانے')}
+                            </span>
+                        </div>
+
+                        {/* Step Content with Entry Animation */}
+                        <div key={currentStep} className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                            {/* ═════════════════════════════════════
+                                STEP 1: ABOUT YOU
+                                ═════════════════════════════════════ */}
+                            {currentStep === 1 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
+                                    {/* Full Name */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Full name', 'پورا نام')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                                    <circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" />
+                                                </svg>
+                                            </span>
+                                            <input
+                                                type="text"
+                                                value={data.name}
+                                                onChange={e => { setData('name', e.target.value); if (errors.name) clearErrors('name'); }}
+                                                placeholder={label('Enter your full name', 'اپنا مکمل نام درج کریں')}
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    background: '#faf7f2',
+                                                    border: `1.5px solid ${errors.name ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineStart: '46px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            />
+                                        </div>
+                                        {errors.name && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.name}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* CNIC Number */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                                    <rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" />
+                                                </svg>
+                                            </span>
+                                            <IMaskInput
+                                                mask="00000-0000000-0"
+                                                value={data.cnic}
+                                                onAccept={val => { setData('cnic', val); if (errors.cnic) clearErrors('cnic'); }}
+                                                onBlur={handleCnicBlur}
+                                                placeholder="00000-0000000-0"
+                                                dir="ltr"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    background: '#faf7f2',
+                                                    border: `1.5px solid ${errors.cnic ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineStart: '46px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            />
+                                        </div>
+                                        {errors.cnic && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.cnic}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Mobile Number */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Mobile number', 'موبائل نمبر')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                                    <rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" />
+                                                </svg>
+                                            </span>
+                                            <IMaskInput
+                                                mask="0000-0000000"
+                                                value={data.mobile_number}
+                                                onAccept={val => { setData('mobile_number', val); if (errors.mobile_number) clearErrors('mobile_number'); }}
+                                                placeholder="0300-0000000"
+                                                dir="ltr"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    background: '#faf7f2',
+                                                    border: `1.5px solid ${errors.mobile_number ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineStart: '46px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            />
+                                        </div>
+                                        {errors.mobile_number && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.mobile_number}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Gender (Optional) */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Gender', 'جنس')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <select
+                                                value={data.gender}
+                                                onChange={e => setData('gender', e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    appearance: 'none',
+                                                    background: '#faf7f2',
+                                                    border: '1.5px solid #e6ded2',
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineEnd: '44px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    cursor: 'pointer',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            >
+                                                <option value="">{label('Prefer not to say', 'بتانا نہیں چاہتے')}</option>
+                                                <option value="male">{label('Male', 'مرد')}</option>
+                                                <option value="female">{label('Female', 'عورت')}</option>
+                                                <option value="other">{label('Other', 'دیگر')}</option>
+                                            </select>
+                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ═════════════════════════════════════
+                                STEP 2: WHERE IT HAPPENED
+                                ═════════════════════════════════════ */}
+                            {currentStep === 2 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
+                                    {/* District */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('District', 'ضلع')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <select
+                                                value={data.district_id}
+                                                onChange={e => {
+                                                    setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }));
+                                                    if (errors.district_id) clearErrors('district_id');
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    appearance: 'none',
+                                                    background: '#faf7f2',
+                                                    border: `1.5px solid ${errors.district_id ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineEnd: '44px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    cursor: 'pointer',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            >
+                                                <option value="">{label('Select a district', 'ضلع منتخب کریں')}</option>
+                                                {districts.map(d => (
+                                                    <option key={d.id} value={d.id}>{dname(d)}</option>
+                                                ))}
+                                            </select>
+                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                            </span>
+                                        </div>
+                                        {errors.district_id && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.district_id}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Tehsil */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Tehsil', 'تحصیل')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <select
+                                                value={data.tehsil_id}
+                                                disabled={!data.district_id}
+                                                onChange={e => {
+                                                    setData('tehsil_id', e.target.value);
+                                                    if (errors.tehsil_id) clearErrors('tehsil_id');
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    appearance: 'none',
+                                                    background: !data.district_id ? '#f2eee9' : '#faf7f2',
+                                                    border: `1.5px solid ${errors.tehsil_id ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineEnd: '44px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    cursor: !data.district_id ? 'not-allowed' : 'pointer',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            >
+                                                <option value="">{label('Select a tehsil', 'تحصیل منتخب کریں')}</option>
+                                                {availableTehsils.map(t => (
+                                                    <option key={t.id} value={t.id}>{dname(t)}</option>
+                                                ))}
+                                            </select>
+                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                            </span>
+                                        </div>
+                                        {errors.tehsil_id && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.tehsil_id}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ═════════════════════════════════════
+                                STEP 3: YOUR COMPLAINT
+                                ═════════════════════════════════════ */}
+                            {currentStep === 3 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
+                                        {/* Department */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                                {label('Department', 'محکمہ')} <span style={{ color: '#ec3013' }}>*</span>
+                                            </label>
+                                            <div style={{ position: 'relative', display: 'flex' }}>
+                                                <select
+                                                    value={data.department_id}
+                                                    onChange={e => {
+                                                        setData(prev => ({
+                                                            ...prev,
+                                                            department_id: e.target.value,
+                                                            sub_department_id: '',
+                                                            category_id: '',
+                                                            sub_category_id: ''
+                                                        }));
+                                                        if (errors.department_id) clearErrors('department_id');
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        boxSizing: 'border-box',
+                                                        appearance: 'none',
+                                                        background: '#faf7f2',
+                                                        border: `1.5px solid ${errors.department_id ? '#ec3013' : '#e6ded2'}`,
+                                                        borderRadius: '16px',
+                                                        font: 'inherit',
+                                                        fontSize: '15px',
+                                                        padding: '15px 18px',
+                                                        paddingInlineEnd: '44px',
+                                                        color: '#2a2623',
+                                                        outline: 'none',
+                                                        cursor: 'pointer',
+                                                        transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                    }}
+                                                >
+                                                    <option value="">{label('Select the department', 'محکمہ منتخب کریں')}</option>
+                                                    {departments.map(d => (
+                                                        <option key={d.id} value={d.id}>{dname(d)}</option>
+                                                    ))}
+                                                    <option value="other">{label('Other / Unknown', 'دیگر / معلوم نہیں')}</option>
+                                                </select>
+                                                <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                </span>
+                                            </div>
+                                            {errors.department_id && (
+                                                <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                    {errors.department_id}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Category / Sub-dept (Optional cascade) */}
+                                        {availableCategories.length > 0 && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                                    {label('Category', 'زمرہ')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
+                                                </label>
+                                                <div style={{ position: 'relative', display: 'flex' }}>
+                                                    <select
+                                                        value={data.category_id}
+                                                        onChange={e => setData('category_id', e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            boxSizing: 'border-box',
+                                                            appearance: 'none',
+                                                            background: '#faf7f2',
+                                                            border: '1.5px solid #e6ded2',
+                                                            borderRadius: '16px',
+                                                            font: 'inherit',
+                                                            fontSize: '15px',
+                                                            padding: '15px 18px',
+                                                            paddingInlineEnd: '44px',
+                                                            color: '#2a2623',
+                                                            outline: 'none',
+                                                            cursor: 'pointer',
+                                                            transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                        }}
+                                                    >
+                                                        <option value="">{label('Select a category', 'زمرہ منتخب کریں')}</option>
+                                                        {availableCategories.map(c => (
+                                                            <option key={c.id} value={c.id}>{dname(c)}</option>
+                                                        ))}
+                                                        <option value="other">{label('Other', 'دیگر')}</option>
+                                                    </select>
+                                                    <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Subject with Search Icon & Suggestions Dropdown */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Subject', 'موضوع')} <span style={{ color: '#ec3013' }}>*</span>
+                                        </label>
+                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                                    <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+                                                </svg>
+                                            </span>
+                                            <input
+                                                type="text"
+                                                value={data.subject}
+                                                onFocus={() => setSubjOpen(true)}
+                                                onBlur={() => setTimeout(() => setSubjOpen(false), 200)}
+                                                onChange={e => {
+                                                    setData('subject', e.target.value);
+                                                    if (errors.subject) clearErrors('subject');
+                                                }}
+                                                placeholder={label('Start typing — pick a suggestion or write your own', 'لکھنا شروع کریں — تجویز منتخب کریں یا اپنے الفاظ لکھیں')}
+                                                autoComplete="off"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    background: '#faf7f2',
+                                                    border: `1.5px solid ${errors.subject ? '#ec3013' : '#e6ded2'}`,
+                                                    borderRadius: '16px',
+                                                    font: 'inherit',
+                                                    fontSize: '15px',
+                                                    padding: '15px 18px',
+                                                    paddingInlineStart: '46px',
+                                                    color: '#2a2623',
+                                                    outline: 'none',
+                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Suggestions popup */}
+                                        {subjOpen && filteredSubj.length > 0 && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 'calc(100% + 6px)',
+                                                    insetInlineStart: 0,
+                                                    insetInlineEnd: 0,
+                                                    background: '#fff',
+                                                    border: '1.5px solid #e6ded2',
+                                                    borderRadius: '20px',
+                                                    zIndex: 20,
+                                                    maxHeight: '250px',
+                                                    overflow: 'auto',
+                                                    padding: '6px',
+                                                    boxShadow: '0 18px 40px rgba(42,38,35,.16)',
+                                                    animation: 'pmccEnterA .2s both',
+                                                }}
+                                            >
+                                                {filteredSubj.slice(0, 5).map((sPair, i) => (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onMouseDown={() => {
+                                                            setData('subject', isRtl ? sPair[1] : sPair[0]);
+                                                            setSubjOpen(false);
+                                                        }}
+                                                        style={{
+                                                            display: 'block',
+                                                            width: '100%',
+                                                            textAlign: 'start',
+                                                            background: 'none',
+                                                            border: 0,
+                                                            borderRadius: '14px',
+                                                            padding: '12px 14px',
+                                                            font: 'inherit',
+                                                            fontSize: '14.5px',
+                                                            color: '#2a2623',
+                                                            cursor: 'pointer',
+                                                            transition: 'background .16s',
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#fdf3e0'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                                    >
+                                                        {isRtl ? sPair[1] : sPair[0]}
+                                                    </button>
+                                                ))}
+                                                <div style={{ padding: '10px 14px', fontSize: '12px', color: '#8b847d' }}>
+                                                    {label('No match? Keep typing — your own wording is accepted.', 'کوئی تجویز موزوں نہیں؟ اپنے الفاظ میں لکھتے رہیں، وہ بھی قبول ہے۔')}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {errors.subject && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.subject}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* What happened (Details) */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                                            <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                                {label('What happened', 'کیا ہوا')} <span style={{ color: '#ec3013' }}>*</span>
+                                            </label>
+                                            <span style={{ fontSize: '12px', color: data.details.length >= 20 ? '#14603a' : '#8b847d' }}>
+                                                {data.details.length} {label('characters', 'حروف')} (min 20)
+                                            </span>
+                                        </div>
+                                        <textarea
+                                            rows={6}
+                                            value={data.details}
+                                            onChange={e => {
+                                                setData('details', e.target.value);
+                                                if (errors.details && e.target.value.trim().length >= 20) clearErrors('details');
+                                            }}
+                                            placeholder={label(
+                                                'Describe the problem, when it started, and who you have already contacted.',
+                                                'مسئلہ، اس کا آغاز اور اب تک آپ نے کس سے رابطہ کیا — تفصیل سے لکھیں۔'
+                                            )}
+                                            style={{
+                                                width: '100%',
+                                                boxSizing: 'border-box',
+                                                background: '#faf7f2',
+                                                border: `1.5px solid ${errors.details ? '#ec3013' : '#e6ded2'}`,
+                                                borderRadius: '18px',
+                                                font: 'inherit',
+                                                fontSize: '15px',
+                                                lineHeight: 1.7,
+                                                padding: '15px 18px',
+                                                color: '#2a2623',
+                                                outline: 'none',
+                                                resize: 'vertical',
+                                                transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                            }}
+                                        />
+                                        {errors.details && (
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                {errors.details}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Evidence (Attachments) */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            {label('Evidence', 'ثبوت')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
+                                        </label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(172px, 1fr))', gap: '12px' }}>
+                                            {/* File upload tile */}
+                                            <label
+                                                onClick={() => fileInputRef.current?.click()}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '12px',
+                                                    background: '#faf7f2',
+                                                    border: '1.5px dashed #ddd3c4',
+                                                    borderRadius: '20px',
+                                                    padding: '16px',
+                                                    cursor: 'pointer',
+                                                    transition: 'border-color .2s, background .2s, transform .2s',
+                                                }}
+                                            >
+                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M21.5 12.5 12 22a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8.5-8.5" />
+                                                    </svg>
+                                                </span>
+                                                <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Attach files', 'فائلیں منسلک کریں')}</span>
+                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Photos, video, PDF', 'تصاویر، ویڈیو، پی ڈی ایف')}</span>
+                                                </span>
+                                            </label>
+
+                                            {/* Take Photo tile */}
+                                            <label
+                                                onClick={() => openCamera('photo')}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '12px',
+                                                    background: '#faf7f2',
+                                                    border: '1.5px dashed #ddd3c4',
+                                                    borderRadius: '20px',
+                                                    padding: '16px',
+                                                    cursor: 'pointer',
+                                                    transition: 'border-color .2s, background .2s, transform .2s',
+                                                }}
+                                            >
+                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M3 8h3l2-3h8l2 3h3v12H3z" /><circle cx="12" cy="13" r="4" />
+                                                    </svg>
+                                                </span>
+                                                <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture photo', 'تصویر لیں')}</span>
+                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Use your camera', 'کیمرہ استعمال کریں')}</span>
+                                                </span>
+                                            </label>
+
+                                            {/* Record Video tile */}
+                                            <label
+                                                onClick={() => openCamera('video')}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '12px',
+                                                    background: '#faf7f2',
+                                                    border: '1.5px dashed #ddd3c4',
+                                                    borderRadius: '20px',
+                                                    padding: '16px',
+                                                    cursor: 'pointer',
+                                                    transition: 'border-color .2s, background .2s, transform .2s',
+                                                }}
+                                            >
+                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M2.5 6.5h12v11h-12z" /><path d="m14.5 10.5 7-4v12l-7-4" />
+                                                    </svg>
+                                                </span>
+                                                <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture video', 'ویڈیو بنائیں')}</span>
+                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Record on the spot', 'موقع پر ریکارڈ کریں')}</span>
+                                                </span>
+                                            </label>
+                                        </div>
+
+                                        {/* Attached files pills */}
+                                        {attachmentFiles.length > 0 && (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '9px', marginTop: '6px' }}>
+                                                {attachmentFiles.map((f, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '9px',
+                                                            background: '#eaf1eb',
+                                                            borderRadius: '999px',
+                                                            padding: '9px 14px',
+                                                            fontSize: '12.5px',
+                                                            color: '#14603a',
+                                                            animation: 'pmccEnterA .25s both',
+                                                        }}
+                                                    >
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="2.4" strokeLinecap="round">
+                                                            <path d="M20 6 9 17l-5-5" />
+                                                        </svg>
+                                                        <span style={{ maxWidth: '190px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                                        <span style={{ color: '#6f8c79' }}>{(f.size / 1024 < 1024) ? `${Math.round(f.size / 1024)} KB` : `${(f.size / 1048576).toFixed(1)} MB`}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFile(idx)}
+                                                            style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer', color: '#6f8c79', display: 'flex' }}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {fileError && <span style={{ fontSize: '12.5px', color: '#ec3013' }}>{fileError}</span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ═════════════════════════════════════
+                                STEP 4: REVIEW AND SUBMIT
+                                ═════════════════════════════════════ */}
+                            {currentStep === 4 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                                    {/* Review group: About you */}
+                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('About you', 'آپ کے بارے میں')}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => goTo(1)}
+                                                style={{
+                                                    background: '#fff',
+                                                    border: '1px solid #e6ded2',
+                                                    borderRadius: '999px',
+                                                    padding: '7px 15px',
+                                                    font: 'inherit',
+                                                    fontSize: '12.5px',
+                                                    fontWeight: 700,
+                                                    color: '#ec3013',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {label('Edit', 'ترمیم')}
+                                            </button>
+                                        </div>
+                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                            {[
+                                                [label('Full name', 'پورا نام'), data.name || '—'],
+                                                [label('CNIC number', 'قومی شناختی کارڈ نمبر'), data.cnic || '—'],
+                                                [label('Mobile number', 'موبائل نمبر'), data.mobile_number || '—'],
+                                                [label('Gender', 'جنس'), data.gender === 'male' ? label('Male', 'مرد') : data.gender === 'female' ? label('Female', 'عورت') : label('Prefer not to say', 'بتانا نہیں چاہتے')],
+                                            ].map(([k, v]) => (
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                    <span style={{ color: '#6b645e' }}>{k}</span>
+                                                    <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Review group: Location */}
+                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('Location', 'مقام')}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => goTo(2)}
+                                                style={{
+                                                    background: '#fff',
+                                                    border: '1px solid #e6ded2',
+                                                    borderRadius: '999px',
+                                                    padding: '7px 15px',
+                                                    font: 'inherit',
+                                                    fontSize: '12.5px',
+                                                    fontWeight: 700,
+                                                    color: '#ec3013',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {label('Edit', 'ترمیم')}
+                                            </button>
+                                        </div>
+                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                            {[
+                                                [label('District', 'ضلع'), districtName],
+                                                [label('Tehsil', 'تحصیل'), tehsilName],
+                                            ].map(([k, v]) => (
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                    <span style={{ color: '#6b645e' }}>{k}</span>
+                                                    <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Review group: Complaint */}
+                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#14603a' }}>{label('Complaint', 'شکایت')}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => goTo(3)}
+                                                style={{
+                                                    background: '#fff',
+                                                    border: '1px solid #e6ded2',
+                                                    borderRadius: '999px',
+                                                    padding: '7px 15px',
+                                                    font: 'inherit',
+                                                    fontSize: '12.5px',
+                                                    fontWeight: 700,
+                                                    color: '#ec3013',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {label('Edit', 'ترمیم')}
+                                            </button>
+                                        </div>
+                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                            {[
+                                                [label('Department', 'محکمہ'), departmentName],
+                                                ...(categoryName !== '—' ? [[label('Category', 'زمرہ'), categoryName]] : []),
+                                                [label('Subject', 'موضوع'), data.subject || '—'],
+                                                [label('What happened', 'کیا ہوا'), data.details || '—'],
+                                                ...(attachmentFiles.length > 0 ? [[label('Evidence', 'ثبوت'), `${attachmentFiles.length} ${label('file(s)', 'فائلیں')}`]] : []),
+                                            ].map(([k, v]) => (
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                    <span style={{ color: '#6b645e' }}>{k}</span>
+                                                    <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Consent Checkbox */}
+                                    <label
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '13px',
+                                            background: '#fdf3e0',
+                                            borderRadius: '20px',
+                                            padding: '17px',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={declarationAccepted}
+                                            onChange={e => {
+                                                setDeclarationAccepted(e.target.checked);
+                                                if (errors.declaration) clearErrors('declaration');
+                                            }}
+                                            style={{ width: '20px', height: '20px', margin: '1px 0 0', accentColor: '#14603a', flex: 'none', cursor: 'pointer' }}
+                                        />
+                                        <span style={{ fontSize: '13.5px', color: '#5c4713', lineHeight: 1.55 }}>
+                                            {label(
+                                                'I confirm the information above is true to the best of my knowledge, and I allow PMCC to share it with the relevant department.',
+                                                'میں تصدیق کرتا/کرتی ہوں کہ درج بالا معلومات میرے علم کے مطابق درست ہیں، اور PMCC انہیں متعلقہ محکمے کو بھیج سکتا ہے۔'
+                                            )}
+                                        </span>
+                                    </label>
+                                    {errors.declaration && (
+                                        <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013' }}>
+                                            {errors.declaration}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Bottom Footer Actions */}
+                        <div style={{ marginTop: 'auto', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '12.5px', color: '#6b645e' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14603a" strokeWidth="1.9" strokeLinecap="round">
+                                    <rect x="4" y="10" width="16" height="10" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                                <span>{label('Your information is kept safe and confidential.', 'آپ کی معلومات مکمل طور پر محفوظ اور رازدارانہ رکھی جائیں گی۔')}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {currentStep > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={goBack}
+                                        style={{
+                                            background: '#faf7f2',
+                                            color: '#14603a',
+                                            border: '1.5px solid #e6ded2',
+                                            borderRadius: '999px',
+                                            fontFamily: "'Archivo', sans-serif",
+                                            fontWeight: 700,
+                                            fontSize: '14px',
+                                            padding: '14px 22px',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            transition: 'background .2s, transform .2s',
+                                        }}
+                                    >
+                                        <span>{isRtl ? '→' : '←'}</span>
+                                        <span>{label('Back', 'پیچھے')}</span>
+                                    </button>
+                                )}
+
+                                {currentStep < 4 ? (
+                                    <button
+                                        type="button"
+                                        onClick={goNext}
+                                        style={{
+                                            background: '#ec3013',
+                                            color: '#fff',
+                                            border: 0,
+                                            borderRadius: '999px',
+                                            fontFamily: "'Archivo', sans-serif",
+                                            fontWeight: 700,
+                                            fontSize: '14.5px',
+                                            padding: '15px 28px',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            boxShadow: '0 8px 20px rgba(236,48,19,.28)',
+                                            transition: 'transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s',
+                                        }}
+                                    >
+                                        <span>{label('Next step', 'اگلا مرحلہ')}</span>
+                                        <span style={{ fontSize: '16px' }}>{isRtl ? '←' : '→'}</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        style={{
+                                            background: '#ec3013',
+                                            color: '#fff',
+                                            border: 0,
+                                            borderRadius: '999px',
+                                            fontFamily: "'Archivo', sans-serif",
+                                            fontWeight: 700,
+                                            fontSize: '14.5px',
+                                            padding: '15px 28px',
+                                            cursor: processing ? 'not-allowed' : 'pointer',
+                                            opacity: processing ? 0.75 : 1,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            boxShadow: '0 8px 20px rgba(236,48,19,.28)',
+                                            transition: 'transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s',
+                                        }}
+                                    >
+                                        <span>{processing ? label('Submitting...', 'جمع ہو رہا ہے...') : label('Submit complaint', 'شکایت جمع کروائیں')}</span>
+                                        <span style={{ fontSize: '16px' }}>✓</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </form>
+                </section>
+            </div>
         </PublicLayout>
     );
 }

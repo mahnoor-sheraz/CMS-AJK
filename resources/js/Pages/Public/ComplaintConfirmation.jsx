@@ -4,444 +4,276 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 
 export default function ComplaintConfirmation({ complaint }) {
-    const { lang, setLang, toggleLanguage, t } = useLanguage();
+    const { lang } = useLanguage();
     const [copied, setCopied] = useState(false);
-    const isRtl = lang === 'ur';
+    const isUrdu = lang === 'ur';
+
+    const handleCopy = () => {
+        if (complaint?.complaint_number) {
+            try {
+                navigator.clipboard.writeText(complaint.complaint_number);
+            } catch (e) {}
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    const uiFont = isUrdu ? "'Noto Naskh Arabic', 'Archivo', sans-serif" : "'Archivo', sans-serif";
+    const displayFont = isUrdu ? "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif" : "'Archivo', sans-serif";
 
     if (!complaint || !complaint.complaint_number) {
         return (
             <PublicLayout>
-                <Head title={t('trackNotFound')} />
-                <div className="max-w-2xl mx-auto py-12">
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-8 sm:p-12 shadow-lg border border-amber-300 text-center space-y-6 before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-amber-500 before:via-orange-500 before:to-amber-500">
-                        <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-800 ring-4 ring-amber-200 shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-100 text-amber-900 border border-amber-300">
-                                ERR_COMPLAINT_NOT_FOUND
-                            </div>
-                            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                                {t('trackNotFound')}
-                            </h2>
-                            <p className="text-sm text-slate-600 max-w-md mx-auto">
-                                {lang === 'ur'
-                                    ? 'شکایت کی تفصیلات دستیاب نہیں ہیں یا سیشن ختم ہو چکا ہے۔ براہ کرم ٹریکنگ صفحے پر جائیں۔'
-                                    : 'Complaint details are unavailable or the current session has expired. Please use the tracking portal to search for your complaint.'}
-                            </p>
-                        </div>
-                        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-                            <Link
-                                href="/complaints/track"
-                                className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-[#034d28] to-[#046A38] text-white font-extrabold rounded-xl text-sm transition-all shadow-md text-center border-b-4 border-amber-500"
-                            >
-                                {t('btnTrackNow')}
-                            </Link>
-                            <Link
-                                href="/complaints/new"
-                                className="w-full sm:w-auto px-7 py-3.5 bg-white text-[#034d28] font-bold rounded-xl text-sm border-2 border-[#034d28]/30 hover:border-[#034d28] text-center"
-                            >
-                                {t('btnSubmitAnother')}
-                            </Link>
-                        </div>
-                    </div>
+                <Head title={isUrdu ? 'شکایت نہیں ملی' : 'Complaint Not Found'} />
+                <div style={{ maxWidth: '640px', margin: '40px auto', background: '#fff', borderRadius: '24px', padding: '36px', textAlign: 'center', boxShadow: '0 16px 40px rgba(0,0,0,.08)' }}>
+                    <h2 style={{ fontFamily: displayFont, color: '#14603a' }}>{isUrdu ? 'شکایت نہیں ملی' : 'Complaint Not Found'}</h2>
+                    <p style={{ color: '#6b645e', margin: '12px 0 24px' }}>
+                        {isUrdu ? 'شکایت کی تفصیلات دستیاب نہیں ہیں۔' : 'Complaint details are unavailable.'}
+                    </p>
+                    <Link href="/complaints/new" style={{ background: '#ec3013', color: '#fff', textDecoration: 'none', padding: '12px 24px', borderRadius: '999px', fontWeight: 700 }}>
+                        {isUrdu ? 'نئی شکایت درج کریں' : 'File a complaint'}
+                    </Link>
                 </div>
             </PublicLayout>
         );
     }
 
-    const handleCopy = () => {
-        if (complaint?.complaint_number) {
-            navigator.clipboard.writeText(complaint.complaint_number);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 3000);
-        }
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
-
-    // Format dates cleanly
-    const submittedDateFormatted = complaint.submitted_at
-        ? new Date(complaint.submitted_at).toLocaleDateString(lang === 'ur' ? 'ur-PK' : 'en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-          })
-        : '—';
-
-    // Format CNIC with standard dashes (XXXXX-XXXXXXX-X)
-    const formattedCnic = (cnic) => {
-        if (!cnic) return '—';
-        const clean = String(cnic).replace(/[^0-9]/g, '');
-        if (clean.length === 13) {
-            return `${clean.slice(0, 5)}-${clean.slice(5, 12)}-${clean.slice(12)}`;
-        }
-        return cnic;
-    };
-
-    // Department name resolution
-    const departmentDisplay = lang === 'ur'
-        ? (complaint.department?.name_ur || complaint.department?.name || t('optOther'))
-        : (complaint.department?.name || t('optOther'));
-
-    const subDepartmentDisplay = lang === 'ur'
-        ? (complaint.sub_department?.name_ur || complaint.sub_department?.name || t('reviewSubDeptNone'))
-        : (complaint.sub_department?.name || t('reviewSubDeptNone'));
-
-    const categoryDisplay = lang === 'ur'
-        ? (complaint.category?.name_ur || complaint.category?.name || t('optOther'))
-        : (complaint.category?.name || t('optOther'));
-
-    const districtDisplay = lang === 'ur'
-        ? (complaint.district?.name_ur || complaint.district?.name || '—')
-        : (complaint.district?.name || '—');
-
-    const tehsilDisplay = lang === 'ur'
-        ? (complaint.tehsil?.name_ur || complaint.tehsil?.name || '—')
-        : (complaint.tehsil?.name || '—');
-
-    const genderDisplay = () => {
-        const g = complaint.citizen?.gender;
-        if (g === 'male') return t('optMale');
-        if (g === 'female') return t('optFemale');
-        return t('reviewGenderNotSpecified');
-    };
-
-    const statusDisplay = () => {
-        const s = complaint.status;
-        if (s === 'submitted') return t('statusSubmitted');
-        if (s === 'under_investigation') return t('statusUnderInvestigation');
-        if (s === 'resolved') return t('statusResolved');
-        if (s === 'rejected') return t('statusRejected');
-        return s || t('statusSubmitted');
-    };
-
     return (
         <PublicLayout>
-            <Head title={`${complaint.complaint_number} - ${t('confTitle')}`} />
+            <Head title={`${complaint.complaint_number} — PMCC`} />
 
-            <div className="max-w-4xl mx-auto py-6 sm:py-8 space-y-8">
-                {/* ========================================================================= */}
-                {/* 1. TOP SUCCESS HERO & COMPLAINT NUMBER BADGE */}
-                {/* ========================================================================= */}
-                <div className="relative overflow-hidden bg-white rounded-3xl p-6 sm:p-10 shadow-lg border border-slate-200/80 text-center space-y-6 before:absolute before:top-0 before:left-0 before:right-0 before:h-2 before:bg-gradient-to-r before:from-amber-500 via-[#046A38] to-amber-500">
-                    {/* Success Checkmark Icon */}
-                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-[#034d28] ring-4 ring-amber-400/80 shadow-md animate-bounce-short">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(16px, 2vw, 26px)', alignItems: 'stretch', width: '100%', maxWidth: '1320px', margin: '0 auto' }}>
 
-                    {/* Headline */}
-                    <div className="space-y-2 max-w-2xl mx-auto">
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#034d28] border border-emerald-200">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            {lang === 'ur' ? 'اندراج مکمل ہو گیا' : 'Submission Completed'}
-                        </span>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight">
-                            {t('confTitle')}
+                {/* ── LEFT POSTER SIDEBAR ── */}
+                <aside
+                    style={{
+                        flex: '1 1 340px',
+                        minWidth: 0,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        background: 'linear-gradient(158deg, #14603a, #0d472b)',
+                        color: '#f6fbf7',
+                        borderRadius: '28px',
+                        padding: 'clamp(26px, 3vw, 40px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'clamp(22px, 2.6vw, 32px)',
+                        boxShadow: '0 16px 40px rgba(42,38,35,.1)',
+                    }}
+                >
+                    <div
+                        style={{
+                            position: 'absolute',
+                            insetInlineEnd: '-70px',
+                            top: '-70px',
+                            width: '230px',
+                            height: '230px',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle at 32% 32%, rgba(200,137,26,.34), rgba(200,137,26,0) 70%)',
+                            pointerEvents: 'none',
+                            animation: 'pmccFloat 9s ease-in-out infinite',
+                        }}
+                    />
+
+                    <div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '9px',
+                                fontSize: '12px',
+                                fontFamily: "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                letterSpacing: '.02em',
+                                color: '#e2ae4e',
+                                background: 'rgba(200,137,26,.15)',
+                                borderRadius: '999px',
+                                padding: '7px 14px',
+                                width: 'fit-content',
+                            }}
+                        >
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e2ae4e', display: 'block' }} />
+                            {isUrdu ? 'شکایت درج ہو گئی' : 'Complaint recorded'}
+                        </div>
+
+                        <h1
+                            style={{
+                                fontFamily: displayFont,
+                                fontWeight: 800,
+                                color: '#eeb84e',
+                                fontSize: isUrdu ? 'clamp(24px, 3vw, 34px)' : 'clamp(28px, 3.4vw, 40px)',
+                                lineHeight: isUrdu ? 1.7 : 1.1,
+                                letterSpacing: isUrdu ? 'normal' : '-.015em',
+                                margin: '18px 0 0',
+                            }}
+                        >
+                            {isUrdu ? 'آپ کی شکایت درج ہو گئی۔' : 'Your complaint is on record.'}
                         </h1>
-                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                            {t('confSubtitle')}
+
+                        <p
+                            style={{
+                                margin: '16px 0 0',
+                                fontSize: '15.5px',
+                                maxWidth: '40ch',
+                                color: 'rgba(255,255,255,.8)',
+                                lineHeight: 1.55,
+                            }}
+                        >
+                            {isUrdu
+                                ? 'یہ متعلقہ محکمے اور وزیرِ اعظم رابطہ مرکز کو بھیج دی گئی ہے۔ اپنا ٹریکنگ نمبر محفوظ رکھیں۔'
+                                : 'It has been forwarded to the department and to the Prime Minister’s Contact Centre. Save your tracking number.'}
                         </p>
-                        <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-[#046A38] to-amber-500 mx-auto mt-3 rounded-full"></div>
                     </div>
 
-                    {/* Prominent Complaint Tracking Number Card */}
-                    <div className="bg-gradient-to-br from-emerald-50/90 via-amber-50/40 to-white border-2 border-amber-400/90 rounded-2xl p-6 max-w-lg mx-auto space-y-3 shadow-md">
-                        <span className="text-xs font-black text-[#034d28] tracking-widest uppercase block">
-                            {t('confNumberLabel')}
+                    {/* Next Steps List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {[
+                            [isUrdu ? '۰۱' : '01', isUrdu ? '۲۴ گھنٹے میں تفویض' : 'Assigned within 24 hours', isUrdu ? 'محکمے کا افسر شکایت کی ذمہ داری لیتا ہے۔' : 'A case officer at the department takes ownership.'],
+                            [isUrdu ? '۰۲' : '02', isUrdu ? 'ایس ایم ایس پر اطلاع' : 'Updates by SMS', isUrdu ? 'ہر تبدیلی آپ کے موبائل نمبر پر بھیجی جائے گی۔' : 'Every status change is sent to your mobile number.'],
+                            [isUrdu ? '۰۳' : '03', isUrdu ? '۱۵ کام کے دن میں حل' : 'Resolution in 15 working days', isUrdu ? 'حل نہ ہونے پر معاملہ PMCC جائزہ ڈیسک کو جاتا ہے۔' : 'Unresolved cases escalate to the PMCC review desk.']
+                        ].map(([n, title, desc]) => (
+                            <div key={n} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '14px', alignItems: 'start', padding: '12px 14px', background: 'rgba(255,255,255,.07)', borderRadius: '18px' }}>
+                                <span style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(238,184,78,.2)', color: '#eeb84e', border: '1.5px solid rgba(238,184,78,.5)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '14px' }}>{n}</span>
+                                <div>
+                                    <div style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#fff' }}>{title}</div>
+                                    <div style={{ fontSize: '12.5px', color: 'rgba(255,255,255,.6)', marginTop: '2px' }}>{desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div
+                        style={{
+                            marginTop: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontSize: '12.5px',
+                            color: 'rgba(255,255,255,.8)',
+                            background: 'rgba(255,255,255,.07)',
+                            borderRadius: '16px',
+                            padding: '12px 14px',
+                            fontFamily: uiFont,
+                        }}
+                    >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <span>{isUrdu ? 'محفوظ اور رازدارانہ' : 'Encrypted and confidential'}</span>
+                    </div>
+                </aside>
+
+                {/* ── RIGHT MAIN SUCCESS CARD ── */}
+                <section
+                    style={{
+                        flex: '2 1 560px',
+                        background: '#fff',
+                        borderRadius: '28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        boxShadow: '0 18px 46px rgba(42,38,35,.1)',
+                        padding: 'clamp(24px, 3.6vw, 48px)',
+                        gap: '28px',
+                    }}
+                >
+                    {/* Top ticket box */}
+                    <div style={{ background: '#faf7f2', borderRadius: '24px', padding: 'clamp(22px, 3vw, 36px)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px' }}>
+                        <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '13px', color: '#8b847d', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                            {isUrdu ? 'ٹریکنگ نمبر' : 'Tracking number'}
                         </span>
-                        <div className="text-3xl sm:text-4xl font-black text-emerald-950 font-mono tracking-wider select-all">
+                        <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(26px, 4vw, 40px)', color: '#14603a', letterSpacing: '.03em' }}>
                             {complaint.complaint_number}
                         </div>
-                        <div className="flex items-center justify-center gap-3 pt-1">
-                            <button
-                                type="button"
-                                onClick={handleCopy}
-                                className="inline-flex items-center gap-2 text-xs font-black px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-[#034d28] transition-all shadow-sm active:scale-95 border border-amber-300"
-                            >
-                                {copied ? (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span>{t('confCopied')}</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>{t('confCopyBtn')}</span>
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handlePrint}
-                                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 transition-all shadow-xs border border-slate-300 active:scale-95"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                </svg>
-                                <span>{t('confPrintReceipt')}</span>
-                            </button>
-                        </div>
+                        <p style={{ fontSize: '13.5px', color: '#6b645e', margin: 0, maxWidth: '42ch' }}>
+                            {isUrdu ? 'یہ نمبر آپ کے موبائل پر ایس ایم ایس کے ذریعے بھیج دیا گیا ہے۔' : 'An SMS with this number has been sent to your mobile.'}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleCopy}
+                            style={{
+                                marginTop: '4px',
+                                background: '#fff',
+                                color: '#14603a',
+                                border: '1.5px solid #e6ded2',
+                                borderRadius: '999px',
+                                fontFamily: "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                fontSize: '13.5px',
+                                padding: '11px 22px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'background .2s, transform .2s',
+                            }}
+                        >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                            </svg>
+                            <span>{copied ? (isUrdu ? 'کاپی ہو گیا' : 'Copied') : (isUrdu ? 'نمبر کاپی کریں' : 'Copy number')}</span>
+                        </button>
                     </div>
 
-                    <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                        {t('confInfoNotice')}
-                    </p>
-                </div>
-
-                {/* ========================================================================= */}
-                {/* 2. TRANSLATION PREVIEW CONTROL & INTERACTIVE GUIDE */}
-                {/* ========================================================================= */}
-                <div className="bg-gradient-to-r from-emerald-900 via-[#034d28] to-emerald-950 rounded-2xl p-5 sm:p-6 text-white shadow-md border border-emerald-700/50">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="space-y-1 max-w-xl">
-                            <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-lg bg-amber-400 text-emerald-950 flex items-center justify-center font-bold text-xs">
-                                    🌐
-                                </span>
-                                <h3 className="font-extrabold text-sm sm:text-base text-amber-300">
-                                    {t('confTranslateGuideTitle')}
-                                </h3>
+                    {/* Complaint Summary Details */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                        {[
+                            [isUrdu ? 'موضوع' : 'Subject', complaint.subject || '—'],
+                            [isUrdu ? 'محکمہ' : 'Department', isUrdu ? (complaint.department?.name_ur || complaint.department?.name || '—') : (complaint.department?.name || '—')],
+                            [isUrdu ? 'ضلع' : 'District', isUrdu ? (complaint.district?.name_ur || complaint.district?.name || '—') : (complaint.district?.name || '—')],
+                            [isUrdu ? 'شہری' : 'Citizen', complaint.citizen?.name || '—'],
+                        ].map(([k, v]) => (
+                            <div key={k} style={{ background: '#faf7f2', borderRadius: '18px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '12px', color: '#8b847d' }}>{k}</span>
+                                <span style={{ fontSize: '15px', fontWeight: 600, color: '#2a2623' }}>{v}</span>
                             </div>
-                            <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                                {t('confTranslateGuideDesc')}
-                            </p>
-                        </div>
-
-                        {/* Interactive Language Switcher Toggle */}
-                        <div className="flex items-center gap-2 bg-emerald-950/60 p-1.5 rounded-xl border border-emerald-600/40 shrink-0 w-full md:w-auto justify-center">
-                            <button
-                                type="button"
-                                onClick={() => setLang('ur')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    lang === 'ur'
-                                        ? 'bg-amber-400 text-emerald-950 shadow-sm font-black'
-                                        : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
-                                }`}
-                            >
-                                <span>🇵🇰</span>
-                                <span>اردو (Urdu)</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setLang('en')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    lang === 'en'
-                                        ? 'bg-amber-400 text-emerald-950 shadow-sm font-black'
-                                        : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
-                                }`}
-                            >
-                                <span>🇬🇧</span>
-                                <span>English</span>
-                            </button>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* Explanatory callout explaining the translation mechanism */}
-                    <div className="mt-4 pt-3.5 border-t border-emerald-800/60 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-emerald-200/90">
-                        <div className="flex items-start gap-2">
-                            <span className="text-amber-400 font-black">1.</span>
-                            <span>{lang === 'ur' ? 'ہیڈر بٹن: اوپر ہیڈر میں موجود زبان کا بٹن کسی بھی وقت استعمال کریں۔' : 'Header Toggle: Click the language switch at the top right of any page.'}</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <span className="text-amber-400 font-black">2.</span>
-                            <span>{lang === 'ur' ? 'فوری تبادلہ: تمام سرکاری محکموں، اضلاع اور تفصیلات کا فوری ترجمہ۔' : 'Instant Switch: Translates departments, districts, and status in real-time.'}</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <span className="text-amber-400 font-black">3.</span>
-                            <span>{lang === 'ur' ? 'پرنٹ سپورٹ: رسید کو اردو یا انگریزی دونوں میں پرنٹ کیا جا سکتا ہے۔' : 'Printable Receipt: Print your official proof in English or Urdu anytime.'}</span>
-                        </div>
+                    {/* Action buttons */}
+                    <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+                        <Link
+                            href="/complaints/track"
+                            style={{
+                                background: '#ec3013',
+                                color: '#fff',
+                                borderRadius: '999px',
+                                fontFamily: "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                fontSize: '14.5px',
+                                padding: '15px 28px',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                boxShadow: '0 8px 20px rgba(236,48,19,.28)',
+                            }}
+                        >
+                            <span>{isUrdu ? 'یہ شکایت ٹریک کریں' : 'Track this complaint'}</span>
+                            <span style={{ fontSize: '16px' }}>{isUrdu ? '←' : '→'}</span>
+                        </Link>
+                        <Link
+                            href="/complaints/new"
+                            style={{
+                                background: '#faf7f2',
+                                color: '#14603a',
+                                border: '1.5px solid #e6ded2',
+                                borderRadius: '999px',
+                                fontFamily: "'Archivo', sans-serif",
+                                fontWeight: 700,
+                                fontSize: '14.5px',
+                                padding: '14px 24px',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                            }}
+                        >
+                            <span>{isUrdu ? 'نئی شکایت درج کریں' : 'File another complaint'}</span>
+                        </Link>
                     </div>
-                </div>
-
-                {/* ========================================================================= */}
-                {/* 3. FULL SUBMISSION PREVIEW CARD (OFFICIAL RECEIPT) */}
-                {/* ========================================================================= */}
-                <div id="printable-receipt" className="bg-white rounded-3xl shadow-lg border border-slate-200/90 overflow-hidden">
-                    {/* Receipt Banner */}
-                    <div className="bg-gradient-to-r from-emerald-50 via-amber-50/50 to-emerald-50 p-6 border-b border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-[#034d28] text-amber-300 mb-1.5 shadow-xs">
-                                {complaint.complaint_number}
-                            </div>
-                            <h2 className="text-lg sm:text-xl font-black text-emerald-950">
-                                {t('confPreviewTitle')}
-                            </h2>
-                            <p className="text-xs text-slate-500">
-                                {t('confPreviewSubtitle')}
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="px-3 py-1 rounded-lg bg-white border border-slate-300 font-bold text-slate-700">
-                                {t('confChannelLabel')} {t('confWebPortal')}
-                            </span>
-                            <span className="px-3 py-1 rounded-lg bg-emerald-100 text-[#034d28] border border-emerald-300 font-extrabold">
-                                {t('confStatusLabel')} {statusDisplay()}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="p-6 sm:p-8 space-y-6">
-                        {/* Section 1: Citizen Profile */}
-                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                            <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/60 pb-2">
-                                <span>👤</span> {t('confSectionCitizen')}
-                            </h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm">
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelName')}</span>
-                                    <span className="font-bold text-slate-900">{complaint.citizen?.name || '—'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelCnic')}</span>
-                                    <span className="font-mono font-bold text-slate-900">{formattedCnic(complaint.cnic || complaint.citizen?.cnic)}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelMobile')}</span>
-                                    <span className="font-mono font-bold text-slate-900">{complaint.citizen?.mobile_number || '—'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelGender')}</span>
-                                    <span className="font-bold text-slate-900">{genderDisplay()}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Section 2: Location & Jurisdiction */}
-                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                            <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/60 pb-2">
-                                <span>📍</span> {t('confSectionLocation')}
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelDistrict')}</span>
-                                    <span className="font-bold text-slate-900">{districtDisplay}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelTehsil')}</span>
-                                    <span className="font-bold text-slate-900">{tehsilDisplay}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Section 3: Complaint & Department Details */}
-                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-4">
-                            <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/60 pb-2">
-                                <span>🏛️</span> {t('confSectionComplaint')}
-                            </h3>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs sm:text-sm">
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelDepartment')}</span>
-                                    <span className="font-bold text-emerald-950">{departmentDisplay}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelSubDepartment')}</span>
-                                    <span className="font-semibold text-slate-800">{subDepartmentDisplay}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[11px]">{t('labelCategory')}</span>
-                                    <span className="font-semibold text-slate-800">{categoryDisplay}</span>
-                                </div>
-                            </div>
-
-                            {/* Subject */}
-                            <div>
-                                <span className="text-slate-400 block text-[11px]">{t('labelSubject')}</span>
-                                <h4 className="text-base font-extrabold text-emerald-950 mt-0.5">
-                                    {complaint.subject || '—'}
-                                </h4>
-                            </div>
-
-                            {/* Full Narrative Details */}
-                            <div>
-                                <span className="text-slate-400 block text-[11px]">{t('labelDetails')}</span>
-                                <div className="mt-1 p-4 rounded-xl bg-white border border-slate-200/80 text-slate-800 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed shadow-xs">
-                                    {complaint.details || '—'}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Section 4: Attached Evidence */}
-                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                            <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/60 pb-2">
-                                <span>📎</span> {t('confSectionAttachments')}
-                            </h3>
-
-                            {complaint.attachments && complaint.attachments.length > 0 ? (
-                                <ul className="divide-y divide-slate-200/70 border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
-                                    {complaint.attachments.map((att, idx) => (
-                                        <li key={idx} className="p-3 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2.5 truncate">
-                                                <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
-                                                <span className="font-medium text-slate-900 truncate">{att.file_name}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 shrink-0 text-[11px] text-slate-400 font-mono">
-                                                <span>{(att.file_size / (1024 * 1024)).toFixed(2)} MB</span>
-                                                <span className="px-2 py-0.5 rounded bg-slate-100 uppercase text-[10px] text-slate-600 font-bold">
-                                                    {att.file_type?.split('/')[1] || 'FILE'}
-                                                </span>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-xs text-slate-400 italic">
-                                    {t('confNoAttachments')}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Submission Metadata Timestamp */}
-                        <div className="pt-2 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                            <span>🕒 {t('confSubmittedDate')}</span>
-                            <span className="font-semibold text-slate-600">{submittedDateFormatted}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ========================================================================= */}
-                {/* 4. BOTTOM ACTION BUTTONS */}
-                {/* ========================================================================= */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 pb-8">
-                    <Link
-                        href="/complaints/track"
-                        className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#034d28] via-[#046A38] to-[#034d28] hover:from-[#023b1f] hover:to-[#034d28] text-white font-extrabold rounded-xl text-sm sm:text-base transition-all shadow-lg text-center border-b-4 border-amber-500 active:border-b-0 active:translate-y-1 flex items-center justify-center gap-2"
-                    >
-                        <span>{t('btnTrackNow')}</span>
-                        <span className={isRtl ? 'rotate-180' : ''}>→</span>
-                    </Link>
-
-                    <button
-                        type="button"
-                        onClick={handlePrint}
-                        className="w-full sm:w-auto px-7 py-4 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl text-sm sm:text-base transition-all border-2 border-slate-300 text-center flex items-center justify-center gap-2 shadow-xs"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        <span>{t('confPrintReceipt')}</span>
-                    </button>
-
-                    <Link
-                        href="/complaints/new"
-                        className="w-full sm:w-auto px-7 py-4 bg-white hover:bg-emerald-50 text-[#034d28] font-bold rounded-xl text-sm sm:text-base transition-all border-2 border-[#034d28]/30 hover:border-[#034d28] text-center"
-                    >
-                        {t('btnSubmitAnother')}
-                    </Link>
-                </div>
+                </section>
             </div>
         </PublicLayout>
     );
