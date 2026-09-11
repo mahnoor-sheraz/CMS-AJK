@@ -245,7 +245,7 @@ class PublicComplaintController extends Controller
 
         if ($complaintNumber) {
             $searched = true;
-            $complaint = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
+            $complaint = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'subDepartment', 'category', 'attachments', 'statusHistories'])
                 ->where('complaint_number', $complaintNumber)
                 ->first();
             $notFound = is_null($complaint);
@@ -274,7 +274,7 @@ class PublicComplaintController extends Controller
         $cacheKey = "complaint:track:{$complaintNumber}:{$cnic}";
 
         $complaint = Cache::remember($cacheKey, 60, function () use ($complaintNumber, $cnic) {
-            $query = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
+            $query = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'subDepartment', 'category', 'attachments', 'statusHistories'])
                 ->where('complaint_number', $complaintNumber);
 
             if (!empty($cnic)) {
@@ -302,23 +302,24 @@ class PublicComplaintController extends Controller
     }
 
     /**
-     * Look up returning citizen details by CNIC to pre-fill the form.
+     * Download or view printable copy of the complete complaint form.
      */
-    public function getCitizenByCnic($cnic)
+    public function download(string $complaint_number): Response|RedirectResponse
     {
-        // Add basic masking/cleaning if needed, assuming exact match for now
-        $complaint = Complaint::where('cnic', $cnic)
-            ->orderBy('created_at', 'desc')
+        $complaint = Complaint::where('complaint_number', $complaint_number)
+            ->with(['citizen', 'district', 'tehsil', 'department', 'subDepartment', 'category', 'attachments'])
             ->first();
-            
-        if ($complaint) {
-            return response()->json([
-                'name' => $complaint->name,
-                'mobile_number' => $complaint->mobile_number,
-                'gender' => $complaint->gender,
+
+        if (! $complaint) {
+            return redirect()->route('complaints.track')->withErrors([
+                'complaint_number' => "Complaint #{$complaint_number} was not found.",
+                'error_code' => 'ERR_COMPLAINT_NOT_FOUND',
             ]);
         }
-        
-        return response()->json(null, 404);
+
+        return Inertia::render('Public/ComplaintConfirmation', [
+            'complaint' => $complaint,
+            'autoPrint' => true,
+        ]);
     }
 }

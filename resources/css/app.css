@@ -799,3 +799,83 @@ button, input, select { font: inherit; }
 .animate-pmcc-shake {
     animation: pmccShake .45s both;
 }
+
+/* ============================================================
+   Golden Ratio (φ = 1.618) Spatial System & Proportions
+   Harmonizes layout columns, typography scale, gutters & padding
+   ============================================================ */
+:root {
+    --phi: 1.61803398875;
+
+    /* Golden Ratio Spacing Scale (based on 13px base unit) */
+    --space-2xs:  3px;
+    --space-xs:   5px;
+    --space-sm:   8px;
+    --space-md:   13px;
+    --space-lg:   21px;
+    --space-xl:   34px;
+    --space-2xl:  55px;
+    --space-3xl:  89px;
+
+    /* Golden Ratio Typography Scale */
+    --text-caption: 11px;
+    --text-sm:      13px;
+    --text-base:    15px;
+    --text-md:      17px;
+    --text-lg:      21px;
+    --text-xl:      26px;
+    --text-2xl:     34px;
+
+    /* Golden Ratio Radii */
+    --radius-sm: 8px;
+    --radius-md: 13px;
+    --radius-lg: 21px;
+    --radius-pill: 999px;
+}
+
+/* Input & Form Control Focus Elevation */
+.pmcc-input:focus {
+    border-color: #344e41 !important;
+    box-shadow: 0 0 0 3px rgba(52, 78, 65, 0.12) !important;
+    background: #ffffff !important;
+}
+
+
+
+/* ============================================================
+   PMCC Complaint Print & Download Rules
+   ============================================================ */
+@media print {
+    @page {
+        margin: 12mm;
+        size: A4 portrait;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    #pmcc-printable-complaint,
+    #pmcc-printable-complaint * {
+        visibility: visible !important;
+    }
+
+    #pmcc-printable-complaint {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+    }
+
+    /* Remove interactive browser headers/footers background graphics */
+    header, aside, nav, footer, button, a {
+        display: none !important;
+    }
+}

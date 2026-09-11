@@ -12,11 +12,9 @@ Route::prefix('complaints')->group(function () {
     Route::get('/new', [PublicComplaintController::class, 'create'])->name('complaints.new');
     Route::post('/', [PublicComplaintController::class, 'store'])->name('complaints.store');
     Route::get('/confirmation/{complaint_number}', [PublicComplaintController::class, 'confirmation'])->name('complaints.confirmation');
+    Route::get('/download/{complaint_number}', [PublicComplaintController::class, 'download'])->name('complaints.download');
     Route::get('/track', [PublicComplaintController::class, 'trackForm'])->name('complaints.track');
     Route::post('/track', [PublicComplaintController::class, 'track'])->name('complaints.track.search');
-    
-    // API endpoint for returning citizen pre-fill
-    Route::get('/api/citizen/{cnic}', [PublicComplaintController::class, 'getCitizenByCnic'])->name('complaints.api.citizen');
 });
 
 // Auth Dashboards

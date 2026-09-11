@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE complaints MODIFY status ENUM('submitted', 'under_investigation', 'pending_field_visit', 'clubbed', 'forwarded_external', 'not_resolvable', 'resolved', 'rejected', 'escalated_to_admin') DEFAULT 'submitted'");
-        DB::statement("ALTER TABLE complaint_actions MODIFY resolution_status ENUM('resolved', 'clubbed', 'forwarded_externally', 'rejected', 'escalated') NOT NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE complaints MODIFY status ENUM('submitted', 'under_investigation', 'pending_field_visit', 'clubbed', 'forwarded_external', 'not_resolvable', 'resolved', 'rejected', 'escalated_to_admin') DEFAULT 'submitted'");
+            DB::statement("ALTER TABLE complaint_actions MODIFY resolution_status ENUM('resolved', 'clubbed', 'forwarded_externally', 'rejected', 'escalated') NOT NULL");
+        }
     }
 
     /**
@@ -21,7 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE complaints MODIFY status ENUM('submitted', 'under_investigation', 'pending_field_visit', 'clubbed', 'forwarded_external', 'not_resolvable', 'resolved', 'rejected') DEFAULT 'submitted'");
-        DB::statement("ALTER TABLE complaint_actions MODIFY resolution_status ENUM('resolved', 'clubbed', 'forwarded_externally', 'rejected') NOT NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE complaints MODIFY status ENUM('submitted', 'under_investigation', 'pending_field_visit', 'clubbed', 'forwarded_external', 'not_resolvable', 'resolved', 'rejected') DEFAULT 'submitted'");
+            DB::statement("ALTER TABLE complaint_actions MODIFY resolution_status ENUM('resolved', 'clubbed', 'forwarded_externally', 'rejected') NOT NULL");
+        }
     }
 };

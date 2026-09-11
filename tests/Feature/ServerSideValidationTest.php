@@ -236,6 +236,40 @@ class ServerSideValidationTest extends TestCase
         $response->assertSessionHasErrors('attachments');
     }
 
+    public function test_rejects_attachment_exceeding_10mb(): void
+    {
+        Storage::fake('public');
+        $payload = $this->getValidComplaintPayload();
+        // 11MB file
+        $payload['attachments'] = [UploadedFile::fake()->create('heavy_video.mp4', 11264, 'video/mp4')];
+
+        $response = $this->post('/complaints', $payload);
+        $response->assertSessionHasErrors('attachments.0');
+    }
+
+    public function test_accepts_valid_attachments_and_creates_records(): void
+    {
+        Storage::fake('public');
+        $payload = $this->getValidComplaintPayload();
+        $payload['attachments'] = [
+            UploadedFile::fake()->create('evidence.pdf', 300, 'application/pdf'),
+            UploadedFile::fake()->image('photo.jpg', 640, 480),
+        ];
+
+        $response = $this->post('/complaints', $payload);
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('complaint_attachments', [
+            'file_type' => 'application/pdf',
+            'uploaded_by_type' => 'citizen',
+        ]);
+        $this->assertDatabaseHas('complaint_attachments', [
+            'file_type' => 'image/jpeg',
+            'uploaded_by_type' => 'citizen',
+        ]);
+    }
+
     // ==========================================
     // 7. Complaint Tracking Form Validation
     // ==========================================

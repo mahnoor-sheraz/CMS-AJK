@@ -4,6 +4,33 @@ All notable changes to this project are documented here in reverse chronological
 
 ---
 
+## [2026-09-12] — Complaint Form Download & Official Printable Document
+
+### Changes Made
+
+| # | What Changed | Files Modified |
+|---|---|---|
+| 1 | **Official Printable Complaint Document Component (`ComplaintPrintDocument.jsx`)** — Created an authentic, high-fidelity printable complaint certificate complete with Prime Minister's Contact Centre (PMCC) branding, GoAJK Seal, official State Flag of Azad Kashmir, tracking number heading, status indicator, 4 structured sections (Citizen Information, Department & Location, Grievance Details, and Attached Evidence list), and a computer-generated verification watermark with tracking URL. | `ComplaintPrintDocument.jsx` |
+| 2 | **Print & PDF Layout Styles (`app.css`)** — Added dedicated `@media print` rules configured for standard A4 portrait output. Hides web headers, footers, sidebars, and action buttons during print / "Save as PDF", isolating the official complaint document with clean typography and high contrast. | `app.css` |
+| 3 | **"Download copy of form" on Confirmation Screen** — Added a `#344e41` action button with download icon on `/complaints/confirmation/{number}`, allowing citizens to immediately print or save a PDF copy of their lodged grievance upon completion. | `ComplaintConfirmation.jsx` |
+| 4 | **"Download copy" on Tracking Screen** — Added the download/print action button directly to the tracking header card next to the status badge on `/complaints/track`, enabling citizens to retrieve and download an up-to-date copy whenever they look up their tracking number. | `ComplaintTrack.jsx` |
+| 5 | **Dedicated Direct Download Route & Auto-Print** — Added route `GET /complaints/download/{complaint_number}` and corresponding controller action in `PublicComplaintController.php` that supports automatic print dialog trigger (`autoPrint: true`), and updated `track` queries to eager-load `subDepartment`, `category`, and `attachments` for complete data access. | `PublicComplaintController.php`, `web.php`, `CitizenPortalTest.php` |
+
+---
+
+## [2026-09-12] — Form Validation Audit & Evidence Attachment Verification
+
+### Changes Made
+
+| # | What Changed | Files Modified |
+|---|---|---|
+| 1 | **Aligned Minimum Character Limits (Details Field)** — Synchronized client-side validation in `ComplaintSubmit.jsx` (`min: 50`) with server-side validation in `StorePublicComplaintRequest.php` (`'min:50'`). Updated the real-time character counter and inline error-clearing threshold from 20 to 50 characters so users receive immediate guidance and are never blocked on submission by mismatched backend rules. | `ComplaintSubmit.jsx` |
+| 2 | **Client-Side File Extension & Format Validation** — Added immediate validation in `addFiles()` checking files against the allowed extensions (`jpg, jpeg, png, gif, pdf, mp3, wav, mp4, avi, mov`) before adding them to state. Disallowed extensions (e.g. `.exe`, `.docx`, `.zip`) are flagged with user-friendly bilingual error messages without waiting for server round-trip. | `ComplaintSubmit.jsx` |
+| 3 | **Attachment Backend Error Display & Form Navigation** — Connected backend file validation errors (`errors.attachments` and indexed `errors['attachments.*']`) directly into the Evidence dropzone display. Updated submission error handler `onError` to navigate straight to Step 3 if attachment validation issues are returned by Laravel. | `ComplaintSubmit.jsx` |
+| 4 | **Database Compatibility & Automated Test Suite** — Hardened enum update migrations for SQLite/testing driver compatibility and expanded `ServerSideValidationTest.php` to verify attachment file limits (max 5, 10MB individual size limit, allowed MIME types, and database record creation). All 123 tests passing. | `StorePublicComplaintRequest.php`, `ServerSideValidationTest.php`, migrations |
+
+---
+
 ## [2026-09-11] — Complaint Tracking Screen Prototype Redesign
 
 ### Changes Made

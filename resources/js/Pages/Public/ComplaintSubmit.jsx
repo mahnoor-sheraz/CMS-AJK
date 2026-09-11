@@ -94,21 +94,111 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
     const dname = (item) => (isRtl ? item.name_ur || item.name : item.name);
     const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // ── Citizen CNIC auto-fill ───────────────────────────────────────────────
-    const handleCnicBlur = async () => {
-        const clean = data.cnic.replace(/\D/g, '');
-        if (clean.length !== 13) return;
-        try {
-            const res = await fetch(`/complaints/api/citizen/${clean}`);
-            if (!res.ok) return;
-            const citizen = await res.json();
-            if (citizen) setData(prev => ({
-                ...prev,
-                name:          prev.name          || citizen.name          || '',
-                mobile_number: prev.mobile_number || citizen.mobile_number || '',
-                gender:        prev.gender        || citizen.gender        || '',
-            }));
-        } catch {}
+    const [isLocating, setIsLocating] = useState(false);
+    const [locateMessage, setLocateMessage] = useState(null);
+
+    // ── Locate Me (GPS with graceful fallback) ──────────────────────────────
+    const handleLocateMe = () => {
+        setLocateMessage(null);
+        if (!navigator.geolocation) {
+            setLocateMessage({
+                type: 'info',
+                text: label(
+                    'Geolocation is not supported by your browser. Please select your district and tehsil manually below.',
+                    'آپ کا براؤزر لوکیشن کو سپورٹ نہیں کرتا۔ براہِ کرم نیچے دیے گئے ڈراپ ڈاؤن سے ضلع اور تحصیل منتخب کریں۔'
+                ),
+            });
+            return;
+        }
+
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    // Approximate reverse geocoding via OpenStreetMap Nominatim
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+                    );
+                    if (res.ok) {
+                        const json = await res.json();
+                        const address = json.address || {};
+                        const targetCounty = (address.county || address.state_district || address.city || '').toLowerCase();
+                        const targetTown = (address.town || address.village || address.suburb || address.city_district || '').toLowerCase();
+
+                        // Match district in AJK
+                        let matchedDistrict = districts.find(d => 
+                            (d.name && targetCounty.includes(d.name.toLowerCase())) ||
+                            (d.name && d.name.toLowerCase().includes(targetCounty))
+                        );
+
+                        if (matchedDistrict) {
+                            setData(prev => ({
+                                ...prev,
+                                district_id: matchedDistrict.id,
+                                tehsil_id: '',
+                            }));
+                            if (errors.district_id) clearErrors('district_id');
+
+                            // Match tehsil if available
+                            const tehsils = Array.isArray(matchedDistrict.tehsils) 
+                                ? matchedDistrict.tehsils 
+                                : Object.values(matchedDistrict.tehsils || {});
+                            const matchedTehsil = tehsils.find(t => 
+                                (t.name && targetTown.includes(t.name.toLowerCase())) ||
+                                (t.name && t.name.toLowerCase().includes(targetTown))
+                            );
+
+                            if (matchedTehsil) {
+                                setData(prev => ({
+                                    ...prev,
+                                    district_id: matchedDistrict.id,
+                                    tehsil_id: matchedTehsil.id,
+                                }));
+                                if (errors.tehsil_id) clearErrors('tehsil_id');
+                            }
+
+                            setLocateMessage({
+                                type: 'success',
+                                text: label(
+                                    `Detected: ${matchedDistrict.name}${matchedTehsil ? ` (${matchedTehsil.name})` : ''}. You can change it anytime manually below.`,
+                                    `شناخت شدہ: ${dname(matchedDistrict)}${matchedTehsil ? ` (${dname(matchedTehsil)})` : ''}۔ اگر ضرورت ہو تو آپ نیچے دستی طور پر تبدیل کر سکتے ہیں۔`
+                                ),
+                            });
+                        } else {
+                            setLocateMessage({
+                                type: 'info',
+                                text: label(
+                                    'Could not automatically detect your exact AJK district. Please choose manually from the list below.',
+                                    'آپ کے ضلع کی خودکار شناخت نہیں ہو سکی۔ براہِ کرم نیچے دیے گئے ڈراپ ڈاؤن سے ضلع منتخب کریں۔'
+                                ),
+                            });
+                        }
+                    }
+                } catch {
+                    setLocateMessage({
+                        type: 'info',
+                        text: label(
+                            'Location lookup service is currently slow. Please select your district and tehsil manually.',
+                            'لوکیشن سروس اس وقت مصروف ہے۔ براہِ کرم نیچے سے اپنا ضلع اور تحصیل دستی طور پر منتخب کریں۔'
+                        ),
+                    });
+                } finally {
+                    setIsLocating(false);
+                }
+            },
+            (err) => {
+                setIsLocating(false);
+                setLocateMessage({
+                    type: 'info',
+                    text: label(
+                        'Location access not granted. Please select your district and tehsil manually from the dropdowns.',
+                        'لوکیشن کی اجازت دستیاب نہیں ہے۔ براہِ کرم نیچے دیے گئے ڈراپ ڈاؤنز سے ضلع اور تحصیل خود منتخب کریں۔'
+                    ),
+                });
+            },
+            { timeout: 9000, enableHighAccuracy: false }
+        );
     };
 
     // ── Attachments ──────────────────────────────────────────────────────────
@@ -346,33 +436,35 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
             {/* ═════════════════════════════════════════════════════════════════
                 EXACT TWO-COLUMN MODERNIST POSTER CONTAINER (Matching akj-.zip)
                 ═════════════════════════════════════════════════════════════════ */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(16px, 2vw, 26px)', alignItems: 'stretch', width: '100%', maxWidth: '1320px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '21px', alignItems: 'stretch', width: '100%', maxWidth: '1140px', margin: '0 auto' }}>
 
-                {/* ── LEFT COLUMN: POSTER SIDEBAR ── */}
+                {/* ── LEFT COLUMN: POSTER SIDEBAR (Golden ratio ~38.2% of container) ── */}
                 <aside
                     style={{
-                        flex: '1 1 340px',
+                        flex: '0 0 350px',
+                        width: '350px',
+                        maxWidth: '100%',
                         minWidth: 0,
                         position: 'relative',
                         overflow: 'hidden',
                         background: 'linear-gradient(158deg, #344e41, #283d33)',
                         color: '#f6fbf7',
-                        borderRadius: '28px',
-                        padding: 'clamp(20px, 2.2vw, 30px)',
+                        borderRadius: '21px',
+                        padding: '22px 24px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 'clamp(14px, 1.8vw, 22px)',
-                        boxShadow: '0 16px 40px rgba(42,38,35,.1)',
+                        gap: '18px',
+                        boxShadow: '0 14px 34px rgba(42,38,35,.1)',
                     }}
                 >
                     {/* Floating ambient radial gold glow orb */}
                     <div
                         style={{
                             position: 'absolute',
-                            insetInlineEnd: '-70px',
-                            top: '-70px',
-                            width: '230px',
-                            height: '230px',
+                            insetInlineEnd: '-60px',
+                            top: '-60px',
+                            width: '200px',
+                            height: '200px',
                             borderRadius: '50%',
                             background: 'radial-gradient(circle at 32% 32%, rgba(200,137,26,.34), rgba(200,137,26,0) 70%)',
                             pointerEvents: 'none',
@@ -385,19 +477,19 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '9px',
-                                fontSize: '12px',
+                                gap: '8px',
+                                fontSize: '11.5px',
                                 fontFamily: "'Archivo', sans-serif",
                                 fontWeight: 700,
                                 letterSpacing: '.02em',
                                 color: '#e2ae4e',
                                 background: 'rgba(200,137,26,.15)',
                                 borderRadius: '999px',
-                                padding: '7px 14px',
+                                padding: '5px 12px',
                                 width: 'fit-content',
                             }}
                         >
-                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e2ae4e', display: 'block' }} />
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e2ae4e', display: 'block' }} />
                             {label('Citizen complaint', 'عوامی شکایت')}
                         </div>
 
@@ -406,10 +498,10 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 fontFamily: displayFont,
                                 fontWeight: 800,
                                 color: '#eeb84e',
-                                fontSize: isRtl ? 'clamp(24px, 3vw, 34px)' : 'clamp(28px, 3.4vw, 40px)',
-                                lineHeight: isRtl ? 1.7 : 1.1,
+                                fontSize: isRtl ? 'clamp(21px, 2.2vw, 26px)' : 'clamp(23px, 2.4vw, 28px)',
+                                lineHeight: isRtl ? 1.6 : 1.15,
                                 letterSpacing: isRtl ? 'normal' : '-.015em',
-                                margin: '18px 0 0',
+                                margin: '14px 0 0',
                             }}
                         >
                             {label("Let's get your voice heard.", 'آپ کی بات، براہِ راست وزیرِ اعظم تک')}
@@ -417,11 +509,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                         <p
                             style={{
-                                margin: '16px 0 0',
-                                fontSize: '15.5px',
-                                maxWidth: '40ch',
+                                margin: '12px 0 0',
+                                fontSize: '13.5px',
+                                maxWidth: '38ch',
                                 color: 'rgba(255,255,255,.8)',
-                                lineHeight: 1.55,
+                                lineHeight: 1.5,
                             }}
                         >
                             {label(
@@ -432,7 +524,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                     </div>
 
                     {/* 4-Step Vertical Progress Rail */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {railItems.map((s, idx) => {
                             const stepNum = idx + 1;
                             const isActive = currentStep === stepNum;
@@ -447,50 +539,50 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         width: '100%',
                                         background: isActive ? 'rgba(255,255,255,.12)' : 'transparent',
                                         border: 0,
-                                        borderRadius: '18px',
-                                        padding: '13px 14px',
+                                        borderRadius: '13px',
+                                        padding: '9px 12px',
                                         font: 'inherit',
                                         color: 'inherit',
                                         textAlign: 'start',
                                         cursor: 'pointer',
                                         display: 'grid',
                                         gridTemplateColumns: 'auto 1fr',
-                                        gap: '14px',
+                                        gap: '11px',
                                         alignItems: 'center',
                                         transition: 'background .25s, transform .25s cubic-bezier(.2,.8,.2,1)',
                                     }}
                                 >
                                     <span
                                         style={{
-                                            width: '44px',
-                                            height: '44px',
+                                            width: '34px',
+                                            height: '34px',
                                             borderRadius: '50%',
                                             display: 'grid',
                                             placeItems: 'center',
                                             fontFamily: "'Archivo', sans-serif",
                                             fontWeight: 800,
-                                            fontSize: '14px',
+                                            fontSize: '12.5px',
                                             background: isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.2)' : 'transparent',
                                             color: isActive ? '#344e41' : isDone ? '#eeb84e' : 'rgba(255,255,255,.5)',
-                                            border: `2px solid ${isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.55)' : 'rgba(255,255,255,.22)'}`,
+                                            border: `1.5px solid ${isActive ? '#eeb84e' : isDone ? 'rgba(238,184,78,.55)' : 'rgba(255,255,255,.22)'}`,
                                             transition: 'background .3s, color .3s, border-color .3s',
                                         }}
                                     >
                                         {isRtl ? s.nUr : s.nEn}
                                     </span>
-                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
                                         <span
                                             style={{
                                                 fontFamily: uiFont,
                                                 fontWeight: 700,
-                                                fontSize: '15px',
+                                                fontSize: '13.5px',
                                                 color: isActive ? '#fff' : isDone ? '#f6fbf7' : 'rgba(255,255,255,.7)',
                                                 transition: 'color .3s',
                                             }}
                                         >
                                             {s.t}
                                         </span>
-                                        <span style={{ fontSize: '12.5px', color: 'rgba(255,255,255,.55)' }}>
+                                        <span style={{ fontSize: '11.5px', color: 'rgba(255,255,255,.55)' }}>
                                             {s.d}
                                         </span>
                                     </span>
@@ -505,37 +597,37 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                             marginTop: 'auto',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px',
-                            fontSize: '12.5px',
+                            gap: '8px',
+                            fontSize: '11.5px',
                             color: 'rgba(255,255,255,.8)',
                             background: 'rgba(255,255,255,.07)',
-                            borderRadius: '16px',
-                            padding: '12px 14px',
+                            borderRadius: '13px',
+                            padding: '9px 12px',
                             fontFamily: uiFont,
                         }}
                     >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
                         <span>{label('Encrypted and confidential', 'محفوظ اور رازدارانہ')}</span>
                     </div>
                 </aside>
 
-                {/* ── RIGHT COLUMN: FORM CARD ── */}
+                {/* ── RIGHT COLUMN: FORM CARD (Golden Ratio ~61.8% of container) ── */}
                 <section
                     style={{
-                        flex: '2 1 560px',
+                        flex: '1 1 540px',
                         background: '#fff',
-                        borderRadius: '28px',
+                        borderRadius: '21px',
                         display: 'flex',
                         flexDirection: 'column',
                         minWidth: 0,
                         overflow: 'hidden',
-                        boxShadow: '0 18px 46px rgba(42,38,35,.1)',
+                        boxShadow: '0 14px 34px rgba(42,38,35,.08)',
                     }}
                 >
                     {/* Top Golden Progress Fill Bar */}
-                    <div style={{ height: '5px', background: '#f0eae0' }}>
+                    <div style={{ height: '4px', background: '#f0eae0' }}>
                         <div
                             style={{
                                 height: '100%',
@@ -551,15 +643,15 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                     <form
                         onSubmit={handleSubmit}
                         style={{
-                            padding: 'clamp(20px, 2.2vw, 32px)',
+                            padding: '22px 26px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '18px',
+                            gap: '16px',
                             flex: 1,
                         }}
                     >
                         {/* Step Header Block */}
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
                             <div>
                                 <span
                                     style={{
@@ -569,8 +661,8 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         borderRadius: '999px',
                                         fontFamily: "'Archivo', sans-serif",
                                         fontWeight: 700,
-                                        fontSize: '12px',
-                                        padding: '7px 14px',
+                                        fontSize: '11px',
+                                        padding: '5px 12px',
                                     }}
                                 >
                                     {isRtl ? `مرحلہ ${['۰۱', '۰۲', '۰۳', '۰۴'][currentStep - 1]} از ۰۴` : `Step ${currentStep} of 4`}
@@ -580,43 +672,47 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         fontFamily: displayFont,
                                         fontWeight: 800,
                                         color: '#344e41',
-                                        fontSize: isRtl ? 'clamp(22px, 2.6vw, 30px)' : 'clamp(24px, 2.8vw, 32px)',
+                                        fontSize: isRtl ? 'clamp(18px, 1.8vw, 23px)' : 'clamp(20px, 2vw, 25px)',
                                         letterSpacing: isRtl ? 'normal' : '-.015em',
-                                        margin: '14px 0 0',
+                                        margin: '10px 0 0',
                                     }}
                                 >
                                     {stepTitles[currentStep - 1]}
                                 </h2>
-                                <p style={{ margin: '8px 0 0', fontSize: '15px', color: '#6b645e', maxWidth: '52ch', lineHeight: 1.55 }}>
+                                <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: '#6b645e', maxWidth: '52ch', lineHeight: 1.5 }}>
                                     {stepBlurbs[currentStep - 1]}
                                 </p>
                             </div>
-                            <span style={{ fontSize: '12.5px', color: '#6b645e', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '11.5px', color: '#6b645e', whiteSpace: 'nowrap' }}>
                                 <span style={{ color: '#ec3013', fontWeight: 700 }}>*</span> {label('Required fields', 'مطلوبہ خانے')}
                             </span>
                         </div>
 
                         {/* Step Content with Entry Animation */}
-                        <div key={currentStep} className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div key={currentStep} className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
                             {/* ═════════════════════════════════════
                                 STEP 1: ABOUT YOU
                                 ═════════════════════════════════════ */}
                             {currentStep === 1 && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
                                     {/* Full Name */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label htmlFor="pmcc-name-input" style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('Full name', 'پورا نام')} <span style={{ color: '#ec3013' }}>*</span>
                                         </label>
                                         <div style={{ position: 'relative', display: 'flex' }}>
-                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                            <span style={{ position: 'absolute', insetInlineStart: '14px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                                                     <circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" />
                                                 </svg>
                                             </span>
                                             <input
+                                                id="pmcc-name-input"
                                                 type="text"
+                                                name="name"
+                                                autoComplete="name"
+                                                className="pmcc-input"
                                                 value={data.name}
                                                 onChange={e => { setData('name', e.target.value); if (errors.name) clearErrors('name'); }}
                                                 placeholder={label('Enter your full name', 'اپنا مکمل نام درج کریں')}
@@ -625,11 +721,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     boxSizing: 'border-box',
                                                     background: '#faf7f2',
                                                     border: `1.5px solid ${errors.name ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
+                                                    borderRadius: '13px',
                                                     font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineStart: '46px',
+                                                    fontSize: '14px',
+                                                    padding: '10px 14px',
+                                                    paddingInlineStart: '40px',
                                                     color: '#2a2623',
                                                     outline: 'none',
                                                     transition: 'border-color .2s, box-shadow .2s, background .2s',
@@ -637,29 +733,32 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             />
                                         </div>
                                         {errors.name && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                 {errors.name}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* CNIC Number */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label htmlFor="pmcc-cnic-input" style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('CNIC number', 'قومی شناختی کارڈ نمبر')} <span style={{ color: '#ec3013' }}>*</span>
                                         </label>
                                         <div style={{ position: 'relative', display: 'flex' }}>
-                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                            <span style={{ position: 'absolute', insetInlineStart: '14px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                                                     <rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" />
                                                 </svg>
                                             </span>
                                             <IMaskInput
+                                                id="pmcc-cnic-input"
+                                                name="national-id"
+                                                autoComplete="off"
                                                 mask="00000-0000000-0"
+                                                className="pmcc-input"
                                                 value={data.cnic}
                                                 onAccept={val => { setData('cnic', val); if (errors.cnic) clearErrors('cnic'); }}
-                                                onBlur={handleCnicBlur}
                                                 placeholder="00000-0000000-0"
                                                 dir="ltr"
                                                 style={{
@@ -667,11 +766,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     boxSizing: 'border-box',
                                                     background: '#faf7f2',
                                                     border: `1.5px solid ${errors.cnic ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
+                                                    borderRadius: '13px',
                                                     font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineStart: '46px',
+                                                    fontSize: '14px',
+                                                    padding: '10px 14px',
+                                                    paddingInlineStart: '40px',
                                                     color: '#2a2623',
                                                     outline: 'none',
                                                     transition: 'border-color .2s, box-shadow .2s, background .2s',
@@ -679,26 +778,30 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             />
                                         </div>
                                         {errors.cnic && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                 {errors.cnic}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Mobile Number */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label htmlFor="pmcc-mobile-input" style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('Mobile number', 'موبائل نمبر')} <span style={{ color: '#ec3013' }}>*</span>
                                         </label>
                                         <div style={{ position: 'relative', display: 'flex' }}>
-                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                            <span style={{ position: 'absolute', insetInlineStart: '14px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                                                     <rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" />
                                                 </svg>
                                             </span>
                                             <IMaskInput
+                                                id="pmcc-mobile-input"
+                                                name="tel"
+                                                autoComplete="tel"
                                                 mask="0000-0000000"
+                                                className="pmcc-input"
                                                 value={data.mobile_number}
                                                 onAccept={val => { setData('mobile_number', val); if (errors.mobile_number) clearErrors('mobile_number'); }}
                                                 placeholder="0300-0000000"
@@ -708,11 +811,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     boxSizing: 'border-box',
                                                     background: '#faf7f2',
                                                     border: `1.5px solid ${errors.mobile_number ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
+                                                    borderRadius: '13px',
                                                     font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineStart: '46px',
+                                                    fontSize: '14px',
+                                                    padding: '10px 14px',
+                                                    paddingInlineStart: '40px',
                                                     color: '#2a2623',
                                                     outline: 'none',
                                                     transition: 'border-color .2s, box-shadow .2s, background .2s',
@@ -720,20 +823,24 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             />
                                         </div>
                                         {errors.mobile_number && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                 {errors.mobile_number}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Gender (Optional) */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label htmlFor="pmcc-gender-select" style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('Gender', 'جنس')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
                                         </label>
                                         <div style={{ position: 'relative', display: 'flex' }}>
                                             <select
+                                                id="pmcc-gender-select"
+                                                name="sex"
+                                                autoComplete="sex"
+                                                className="pmcc-input"
                                                 value={data.gender}
                                                 onChange={e => setData('gender', e.target.value)}
                                                 style={{
@@ -742,11 +849,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     appearance: 'none',
                                                     background: '#faf7f2',
                                                     border: '1.5px solid #e6ded2',
-                                                    borderRadius: '16px',
+                                                    borderRadius: '13px',
                                                     font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineEnd: '44px',
+                                                    fontSize: '14px',
+                                                    padding: '10px 14px',
+                                                    paddingInlineEnd: '38px',
                                                     color: '#2a2623',
                                                     outline: 'none',
                                                     cursor: 'pointer',
@@ -758,8 +865,8 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 <option value="female">{label('Female', 'عورت')}</option>
                                                 <option value="other">{label('Other', 'دیگر')}</option>
                                             </select>
-                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                            <span style={{ position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
                                             </span>
                                         </div>
                                     </div>
@@ -770,98 +877,182 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 STEP 2: WHERE IT HAPPENED
                                 ═════════════════════════════════════ */}
                             {currentStep === 2 && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
-                                    {/* District */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
-                                            {label('District', 'ضلع')} <span style={{ color: '#ec3013' }}>*</span>
-                                        </label>
-                                        <div style={{ position: 'relative', display: 'flex' }}>
-                                            <select
-                                                value={data.district_id}
-                                                onChange={e => {
-                                                    setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }));
-                                                    if (errors.district_id) clearErrors('district_id');
-                                                }}
-                                                style={{
-                                                    width: '100%',
-                                                    boxSizing: 'border-box',
-                                                    appearance: 'none',
-                                                    background: '#faf7f2',
-                                                    border: `1.5px solid ${errors.district_id ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
-                                                    font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineEnd: '44px',
-                                                    color: '#2a2623',
-                                                    outline: 'none',
-                                                    cursor: 'pointer',
-                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
-                                                }}
-                                            >
-                                                <option value="">{label('Select a district', 'ضلع منتخب کریں')}</option>
-                                                {districts.map(d => (
-                                                    <option key={d.id} value={d.id}>{dname(d)}</option>
-                                                ))}
-                                            </select>
-                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    {/* Locate Me Button & Fallback Notice */}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            background: '#faf7f2',
+                                            border: '1.5px dashed #e6ded2',
+                                            borderRadius: '13px',
+                                            padding: '10px 14px',
+                                            gap: '12px',
+                                            flexWrap: 'wrap',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                                            </svg>
+                                            <span style={{ fontSize: '12.5px', color: '#554f49', fontFamily: uiFont }}>
+                                                {label('Want to auto-fill your location?', 'کیا آپ اپنی لوکیشن خودکار طور پر درج کرنا چاہتے ہیں؟')}
                                             </span>
                                         </div>
-                                        {errors.district_id && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
-                                                {errors.district_id}
-                                            </span>
-                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={handleLocateMe}
+                                            disabled={isLocating}
+                                            style={{
+                                                background: '#fff',
+                                                color: '#344e41',
+                                                border: '1.5px solid #d8cfc0',
+                                                borderRadius: '999px',
+                                                padding: '6px 14px',
+                                                fontFamily: uiFont,
+                                                fontWeight: 700,
+                                                fontSize: '12px',
+                                                cursor: isLocating ? 'wait' : 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,.04)',
+                                                transition: 'background .15s, border-color .15s',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#fdf3e0'}
+                                            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                                        >
+                                            <span>{isLocating ? (isRtl ? 'تلاش جاری...' : 'Detecting...') : (isRtl ? 'موجودہ مقام استعمال کریں' : 'Locate Me')}</span>
+                                        </button>
                                     </div>
 
-                                    {/* Tehsil */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
-                                            {label('Tehsil', 'تحصیل')} <span style={{ color: '#ec3013' }}>*</span>
-                                        </label>
-                                        <div style={{ position: 'relative', display: 'flex' }}>
-                                            <select
-                                                value={data.tehsil_id}
-                                                disabled={!data.district_id}
-                                                onChange={e => {
-                                                    setData('tehsil_id', e.target.value);
-                                                    if (errors.tehsil_id) clearErrors('tehsil_id');
-                                                }}
-                                                style={{
-                                                    width: '100%',
-                                                    boxSizing: 'border-box',
-                                                    appearance: 'none',
-                                                    background: !data.district_id ? '#f2eee9' : '#faf7f2',
-                                                    border: `1.5px solid ${errors.tehsil_id ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
-                                                    font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineEnd: '44px',
-                                                    color: '#2a2623',
-                                                    outline: 'none',
-                                                    cursor: !data.district_id ? 'not-allowed' : 'pointer',
-                                                    transition: 'border-color .2s, box-shadow .2s, background .2s',
-                                                }}
-                                            >
-                                                <option value="">{label('Select a tehsil', 'تحصیل منتخب کریں')}</option>
-                                                {availableTehsils.map(t => (
-                                                    <option key={t.id} value={t.id}>{dname(t)}</option>
-                                                ))}
-                                            </select>
-                                            <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
-                                            </span>
+                                    {/* Locate message banner */}
+                                    {locateMessage && (
+                                        <div
+                                            className="animate-pmcc-enter"
+                                            style={{
+                                                background: locateMessage.type === 'success' ? '#eaf2ec' : '#fdf3e0',
+                                                border: `1px solid ${locateMessage.type === 'success' ? '#6f8c79' : '#e2ae4e'}`,
+                                                borderRadius: '11px',
+                                                padding: '9px 13px',
+                                                fontSize: '12px',
+                                                color: locateMessage.type === 'success' ? '#24392f' : '#8a5c07',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                            }}
+                                        >
+                                            <span>{locateMessage.type === 'success' ? '✓' : 'ℹ'}</span>
+                                            <span>{locateMessage.text}</span>
                                         </div>
-                                        {errors.tehsil_id && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
-                                                {errors.tehsil_id}
-                                            </span>
-                                        )}
+                                    )}
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
+                                        {/* District */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                                <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                                    {label('District', 'ضلع')} <span style={{ color: '#ec3013' }}>*</span>
+                                                </label>
+                                                <span style={{ fontSize: '11px', color: '#8b847d' }}>
+                                                    {label('Pick manually', 'دستی انتخاب')}
+                                                </span>
+                                            </div>
+                                            <div style={{ position: 'relative', display: 'flex' }}>
+                                                <select
+                                                    className="pmcc-input"
+                                                    value={data.district_id}
+                                                    onChange={e => {
+                                                        setData(prev => ({ ...prev, district_id: e.target.value, tehsil_id: '' }));
+                                                        if (errors.district_id) clearErrors('district_id');
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        boxSizing: 'border-box',
+                                                        appearance: 'none',
+                                                        background: '#faf7f2',
+                                                        border: `1.5px solid ${errors.district_id ? '#ec3013' : '#e6ded2'}`,
+                                                        borderRadius: '13px',
+                                                        font: 'inherit',
+                                                        fontSize: '14px',
+                                                        padding: '10px 14px',
+                                                        paddingInlineEnd: '38px',
+                                                        color: '#2a2623',
+                                                        outline: 'none',
+                                                        cursor: 'pointer',
+                                                        transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                    }}
+                                                >
+                                                    <option value="">{label('Select a district', 'ضلع منتخب کریں')}</option>
+                                                    {districts.map(d => (
+                                                        <option key={d.id} value={d.id}>{dname(d)}</option>
+                                                    ))}
+                                                </select>
+                                                <span style={{ position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                </span>
+                                            </div>
+                                            {errors.district_id && (
+                                                <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                    {errors.district_id}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Tehsil */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                                <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                                    {label('Tehsil', 'تحصیل')} <span style={{ color: '#ec3013' }}>*</span>
+                                                </label>
+                                                <span style={{ fontSize: '11px', color: '#8b847d' }}>
+                                                    {label('Pick manually', 'دستی انتخاب')}
+                                                </span>
+                                            </div>
+                                            <div style={{ position: 'relative', display: 'flex' }}>
+                                                <select
+                                                    className="pmcc-input"
+                                                    value={data.tehsil_id}
+                                                    disabled={!data.district_id}
+                                                    onChange={e => {
+                                                        setData('tehsil_id', e.target.value);
+                                                        if (errors.tehsil_id) clearErrors('tehsil_id');
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        boxSizing: 'border-box',
+                                                        appearance: 'none',
+                                                        background: !data.district_id ? '#f3ede2' : '#faf7f2',
+                                                        border: `1.5px solid ${errors.tehsil_id ? '#ec3013' : '#e6ded2'}`,
+                                                        borderRadius: '13px',
+                                                        font: 'inherit',
+                                                        fontSize: '14px',
+                                                        padding: '10px 14px',
+                                                        paddingInlineEnd: '38px',
+                                                        color: !data.district_id ? '#8b847d' : '#2a2623',
+                                                        outline: 'none',
+                                                        cursor: !data.district_id ? 'not-allowed' : 'pointer',
+                                                        transition: 'border-color .2s, box-shadow .2s, background .2s',
+                                                    }}
+                                                >
+                                                    <option value="">{data.district_id ? label('Select a tehsil', 'تحصیل منتخب کریں') : label('Pick a district first', 'پہلے ضلع منتخب کریں')}</option>
+                                                    {availableTehsils.map(t => (
+                                                        <option key={t.id} value={t.id}>{dname(t)}</option>
+                                                    ))}
+                                                </select>
+                                                <span style={{ position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                </span>
+                                            </div>
+                                            {errors.tehsil_id && (
+                                                <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                    {errors.tehsil_id}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -870,15 +1061,16 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 STEP 3: YOUR COMPLAINT
                                 ═════════════════════════════════════ */}
                             {currentStep === 3 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '22px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
                                         {/* Department */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                                 {label('Department', 'محکمہ')} <span style={{ color: '#ec3013' }}>*</span>
                                             </label>
                                             <div style={{ position: 'relative', display: 'flex' }}>
                                                 <select
+                                                    className="pmcc-input"
                                                     value={data.department_id}
                                                     onChange={e => {
                                                         setData(prev => ({
@@ -896,11 +1088,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                         appearance: 'none',
                                                         background: '#faf7f2',
                                                         border: `1.5px solid ${errors.department_id ? '#ec3013' : '#e6ded2'}`,
-                                                        borderRadius: '16px',
+                                                        borderRadius: '13px',
                                                         font: 'inherit',
-                                                        fontSize: '15px',
-                                                        padding: '13px 16px',
-                                                        paddingInlineEnd: '44px',
+                                                        fontSize: '14px',
+                                                        padding: '10px 14px',
+                                                        paddingInlineEnd: '38px',
                                                         color: '#2a2623',
                                                         outline: 'none',
                                                         cursor: 'pointer',
@@ -913,13 +1105,13 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     ))}
                                                     <option value="other">{label('Other / Unknown', 'دیگر / معلوم نہیں')}</option>
                                                 </select>
-                                                <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
-                                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                <span style={{ position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
                                                 </span>
                                             </div>
                                             {errors.department_id && (
-                                                <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                                <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                     {errors.department_id}
                                                 </span>
                                             )}
@@ -927,12 +1119,13 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
 
                                         {/* Category / Sub-dept (Optional cascade) */}
                                         {availableCategories.length > 0 && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                                     {label('Category', 'زمرہ')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
                                                 </label>
                                                 <div style={{ position: 'relative', display: 'flex' }}>
                                                     <select
+                                                        className="pmcc-input"
                                                         value={data.category_id}
                                                         onChange={e => setData('category_id', e.target.value)}
                                                         style={{
@@ -941,11 +1134,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                             appearance: 'none',
                                                             background: '#faf7f2',
                                                             border: '1.5px solid #e6ded2',
-                                                            borderRadius: '16px',
+                                                            borderRadius: '13px',
                                                             font: 'inherit',
-                                                            fontSize: '15px',
-                                                            padding: '13px 16px',
-                                                            paddingInlineEnd: '44px',
+                                                            fontSize: '14px',
+                                                            padding: '10px 14px',
+                                                            paddingInlineEnd: '38px',
                                                             color: '#2a2623',
                                                             outline: 'none',
                                                             cursor: 'pointer',
@@ -958,8 +1151,8 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                         ))}
                                                         <option value="other">{label('Other', 'دیگر')}</option>
                                                     </select>
-                                                    <span style={{ position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
-                                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+                                                    <span style={{ position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6b645e', pointerEvents: 'none', display: 'flex' }}>
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
                                                     </span>
                                                 </div>
                                             </div>
@@ -967,18 +1160,19 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     </div>
 
                                     {/* Subject with Search Icon & Suggestions Dropdown */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
+                                        <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('Subject', 'موضوع')} <span style={{ color: '#ec3013' }}>*</span>
                                         </label>
                                         <div style={{ position: 'relative', display: 'flex' }}>
-                                            <span style={{ position: 'absolute', insetInlineStart: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                                            <span style={{ position: 'absolute', insetInlineStart: '14px', top: '50%', transform: 'translateY(-50%)', color: '#a9a29b', pointerEvents: 'none', display: 'flex' }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                                                     <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
                                                 </svg>
                                             </span>
                                             <input
                                                 type="text"
+                                                className="pmcc-input"
                                                 value={data.subject}
                                                 onFocus={() => setSubjOpen(true)}
                                                 onBlur={() => setTimeout(() => setSubjOpen(false), 200)}
@@ -993,11 +1187,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     boxSizing: 'border-box',
                                                     background: '#faf7f2',
                                                     border: `1.5px solid ${errors.subject ? '#ec3013' : '#e6ded2'}`,
-                                                    borderRadius: '16px',
+                                                    borderRadius: '13px',
                                                     font: 'inherit',
-                                                    fontSize: '15px',
-                                                    padding: '13px 16px',
-                                                    paddingInlineStart: '46px',
+                                                    fontSize: '14px',
+                                                    padding: '10px 14px',
+                                                    paddingInlineStart: '40px',
                                                     color: '#2a2623',
                                                     outline: 'none',
                                                     transition: 'border-color .2s, box-shadow .2s, background .2s',
@@ -1010,17 +1204,17 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             <div
                                                 style={{
                                                     position: 'absolute',
-                                                    top: 'calc(100% + 6px)',
+                                                    top: 'calc(100% + 5px)',
                                                     insetInlineStart: 0,
                                                     insetInlineEnd: 0,
                                                     background: '#fff',
                                                     border: '1.5px solid #e6ded2',
-                                                    borderRadius: '20px',
+                                                    borderRadius: '16px',
                                                     zIndex: 20,
-                                                    maxHeight: '250px',
+                                                    maxHeight: '220px',
                                                     overflow: 'auto',
-                                                    padding: '6px',
-                                                    boxShadow: '0 18px 40px rgba(42,38,35,.16)',
+                                                    padding: '5px',
+                                                    boxShadow: '0 14px 34px rgba(42,38,35,.14)',
                                                     animation: 'pmccEnterA .2s both',
                                                 }}
                                             >
@@ -1040,10 +1234,10 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                             textAlign: 'start',
                                                             background: 'none',
                                                             border: 0,
-                                                            borderRadius: '14px',
-                                                            padding: '11px 14px',
+                                                            borderRadius: '10px',
+                                                            padding: '9px 12px',
                                                             font: 'inherit',
-                                                            fontSize: '14.5px',
+                                                            fontSize: '13.5px',
                                                             color: '#2a2623',
                                                             cursor: 'pointer',
                                                             transition: 'background .16s',
@@ -1054,37 +1248,38 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                         <span style={{ fontWeight: 600, color: '#344e41' }}>
                                                             {isRtl ? sPair[1] : sPair[0]}
                                                         </span>
-                                                        <span style={{ fontSize: '12px', color: '#8b847d' }}>
+                                                        <span style={{ fontSize: '11.5px', color: '#8b847d' }}>
                                                             {isRtl ? sPair[0] : sPair[1]}
                                                         </span>
                                                     </button>
                                                 ))}
-                                                <div style={{ padding: '10px 14px', fontSize: '12px', color: '#8b847d' }}>
+                                                <div style={{ padding: '8px 12px', fontSize: '11.5px', color: '#8b847d' }}>
                                                     {label('No match? Keep typing — your own wording is accepted.', 'کوئی تجویز موزوں نہیں؟ اپنے الفاظ میں لکھتے رہیں، وہ بھی قبول ہے۔')}
                                                 </div>
                                             </div>
                                         )}
 
                                         {errors.subject && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                 {errors.subject}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* What happened (Details) */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                                            <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                            <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                                 {label('What happened', 'کیا ہوا')} <span style={{ color: '#ec3013' }}>*</span>
                                             </label>
-                                            <span style={{ fontSize: '12px', color: data.details.length >= 20 ? '#344e41' : '#8b847d' }}>
+                                            <span style={{ fontSize: '11.5px', color: data.details.length >= 20 ? '#344e41' : '#8b847d' }}>
                                                 {data.details.length} {label('characters', 'حروف')} (min 20)
                                             </span>
                                         </div>
                                         <textarea
-                                            rows={6}
+                                            rows={4}
+                                            className="pmcc-input"
                                             value={data.details}
                                             onChange={e => {
                                                 setData('details', e.target.value);
@@ -1099,11 +1294,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 boxSizing: 'border-box',
                                                 background: '#faf7f2',
                                                 border: `1.5px solid ${errors.details ? '#ec3013' : '#e6ded2'}`,
-                                                borderRadius: '18px',
+                                                borderRadius: '13px',
                                                 font: 'inherit',
-                                                fontSize: '15px',
-                                                lineHeight: 1.7,
-                                                padding: '13px 16px',
+                                                fontSize: '14px',
+                                                lineHeight: 1.6,
+                                                padding: '10px 14px',
                                                 color: '#2a2623',
                                                 outline: 'none',
                                                 resize: 'vertical',
@@ -1111,42 +1306,42 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             }}
                                         />
                                         {errors.details && (
-                                            <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                                            <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></svg>
                                                 {errors.details}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Evidence (Attachments) */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <label style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>
                                             {label('Evidence', 'ثبوت')} <span style={{ color: '#a9a29b', fontWeight: 500 }}>{label('(optional)', '(اختیاری)')}</span>
                                         </label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(172px, 1fr))', gap: '12px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
                                             {/* File upload tile */}
                                             <label
                                                 onClick={() => fileInputRef.current?.click()}
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '12px',
+                                                    gap: '10px',
                                                     background: '#faf7f2',
                                                     border: '1.5px dashed #ddd3c4',
-                                                    borderRadius: '20px',
-                                                    padding: '16px',
+                                                    borderRadius: '13px',
+                                                    padding: '11px 14px',
                                                     cursor: 'pointer',
                                                     transition: 'border-color .2s, background .2s, transform .2s',
                                                 }}
                                             >
-                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M21.5 12.5 12 22a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8.5-8.5" />
                                                     </svg>
                                                 </span>
                                                 <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Attach files', 'فائلیں منسلک کریں')}</span>
-                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Photos, video, PDF', 'تصاویر، ویڈیو، پی ڈی ایف')}</span>
+                                                    <span style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Attach files', 'فائلیں منسلک کریں')}</span>
+                                                    <span style={{ fontSize: '11px', color: '#8b847d' }}>{label('Photos, video, PDF', 'تصاویر، ویڈیو، پی ڈی ایف')}</span>
                                                 </span>
                                             </label>
 
@@ -1156,23 +1351,23 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '12px',
+                                                    gap: '10px',
                                                     background: '#faf7f2',
                                                     border: '1.5px dashed #ddd3c4',
-                                                    borderRadius: '20px',
-                                                    padding: '16px',
+                                                    borderRadius: '13px',
+                                                    padding: '11px 14px',
                                                     cursor: 'pointer',
                                                     transition: 'border-color .2s, background .2s, transform .2s',
                                                 }}
                                             >
-                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M3 8h3l2-3h8l2 3h3v12H3z" /><circle cx="12" cy="13" r="4" />
                                                     </svg>
                                                 </span>
                                                 <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture photo', 'تصویر لیں')}</span>
-                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Use your camera', 'کیمرہ استعمال کریں')}</span>
+                                                    <span style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture photo', 'تصویر لیں')}</span>
+                                                    <span style={{ fontSize: '11px', color: '#8b847d' }}>{label('Use your camera', 'کیمرہ استعمال کریں')}</span>
                                                 </span>
                                             </label>
 
@@ -1182,62 +1377,62 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '12px',
+                                                    gap: '10px',
                                                     background: '#faf7f2',
                                                     border: '1.5px dashed #ddd3c4',
-                                                    borderRadius: '20px',
-                                                    padding: '16px',
+                                                    borderRadius: '13px',
+                                                    padding: '11px 14px',
                                                     cursor: 'pointer',
                                                     transition: 'border-color .2s, background .2s, transform .2s',
                                                 }}
                                             >
-                                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
-                                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eaf1eb', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M2.5 6.5h12v11h-12z" /><path d="m14.5 10.5 7-4v12l-7-4" />
                                                     </svg>
                                                 </span>
                                                 <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                    <span style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture video', 'ویڈیو بنائیں')}</span>
-                                                    <span style={{ fontSize: '11.5px', color: '#8b847d' }}>{label('Record on the spot', 'موقع پر ریکارڈ کریں')}</span>
+                                                    <span style={{ fontSize: '12.5px', fontWeight: 700, fontFamily: uiFont }}>{label('Capture video', 'ویڈیو بنائیں')}</span>
+                                                    <span style={{ fontSize: '11px', color: '#8b847d' }}>{label('Record on the spot', 'موقع پر ریکارڈ کریں')}</span>
                                                 </span>
                                             </label>
                                         </div>
 
                                         {/* Attached files pills */}
                                         {attachmentFiles.length > 0 && (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '9px', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
                                                 {attachmentFiles.map((f, idx) => (
                                                     <span
                                                         key={idx}
                                                         style={{
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
-                                                            gap: '9px',
+                                                            gap: '8px',
                                                             background: '#eaf1eb',
                                                             borderRadius: '999px',
-                                                            padding: '9px 14px',
-                                                            fontSize: '12.5px',
+                                                            padding: '7px 12px',
+                                                            fontSize: '12px',
                                                             color: '#344e41',
                                                             animation: 'pmccEnterA .25s both',
                                                         }}
                                                     >
-                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="2.4" strokeLinecap="round">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="2.4" strokeLinecap="round">
                                                             <path d="M20 6 9 17l-5-5" />
                                                         </svg>
-                                                        <span style={{ maxWidth: '190px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                                                        <span style={{ color: '#6f8c79' }}>{(f.size / 1024 < 1024) ? `${Math.round(f.size / 1024)} KB` : `${(f.size / 1048576).toFixed(1)} MB`}</span>
+                                                        <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                                        <span style={{ color: '#6f8c79', fontSize: '11px' }}>{(f.size / 1024 < 1024) ? `${Math.round(f.size / 1024)} KB` : `${(f.size / 1048576).toFixed(1)} MB`}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => removeFile(idx)}
                                                             style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer', color: '#6f8c79', display: 'flex' }}
                                                         >
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                                                         </button>
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
-                                        {fileError && <span style={{ fontSize: '12.5px', color: '#ec3013' }}>{fileError}</span>}
+                                        {fileError && <span style={{ fontSize: '12px', color: '#ec3013' }}>{fileError}</span>}
                                     </div>
                                 </div>
                             )}
@@ -1246,11 +1441,11 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                 STEP 4: REVIEW AND SUBMIT
                                 ═════════════════════════════════════ */}
                             {currentStep === 4 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                     {/* Review group: About you */}
-                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('About you', 'آپ کے بارے میں')}</span>
+                                    <div style={{ background: '#faf7f2', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e6ded2' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '13.5px', color: '#344e41' }}>{label('About you', 'آپ کے بارے میں')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(1)}
@@ -1258,9 +1453,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     background: '#fff',
                                                     border: '1px solid #e6ded2',
                                                     borderRadius: '999px',
-                                                    padding: '7px 15px',
+                                                    padding: '5px 12px',
                                                     font: 'inherit',
-                                                    fontSize: '12.5px',
+                                                    fontSize: '11.5px',
                                                     fontWeight: 700,
                                                     color: '#ec3013',
                                                     cursor: 'pointer',
@@ -1269,14 +1464,14 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 {label('Edit', 'ترمیم')}
                                             </button>
                                         </div>
-                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                        <div style={{ background: '#fff', margin: '0 4px 4px', borderRadius: '13px', padding: '2px 0' }}>
                                             {[
                                                 [label('Full name', 'پورا نام'), data.name || '—'],
                                                 [label('CNIC number', 'قومی شناختی کارڈ نمبر'), data.cnic || '—'],
                                                 [label('Mobile number', 'موبائل نمبر'), data.mobile_number || '—'],
                                                 [label('Gender', 'جنس'), data.gender === 'male' ? label('Male', 'مرد') : data.gender === 'female' ? label('Female', 'عورت') : label('Prefer not to say', 'بتانا نہیں چاہتے')],
                                             ].map(([k, v]) => (
-                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 160px) 1fr', gap: '12px', padding: '8px 12px', fontSize: '13px' }}>
                                                     <span style={{ color: '#6b645e' }}>{k}</span>
                                                     <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
                                                 </div>
@@ -1285,9 +1480,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     </div>
 
                                     {/* Review group: Location */}
-                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('Location', 'مقام')}</span>
+                                    <div style={{ background: '#faf7f2', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e6ded2' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '13.5px', color: '#344e41' }}>{label('Location', 'مقام')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(2)}
@@ -1295,9 +1490,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     background: '#fff',
                                                     border: '1px solid #e6ded2',
                                                     borderRadius: '999px',
-                                                    padding: '7px 15px',
+                                                    padding: '5px 12px',
                                                     font: 'inherit',
-                                                    fontSize: '12.5px',
+                                                    fontSize: '11.5px',
                                                     fontWeight: 700,
                                                     color: '#ec3013',
                                                     cursor: 'pointer',
@@ -1306,12 +1501,12 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 {label('Edit', 'ترمیم')}
                                             </button>
                                         </div>
-                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                        <div style={{ background: '#fff', margin: '0 4px 4px', borderRadius: '13px', padding: '2px 0' }}>
                                             {[
                                                 [label('District', 'ضلع'), districtName],
                                                 [label('Tehsil', 'تحصیل'), tehsilName],
                                             ].map(([k, v]) => (
-                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 160px) 1fr', gap: '12px', padding: '8px 12px', fontSize: '13px' }}>
                                                     <span style={{ color: '#6b645e' }}>{k}</span>
                                                     <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
                                                 </div>
@@ -1320,9 +1515,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                     </div>
 
                                     {/* Review group: Complaint */}
-                                    <div style={{ background: '#faf7f2', borderRadius: '22px', overflow: 'hidden' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px' }}>
-                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14.5px', color: '#344e41' }}>{label('Complaint', 'شکایت')}</span>
+                                    <div style={{ background: '#faf7f2', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e6ded2' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px' }}>
+                                            <span style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '13.5px', color: '#344e41' }}>{label('Complaint', 'شکایت')}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => goTo(3)}
@@ -1330,9 +1525,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     background: '#fff',
                                                     border: '1px solid #e6ded2',
                                                     borderRadius: '999px',
-                                                    padding: '7px 15px',
+                                                    padding: '5px 12px',
                                                     font: 'inherit',
-                                                    fontSize: '12.5px',
+                                                    fontSize: '11.5px',
                                                     fontWeight: 700,
                                                     color: '#ec3013',
                                                     cursor: 'pointer',
@@ -1341,7 +1536,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 {label('Edit', 'ترمیم')}
                                             </button>
                                         </div>
-                                        <div style={{ background: '#fff', margin: '0 6px 6px', borderRadius: '18px', padding: '4px 0' }}>
+                                        <div style={{ background: '#fff', margin: '0 4px 4px', borderRadius: '13px', padding: '2px 0' }}>
                                             {[
                                                 [label('Department', 'محکمہ'), departmentName],
                                                 ...(categoryName !== '—' ? [[label('Category', 'زمرہ'), categoryName]] : []),
@@ -1349,7 +1544,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 [label('What happened', 'کیا ہوا'), data.details || '—'],
                                                 ...(attachmentFiles.length > 0 ? [[label('Evidence', 'ثبوت'), `${attachmentFiles.length} ${label('file(s)', 'فائلیں')}`]] : []),
                                             ].map(([k, v]) => (
-                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 180px) 1fr', gap: '16px', padding: '11px 16px', fontSize: '14.5px' }}>
+                                                <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 160px) 1fr', gap: '12px', padding: '8px 12px', fontSize: '13px' }}>
                                                     <span style={{ color: '#6b645e' }}>{k}</span>
                                                     <span style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{v}</span>
                                                 </div>
@@ -1362,11 +1557,12 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         style={{
                                             display: 'flex',
                                             alignItems: 'flex-start',
-                                            gap: '13px',
+                                            gap: '11px',
                                             background: '#fdf3e0',
-                                            borderRadius: '20px',
-                                            padding: '17px',
+                                            borderRadius: '13px',
+                                            padding: '12px 14px',
                                             cursor: 'pointer',
+                                            border: '1px solid #ebd9b8',
                                         }}
                                     >
                                         <input
@@ -1376,9 +1572,9 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                 setDeclarationAccepted(e.target.checked);
                                                 if (errors.declaration) clearErrors('declaration');
                                             }}
-                                            style={{ width: '20px', height: '20px', margin: '1px 0 0', accentColor: '#344e41', flex: 'none', cursor: 'pointer' }}
+                                            style={{ width: '17px', height: '17px', margin: '2px 0 0', accentColor: '#344e41', flex: 'none', cursor: 'pointer' }}
                                         />
-                                        <span style={{ fontSize: '13.5px', color: '#5c4713', lineHeight: 1.55 }}>
+                                        <span style={{ fontSize: '12.5px', color: '#5c4713', lineHeight: 1.5 }}>
                                             {label(
                                                 'I confirm the information above is true to the best of my knowledge, and I allow PMCC to share it with the relevant department.',
                                                 'میں تصدیق کرتا/کرتی ہوں کہ درج بالا معلومات میرے علم کے مطابق درست ہیں، اور PMCC انہیں متعلقہ محکمے کو بھیج سکتا ہے۔'
@@ -1386,7 +1582,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                         </span>
                                     </label>
                                     {errors.declaration && (
-                                        <span className="animate-pmcc-shake" style={{ fontSize: '12.5px', color: '#ec3013' }}>
+                                        <span className="animate-pmcc-shake" style={{ fontSize: '12px', color: '#ec3013' }}>
                                             {errors.declaration}
                                         </span>
                                     )}
@@ -1396,15 +1592,15 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                         </div>
 
                         {/* Bottom Footer Actions */}
-                        <div style={{ marginTop: 'auto', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '12.5px', color: '#6b645e' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.9" strokeLinecap="round">
+                        <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: '#6b645e' }}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#344e41" strokeWidth="1.9" strokeLinecap="round">
                                     <rect x="4" y="10" width="16" height="10" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
                                 </svg>
                                 <span>{label('Your information is kept safe and confidential.', 'آپ کی معلومات مکمل طور پر محفوظ اور رازدارانہ رکھی جائیں گی۔')}</span>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {currentStep > 1 && (
                                     <button
                                         type="button"
@@ -1416,12 +1612,12 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             borderRadius: '999px',
                                             fontFamily: "'Archivo', sans-serif",
                                             fontWeight: 700,
-                                            fontSize: '14px',
-                                            padding: '14px 22px',
+                                            fontSize: '13px',
+                                            padding: '9px 18px',
                                             cursor: 'pointer',
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: '8px',
+                                            gap: '6px',
                                             transition: 'background .2s, transform .2s',
                                         }}
                                     >
@@ -1441,18 +1637,18 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             borderRadius: '999px',
                                             fontFamily: "'Archivo', sans-serif",
                                             fontWeight: 700,
-                                            fontSize: '14.5px',
-                                            padding: '15px 28px',
+                                            fontSize: '13.5px',
+                                            padding: '11px 22px',
                                             cursor: 'pointer',
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: '10px',
-                                            boxShadow: '0 8px 20px rgba(236,48,19,.28)',
+                                            gap: '8px',
+                                            boxShadow: '0 6px 16px rgba(236,48,19,.24)',
                                             transition: 'transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s',
                                         }}
                                     >
                                         <span>{label('Next step', 'اگلا مرحلہ')}</span>
-                                        <span style={{ fontSize: '16px' }}>{isRtl ? '←' : '→'}</span>
+                                        <span style={{ fontSize: '15px' }}>{isRtl ? '←' : '→'}</span>
                                     </button>
                                 ) : (
                                     <button
@@ -1465,19 +1661,19 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                             borderRadius: '999px',
                                             fontFamily: "'Archivo', sans-serif",
                                             fontWeight: 700,
-                                            fontSize: '14.5px',
-                                            padding: '15px 28px',
+                                            fontSize: '13.5px',
+                                            padding: '11px 22px',
                                             cursor: processing ? 'not-allowed' : 'pointer',
                                             opacity: processing ? 0.75 : 1,
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: '10px',
-                                            boxShadow: '0 8px 20px rgba(236,48,19,.28)',
+                                            gap: '8px',
+                                            boxShadow: '0 6px 16px rgba(236,48,19,.24)',
                                             transition: 'transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s',
                                         }}
                                     >
                                         <span>{processing ? label('Submitting...', 'جمع ہو رہا ہے...') : label('Submit complaint', 'شکایت جمع کروائیں')}</span>
-                                        <span style={{ fontSize: '16px' }}>✓</span>
+                                        <span style={{ fontSize: '15px' }}>✓</span>
                                     </button>
                                 )}
                             </div>

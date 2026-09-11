@@ -501,4 +501,83 @@ class CitizenPortalTest extends TestCase
         $response->assertRedirect(route('complaints.track'));
         $response->assertSessionHasErrors(['complaint_number', 'error_code']);
     }
+
+    public function test_download_route_renders_confirmation_with_auto_print(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+        $channel = \App\Models\Channel::firstOrCreate(['name' => 'Web']);
+
+        $citizen = Citizen::create([
+            'name' => 'Sardar Waqas',
+            'cnic' => '8220199999999',
+            'mobile_number' => '03009999999',
+            'gender' => 'male',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+        ]);
+
+        $complaint = Complaint::create([
+            'citizen_id' => $citizen->id,
+            'cnic' => $citizen->cnic,
+            'channel_id' => $channel->id,
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => $department->id,
+            'subject' => 'Electricity Transformer Failure',
+            'details' => 'Transformer exploded in Sector B2.',
+            'stage' => 'application_submission',
+            'status' => 'submitted',
+        ]);
+
+        $response = $this->get(route('complaints.download', $complaint->complaint_number));
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Public/ComplaintConfirmation')
+            ->where('autoPrint', true)
+            ->where('complaint.complaint_number', $complaint->complaint_number)
+            ->where('complaint.citizen.name', 'Sardar Waqas')
+        );
+    }
+
+    public function test_track_page_loads_complete_complaint_relations_for_download_copy(): void
+    {
+        $district = District::first();
+        $tehsil = Tehsil::where('district_id', $district->id)->first();
+        $department = Department::first();
+        $channel = \App\Models\Channel::firstOrCreate(['name' => 'Web']);
+
+        $citizen = Citizen::create([
+            'name' => 'Zahra Bibi',
+            'cnic' => '8230188888888',
+            'mobile_number' => '03008888888',
+            'gender' => 'female',
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+        ]);
+
+        $complaint = Complaint::create([
+            'citizen_id' => $citizen->id,
+            'cnic' => $citizen->cnic,
+            'channel_id' => $channel->id,
+            'district_id' => $district->id,
+            'tehsil_id' => $tehsil->id,
+            'department_id' => $department->id,
+            'subject' => 'Medicines Shortage at DHQ Hospital',
+            'details' => 'Critical emergency medicines are out of stock.',
+            'stage' => 'application_submission',
+            'status' => 'submitted',
+        ]);
+
+        $response = $this->get(route('complaints.track', ['complaint_number' => $complaint->complaint_number]));
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Public/ComplaintTrack')
+            ->where('complaint.complaint_number', $complaint->complaint_number)
+            ->has('complaint.citizen')
+            ->has('complaint.department')
+            ->has('complaint.attachments')
+        );
+    }
 }
