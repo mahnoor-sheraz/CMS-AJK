@@ -4,6 +4,17 @@ All notable changes to this project are documented here in reverse chronological
 
 ---
 
+## [2026-09-11] — Dynamic Department & Category Context-Aware Subject Suggestions
+
+### Changes Made
+
+| # | What Changed | Files Modified |
+|---|---|---|
+| 1 | **Dynamic Subject Suggestions by Department & Category** — Replaced the static 12-item suggestion list with an intelligent context-aware engine (`getSubjectSuggestions`). When a citizen selects a Department (e.g. Home Department / Police, Health, School Education, Power / Electricity, Local Government, C&W, ITB, Food Authority, Board of Revenue, etc.) and an optional Category (e.g. Investigation, Medicine Shortage, Dangerous Building, Billing, Sewerage, etc.), the Subject input suggestions instantly adapt to provide highly relevant, authentic issues in both English and Urdu. | `resources/js/data/complaintSubjects.js`, `resources/js/Pages/Public/ComplaintSubmit.jsx` |
+| 2 | **Bilingual Subject Preview & Smart Text Filtering** — Updated the suggestion dropdown to present primary title and secondary translation subtitle (`English` / `Urdu` based on active language direction), allowing instant selection while still filtering smoothly when the citizen types custom keywords. | `resources/js/Pages/Public/ComplaintSubmit.jsx` |
+
+---
+
 ## [2026-09-11] — Color Update (#344e41), Screen Height Viewport Fit & Header Refinement
 
 ### Changes Made

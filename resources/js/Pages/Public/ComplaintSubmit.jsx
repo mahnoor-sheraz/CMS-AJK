@@ -4,21 +4,7 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 import { IMaskInput } from 'react-imask';
 
-// Subject auto-suggestions
-const SUBJ_SUGGESTIONS = [
-    ['No electricity for three days', 'تین دن سے بجلی بند ہے'],
-    ['Overbilling on electricity bill', 'بجلی کے بل میں زائد رقم'],
-    ['Street lights not working', 'اسٹریٹ لائٹس خراب ہیں'],
-    ['Teacher absent from school', 'استاد اسکول سے غیر حاضر ہے'],
-    ['School building unsafe', 'اسکول کی عمارت غیر محفوظ ہے'],
-    ['Hospital medicines unavailable', 'اسپتال میں ادویات دستیاب نہیں'],
-    ['Ambulance service unavailable', 'ایمبولینس سروس دستیاب نہیں'],
-    ['Road damaged after landslide', 'لینڈ سلائیڈ کے بعد سڑک تباہ ہے'],
-    ['Water supply line broken', 'پانی کی سپلائی لائن ٹوٹی ہوئی ہے'],
-    ['Garbage not collected', 'کچرا نہیں اٹھایا جا رہا'],
-    ['Bribe demanded for land record', 'اراضی ریکارڈ کے لیے رشوت کا مطالبہ'],
-    ['FIR not registered', 'ایف آئی آر درج نہیں کی گئی']
-];
+import { getSubjectSuggestions } from '@/data/complaintSubjects';
 
 export default function ComplaintSubmit({ districts: rawDistricts = [], departments: rawDepartments = [] }) {
     const { lang } = useLanguage();
@@ -302,10 +288,8 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
     ];
 
     const filteredSubj = useMemo(() => {
-        if (!data.subject) return SUBJ_SUGGESTIONS;
-        const q = data.subject.toLowerCase();
-        return SUBJ_SUGGESTIONS.filter(item => item[0].toLowerCase().includes(q) || item[1].includes(q));
-    }, [data.subject]);
+        return getSubjectSuggestions(selectedDept, selectedCategory, data.subject);
+    }, [selectedDept, selectedCategory, data.subject]);
 
     const progressPct = `${currentStep * 25}%`;
 
@@ -1040,7 +1024,7 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                     animation: 'pmccEnterA .2s both',
                                                 }}
                                             >
-                                                {filteredSubj.slice(0, 5).map((sPair, i) => (
+                                                {filteredSubj.slice(0, 8).map((sPair, i) => (
                                                     <button
                                                         key={i}
                                                         type="button"
@@ -1049,13 +1033,15 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                             setSubjOpen(false);
                                                         }}
                                                         style={{
-                                                            display: 'block',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '2px',
                                                             width: '100%',
                                                             textAlign: 'start',
                                                             background: 'none',
                                                             border: 0,
                                                             borderRadius: '14px',
-                                                            padding: '12px 14px',
+                                                            padding: '11px 14px',
                                                             font: 'inherit',
                                                             fontSize: '14.5px',
                                                             color: '#2a2623',
@@ -1065,7 +1051,12 @@ export default function ComplaintSubmit({ districts: rawDistricts = [], departme
                                                         onMouseEnter={e => e.currentTarget.style.background = '#fdf3e0'}
                                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}
                                                     >
-                                                        {isRtl ? sPair[1] : sPair[0]}
+                                                        <span style={{ fontWeight: 600, color: '#344e41' }}>
+                                                            {isRtl ? sPair[1] : sPair[0]}
+                                                        </span>
+                                                        <span style={{ fontSize: '12px', color: '#8b847d' }}>
+                                                            {isRtl ? sPair[0] : sPair[1]}
+                                                        </span>
                                                     </button>
                                                 ))}
                                                 <div style={{ padding: '10px 14px', fontSize: '12px', color: '#8b847d' }}>
