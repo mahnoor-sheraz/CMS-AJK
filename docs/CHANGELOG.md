@@ -4,6 +4,18 @@ All notable changes to this project are documented here in reverse chronological
 
 ---
 
+## [2026-09-11] — Complaint Tracking Screen Prototype Redesign
+
+### Changes Made
+
+| # | What Changed | Files Modified |
+|---|---|---|
+| 1 | **Exact Visual Redesign for Tracking Screen** — Restyled `ComplaintTrack.jsx` to match the exact design provided: left poster sidebar (`#344e41` gradient, ambient golden orb, `Complaint status` badge, `Where is my complaint?` headline), search input with search icon and vibrant `#ec3013` pill `Track` button. | `ComplaintTrack.jsx` |
+| 2 | **Complaint Details & Status Badge** — Integrated the complaint summary card with high-contrast `#344e41` tracking number heading, subject description, and floating status pill with animated colored indicator. | `ComplaintTrack.jsx` |
+| 3 | **3 Info Cards & Vertical Progress Timeline** — Added the 3 metric cards (`Submitted`, `Department`, `Due by`), plus the connected 4-stage vertical timeline (`Complaint received`, `Assigned to department`, `Under investigation`, `Resolution`) with solid green nodes and connectors for completed/active stages and subtle hollow rings for pending stages. | `ComplaintTrack.jsx`, `PublicComplaintController.php`, `TrackComplaintRequest.php` |
+
+---
+
 ## [2026-09-11] — Dynamic Department & Category Context-Aware Subject Suggestions
 
 ### Changes Made

@@ -1,14 +1,14 @@
 import React from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 
 export default function ComplaintTrack({ complaint = null, searched = false, notFound = false, searchParams = {} }) {
-    const { lang, t } = useLanguage();
+    const { lang } = useLanguage();
     const isUrdu = lang === 'ur';
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
-        complaint_number: searchParams.complaint_number || '',
+        complaint_number: searchParams.complaint_number || (complaint?.complaint_number || ''),
         cnic: searchParams.cnic || '',
     });
 
@@ -16,41 +16,152 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
         e.preventDefault();
         clearErrors();
 
-        let hasError = false;
         const cleanComplaint = (data.complaint_number || '').trim();
-        const cleanCnic = (data.cnic || '').replace(/[^0-9]/g, '');
 
         if (!cleanComplaint) {
             setError('complaint_number', isUrdu ? 'براہِ کرم ٹریکنگ نمبر درج کریں۔' : 'Please enter a tracking number.');
-            hasError = true;
+            return;
         }
 
-        if (!cleanCnic) {
-            setError('cnic', isUrdu ? 'شناختی کارڈ نمبر درج کریں۔' : 'Enter a valid CNIC.');
-            hasError = true;
-        } else if (cleanCnic.length !== 13) {
-            setError('cnic', isUrdu ? 'درست ۱۳ ہندسوں کا شناختی کارڈ نمبر درج کریں۔' : 'Enter a valid 13-digit CNIC.');
-            hasError = true;
-        }
-
-        if (hasError) return;
         post('/complaints/track');
     };
 
     const uiFont = isUrdu ? "'Noto Naskh Arabic', 'Archivo', sans-serif" : "'Archivo', sans-serif";
     const displayFont = isUrdu ? "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif" : "'Archivo', sans-serif";
 
+    // Format dates helper
+    const formatDate = (dateString) => {
+        if (!dateString) return '—';
+        try {
+            const d = new Date(dateString);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+            const monthsUr = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'];
+            const day = d.getDate();
+            const month = isUrdu ? monthsUr[d.getMonth()] : months[d.getMonth()];
+            const year = d.getFullYear();
+            return isUrdu ? `${day} ${month} ${year}` : `${day} ${month} ${year}`;
+        } catch {
+            return dateString;
+        }
+    };
+
+    // Calculate Due date (15 working days / ~21 calendar days from submitted_at)
+    const getDueDate = (submittedAt) => {
+        if (!submittedAt) return '—';
+        try {
+            const d = new Date(submittedAt);
+            d.setDate(d.getDate() + 15);
+            return formatDate(d);
+        } catch {
+            return '—';
+        }
+    };
+
+    // Map complaint status / stage to the 4 timeline stages shown in screenshot
+    // 1. Complaint received (Logged at the Contact Centre)
+    // 2. Assigned to department (Case officer notified)
+    // 3. Under investigation (Field verification in progress)
+    // 4. Resolution (Pending / Resolved)
+    const getTimelineStages = (c) => {
+        const stage = c?.stage || 'application_submission';
+        const status = c?.status || 'submitted';
+
+        // Stage progress index: 0 = received, 1 = assigned, 2 = investigation, 3 = resolved
+        let activeIdx = 0;
+        if (status === 'resolved' || status === 'closed' || stage === 'resolved' || stage === 'closed') {
+            activeIdx = 3;
+        } else if (stage === 'investigation' || status === 'investigating' || status === 'in_progress') {
+            activeIdx = 2;
+        } else if (stage === 'assignment' || stage === 'assigned' || c?.assigned_fp_id || status === 'assigned') {
+            activeIdx = 1;
+        } else {
+            activeIdx = 0;
+        }
+
+        return [
+            {
+                title: isUrdu ? 'شکایت موصول ہو گئی' : 'Complaint received',
+                desc: isUrdu ? 'رابطہ مرکز میں اندراج کر لیا گیا' : 'Logged at the Contact Centre',
+                state: activeIdx >= 0 ? 'completed' : 'pending',
+            },
+            {
+                title: isUrdu ? 'متعلقہ محکمے کو تفویض' : 'Assigned to department',
+                desc: isUrdu ? 'کیس افسر کو مطلع کر دیا گیا' : 'Case officer notified',
+                state: activeIdx >= 1 ? (activeIdx > 1 ? 'completed' : 'active') : 'pending',
+            },
+            {
+                title: isUrdu ? 'زیرِ تفتیش / کارروائی' : 'Under investigation',
+                desc: isUrdu ? 'موقع پر تصدیق اور جانچ پڑتال جاری ہے' : 'Field verification in progress',
+                state: activeIdx >= 2 ? (activeIdx > 2 ? 'completed' : 'active') : 'pending',
+            },
+            {
+                title: isUrdu ? 'حل و فیصلہ' : 'Resolution',
+                desc: activeIdx >= 3
+                    ? (isUrdu ? 'شکایت کا ازالہ مکمل' : 'Resolved and verified')
+                    : (isUrdu ? 'زیرِ التواء' : 'Pending'),
+                state: activeIdx >= 3 ? 'completed' : 'pending',
+            }
+        ];
+    };
+
+    // Format human-friendly status badge
+    const getStatusBadge = (c) => {
+        const s = (c?.status || '').toLowerCase();
+        const stage = (c?.stage || '').toLowerCase();
+
+        if (s === 'resolved' || s === 'closed' || stage === 'resolved') {
+            return {
+                text: isUrdu ? 'حل شدہ' : 'Resolved',
+                color: '#2d6a4f',
+                bg: '#e8f5e9',
+                dot: '#2d6a4f',
+            };
+        }
+        if (stage === 'investigation' || s === 'in_progress' || s === 'investigating') {
+            return {
+                text: isUrdu ? 'زیرِ تفتیش' : 'Under investigation',
+                color: '#344e41',
+                bg: '#eaf2ec',
+                dot: '#c8891a',
+            };
+        }
+        if (stage === 'assignment' || c?.assigned_fp_id || s === 'assigned') {
+            return {
+                text: isUrdu ? 'تفویض شدہ' : 'Assigned',
+                color: '#344e41',
+                bg: '#eaf2ec',
+                dot: '#344e41',
+            };
+        }
+        return {
+            text: isUrdu ? 'موصول شدہ' : 'Received',
+            color: '#344e41',
+            bg: '#eaf2ec',
+            dot: '#c8891a',
+        };
+    };
+
     return (
         <PublicLayout>
-            <Head title={isUrdu ? 'شکایت ٹریک کریں — PMCC' : 'Track Complaint — PMCC'} />
+            <Head title={isUrdu ? 'شکایت کی صورتحال — PMCC' : 'Complaint Status — PMCC'} />
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(16px, 2vw, 26px)', alignItems: 'stretch', width: '100%', maxWidth: '1320px', margin: '0 auto' }}>
-
-                {/* ── LEFT POSTER SIDEBAR ── */}
+            <div
+                style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 'clamp(14px, 2vw, 22px)',
+                    alignItems: 'stretch',
+                    width: '100%',
+                    maxWidth: '1280px',
+                    margin: '0 auto',
+                }}
+            >
+                {/* ── LEFT POSTER SIDEBAR (Where is my complaint?) ── */}
                 <aside
                     style={{
-                        flex: '1 1 340px',
-                        minWidth: 0,
+                        flex: '1 1 330px',
+                        minWidth: '280px',
+                        maxWidth: '380px',
                         position: 'relative',
                         overflow: 'hidden',
                         background: 'linear-gradient(158deg, #344e41, #283d33)',
@@ -59,17 +170,18 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                         padding: 'clamp(26px, 3vw, 40px)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 'clamp(22px, 2.6vw, 32px)',
-                        boxShadow: '0 16px 40px rgba(42,38,35,.1)',
+                        gap: '24px',
+                        boxShadow: '0 18px 46px rgba(42,38,35,.1)',
                     }}
                 >
+                    {/* Floating ambient orb */}
                     <div
                         style={{
                             position: 'absolute',
                             insetInlineEnd: '-70px',
                             top: '-70px',
-                            width: '230px',
-                            height: '230px',
+                            width: '240px',
+                            height: '240px',
                             borderRadius: '50%',
                             background: 'radial-gradient(circle at 32% 32%, rgba(200,137,26,.34), rgba(200,137,26,0) 70%)',
                             pointerEvents: 'none',
@@ -78,11 +190,12 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                     />
 
                     <div>
+                        {/* Status Chip */}
                         <div
                             style={{
-                                display: 'flex',
+                                display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '9px',
+                                gap: '8px',
                                 fontSize: '12px',
                                 fontFamily: "'Archivo', sans-serif",
                                 fontWeight: 700,
@@ -90,85 +203,49 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                                 color: '#e2ae4e',
                                 background: 'rgba(200,137,26,.15)',
                                 borderRadius: '999px',
-                                padding: '7px 14px',
+                                padding: '6px 14px',
                                 width: 'fit-content',
                             }}
                         >
                             <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e2ae4e', display: 'block' }} />
-                            {isUrdu ? 'شکایت کی صورتحال' : 'Complaint status'}
+                            <span>{isUrdu ? 'شکایت کی صورتحال' : 'Complaint status'}</span>
                         </div>
 
+                        {/* Title: Where is my complaint? */}
                         <h1
                             style={{
                                 fontFamily: displayFont,
                                 fontWeight: 800,
                                 color: '#eeb84e',
-                                fontSize: isUrdu ? 'clamp(24px, 3vw, 34px)' : 'clamp(28px, 3.4vw, 40px)',
-                                lineHeight: isUrdu ? 1.7 : 1.1,
+                                fontSize: isUrdu ? 'clamp(26px, 3.2vw, 36px)' : 'clamp(30px, 3.6vw, 42px)',
+                                lineHeight: isUrdu ? 1.6 : 1.12,
                                 letterSpacing: isUrdu ? 'normal' : '-.015em',
-                                margin: '18px 0 0',
+                                margin: '22px 0 0',
                             }}
                         >
                             {isUrdu ? 'میری شکایت کہاں تک پہنچی؟' : 'Where is my complaint?'}
                         </h1>
 
+                        {/* Subtitle */}
                         <p
                             style={{
-                                margin: '16px 0 0',
-                                fontSize: '15.5px',
-                                maxWidth: '40ch',
-                                color: 'rgba(255,255,255,.8)',
+                                margin: '18px 0 0',
+                                fontSize: '15px',
+                                color: 'rgba(255,255,255,.82)',
                                 lineHeight: 1.55,
                             }}
                         >
                             {isUrdu
-                                ? 'ایس ایم ایس میں موصول ٹریکنگ نمبر اور شناختی کارڈ نمبر درج کریں اور اب تک کی ہر کارروائی دیکھیں۔'
-                                : 'Enter your tracking number and CNIC to see every step and action taken so far.'}
+                                ? 'ایس ایم ایس میں موصول ٹریکنگ نمبر درج کریں اور اب تک کی ہر کارروائی دیکھیں۔'
+                                : 'Enter the tracking number from your SMS to see every step taken so far.'}
                         </p>
-                    </div>
-
-                    {/* How It Works Steps */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
-                        {[
-                            [isUrdu ? '۰۱' : '01', isUrdu ? '۲۴ گھنٹے میں تفویض' : 'Assigned within 24 hours', isUrdu ? 'محکمے کا افسر شکایت کی ذمہ داری لیتا ہے۔' : 'A case officer at the department takes ownership.'],
-                            [isUrdu ? '۰۲' : '02', isUrdu ? 'ایس ایم ایس پر اطلاع' : 'Updates by SMS', isUrdu ? 'ہر تبدیلی آپ کے موبائل نمبر پر بھیجی جائے گی۔' : 'Every status change is sent to your mobile number.'],
-                            [isUrdu ? '۰۳' : '03', isUrdu ? '۱۵ کام کے دن میں حل' : 'Resolution in 15 working days', isUrdu ? 'حل نہ ہونے پر معاملہ PMCC جائزہ ڈیسک کو جاتا ہے۔' : 'Unresolved cases escalate to the PMCC review desk.']
-                        ].map(([n, title, desc]) => (
-                            <div key={n} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '14px', alignItems: 'start', padding: '10px 12px', background: 'rgba(255,255,255,.06)', borderRadius: '16px' }}>
-                                <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(238,184,78,.2)', color: '#eeb84e', border: '1.5px solid rgba(238,184,78,.5)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '13px' }}>{n}</span>
-                                <div>
-                                    <div style={{ fontFamily: uiFont, fontWeight: 700, fontSize: '14px', color: '#fff' }}>{title}</div>
-                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', marginTop: '2px' }}>{desc}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div
-                        style={{
-                            marginTop: 'auto',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            fontSize: '12.5px',
-                            color: 'rgba(255,255,255,.8)',
-                            background: 'rgba(255,255,255,.07)',
-                            borderRadius: '16px',
-                            padding: '12px 14px',
-                            fontFamily: uiFont,
-                        }}
-                    >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2ae4e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        <span>{isUrdu ? 'محفوظ اور رازدارانہ' : 'Encrypted and confidential'}</span>
                     </div>
                 </aside>
 
-                {/* ── RIGHT MAIN FORM / DETAILS CARD ── */}
+                {/* ── RIGHT MAIN CONTENT CARD ── */}
                 <section
                     style={{
-                        flex: '2 1 560px',
+                        flex: '2 1 580px',
                         background: '#fff',
                         borderRadius: '28px',
                         display: 'flex',
@@ -176,52 +253,42 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                         minWidth: 0,
                         overflow: 'hidden',
                         boxShadow: '0 18px 46px rgba(42,38,35,.1)',
-                        padding: 'clamp(24px, 3vw, 44px)',
-                        gap: '26px',
+                        padding: 'clamp(24px, 3vw, 40px)',
+                        gap: '24px',
                     }}
                 >
-                    <div>
-                        <span
-                            style={{
-                                display: 'inline-block',
-                                background: '#fdf3e0',
-                                color: '#8a5c07',
-                                borderRadius: '999px',
-                                fontFamily: "'Archivo', sans-serif",
-                                fontWeight: 700,
-                                fontSize: '12px',
-                                padding: '7px 14px',
-                            }}
-                        >
-                            {isUrdu ? 'ٹریکنگ سروس' : 'Tracking Service'}
-                        </span>
-                        <h2
-                            style={{
-                                fontFamily: displayFont,
-                                fontWeight: 800,
-                                color: '#344e41',
-                                fontSize: isUrdu ? 'clamp(22px, 2.6vw, 30px)' : 'clamp(24px, 2.8vw, 32px)',
-                                margin: '14px 0 0',
-                            }}
-                        >
-                            {isUrdu ? 'شکایت کا سراغ لگائیں' : 'Track Your Complaint'}
-                        </h2>
-                    </div>
-
-                    {/* Search Form */}
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
-                            {/* Tracking number */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
-                                    {isUrdu ? 'ٹریکنگ نمبر' : 'Tracking number'} <span style={{ color: '#ec3013' }}>*</span>
-                                </label>
+                    {/* Search Field Row */}
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont, color: '#2a2623' }}>
+                            {isUrdu ? 'ٹریکنگ نمبر' : 'Tracking number'}
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'nowrap' }}>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <span
+                                    style={{
+                                        position: 'absolute',
+                                        insetInlineStart: '18px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#a9a29b',
+                                        pointerEvents: 'none',
+                                        display: 'flex',
+                                    }}
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                        <circle cx="11" cy="11" r="7" />
+                                        <path d="m20 20-3.5-3.5" />
+                                    </svg>
+                                </span>
                                 <input
                                     type="text"
                                     dir="ltr"
                                     value={data.complaint_number}
-                                    onChange={e => setData('complaint_number', e.target.value)}
-                                    placeholder="CMP-YYYYMMDD-XXXX"
+                                    onChange={e => {
+                                        setData('complaint_number', e.target.value);
+                                        if (errors.complaint_number) clearErrors('complaint_number');
+                                    }}
+                                    placeholder="PMCC-2026-000023"
                                     style={{
                                         width: '100%',
                                         boxSizing: 'border-box',
@@ -229,109 +296,229 @@ export default function ComplaintTrack({ complaint = null, searched = false, not
                                         border: `1.5px solid ${errors.complaint_number ? '#ec3013' : '#e6ded2'}`,
                                         borderRadius: '16px',
                                         font: 'inherit',
-                                        fontSize: '15px',
-                                        padding: '15px 18px',
+                                        fontSize: '15.5px',
+                                        padding: '14px 20px',
+                                        paddingInlineStart: '50px',
                                         color: '#2a2623',
                                         outline: 'none',
+                                        transition: 'border-color .2s, box-shadow .2s',
                                     }}
                                 />
-                                {errors.complaint_number && <span style={{ fontSize: '12px', color: '#ec3013' }}>{errors.complaint_number}</span>}
                             </div>
 
-                            {/* CNIC */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <label style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: uiFont }}>
-                                    {isUrdu ? 'قومی شناختی کارڈ نمبر' : 'CNIC number'} <span style={{ color: '#ec3013' }}>*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    dir="ltr"
-                                    maxLength={13}
-                                    value={data.cnic}
-                                    onChange={e => setData('cnic', e.target.value.replace(/\D/g, ''))}
-                                    placeholder="0000000000000"
-                                    style={{
-                                        width: '100%',
-                                        boxSizing: 'border-box',
-                                        background: '#faf7f2',
-                                        border: `1.5px solid ${errors.cnic ? '#ec3013' : '#e6ded2'}`,
-                                        borderRadius: '16px',
-                                        font: 'inherit',
-                                        fontSize: '15px',
-                                        padding: '15px 18px',
-                                        color: '#2a2623',
-                                        outline: 'none',
-                                    }}
-                                />
-                                {errors.cnic && <span style={{ fontSize: '12px', color: '#ec3013' }}>{errors.cnic}</span>}
-                            </div>
+                            {/* Red Pill Button: Track */}
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                style={{
+                                    background: '#ec3013',
+                                    color: '#fff',
+                                    border: 0,
+                                    borderRadius: '999px',
+                                    fontFamily: "'Archivo', sans-serif",
+                                    fontWeight: 700,
+                                    fontSize: '14.5px',
+                                    padding: '14px 34px',
+                                    cursor: processing ? 'not-allowed' : 'pointer',
+                                    boxShadow: '0 8px 24px rgba(236,48,19,.28)',
+                                    transition: 'transform .18s, background .18s, box-shadow .18s',
+                                    flexShrink: 0,
+                                }}
+                                onMouseEnter={e => { if (!processing) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                onMouseLeave={e => { if (!processing) e.currentTarget.style.transform = 'none'; }}
+                            >
+                                {processing ? (isUrdu ? 'تلاش جاری...' : 'Searching...') : (isUrdu ? 'ٹریک کریں' : 'Track')}
+                            </button>
                         </div>
-
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            style={{
-                                background: '#ec3013',
-                                color: '#fff',
-                                border: 0,
-                                borderRadius: '999px',
-                                fontFamily: "'Archivo', sans-serif",
-                                fontWeight: 700,
-                                fontSize: '14.5px',
-                                padding: '14px 28px',
-                                cursor: processing ? 'not-allowed' : 'pointer',
-                                alignSelf: 'flex-start',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                boxShadow: '0 8px 20px rgba(236,48,19,.28)',
-                            }}
-                        >
-                            <span>{processing ? (isUrdu ? 'تلاش جاری ہے...' : 'Searching...') : (isUrdu ? 'ٹریک کریں' : 'Track')}</span>
-                            <span style={{ fontSize: '16px' }}>{isUrdu ? '←' : '→'}</span>
-                        </button>
+                        {errors.complaint_number && (
+                            <span style={{ fontSize: '12.5px', color: '#ec3013', marginTop: '2px' }}>
+                                {errors.complaint_number}
+                            </span>
+                        )}
                     </form>
 
-                    {/* Result Card */}
-                    {searched && complaint && (
-                        <div className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between', background: '#faf7f2', borderRadius: '22px', padding: '18px 20px' }}>
-                                <div style={{ minWidth: 0 }}>
-                                    <div dir="ltr" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(20px, 2.6vw, 26px)', color: '#344e41' }}>
-                                        {complaint.complaint_number}
-                                    </div>
-                                    <div style={{ fontSize: '14px', color: '#6b645e', marginTop: '6px' }}>
-                                        {complaint.subject}
-                                    </div>
-                                </div>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: '#eaf1eb', borderRadius: '999px', color: '#344e41', fontFamily: uiFont, fontWeight: 700, fontSize: '13px', padding: '10px 16px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#c8891a', display: 'block', animation: 'pmccRing 2s infinite' }} />
-                                    {complaint.status}
-                                </span>
+                    {/* Complaint Not Found Banner */}
+                    {searched && notFound && (
+                        <div
+                            className="animate-pmcc-enter"
+                            style={{
+                                background: '#fdf3e0',
+                                border: '1.5px solid #e2ae4e',
+                                borderRadius: '20px',
+                                padding: '20px',
+                                textAlign: 'center',
+                                color: '#8a5c07',
+                            }}
+                        >
+                            <div style={{ fontWeight: 700, fontSize: '16px' }}>
+                                {isUrdu ? 'کوئی شکایت نہیں ملی' : 'Complaint not found'}
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: '12px' }}>
-                                {[
-                                    [isUrdu ? 'تاریخِ اندراج' : 'Submitted', complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleDateString() : '—'],
-                                    [isUrdu ? 'محکمہ' : 'Department', isUrdu ? (complaint.department?.name_ur || complaint.department?.name || '—') : (complaint.department?.name || '—')],
-                                    [isUrdu ? 'ضلع' : 'District', isUrdu ? (complaint.district?.name_ur || complaint.district?.name || '—') : (complaint.district?.name || '—')],
-                                ].map(([k, v]) => (
-                                    <div key={k} style={{ background: '#faf7f2', borderRadius: '18px', padding: '15px 17px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontSize: '12px', color: '#8b847d' }}>{k}</span>
-                                        <span style={{ fontSize: '14.5px', fontWeight: 600 }}>{v}</span>
-                                    </div>
-                                ))}
+                            <div style={{ fontSize: '13.5px', marginTop: '6px' }}>
+                                {isUrdu
+                                    ? 'براہِ کرم اپنا ٹریکنگ نمبر درست درج کریں (مثال: PMCC-2026-000023)۔'
+                                    : 'Please check your tracking number format (e.g. PMCC-2026-000023).'}
                             </div>
                         </div>
                     )}
 
-                    {searched && notFound && (
-                        <div style={{ background: '#fdf3e0', border: '1.5px solid #e2ae4e', borderRadius: '20px', padding: '20px', textAlign: 'center', color: '#8a5c07' }}>
-                            <div style={{ fontWeight: 700, fontSize: '16px' }}>{isUrdu ? 'شکایت نہیں ملی' : 'Complaint not found'}</div>
-                            <div style={{ fontSize: '13px', marginTop: '6px' }}>
-                                {isUrdu
-                                    ? 'براہِ کرم ٹریکنگ نمبر اور شناختی کارڈ نمبر دوبارہ چیک کریں۔'
-                                    : 'Please verify that your complaint reference number and CNIC match.'}
+                    {/* Active Complaint Card & Timeline */}
+                    {complaint && (
+                        <div className="animate-pmcc-enter" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {/* Top Details Card */}
+                            <div
+                                style={{
+                                    background: '#faf7f2',
+                                    borderRadius: '22px',
+                                    padding: '22px 26px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    gap: '16px',
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {/* Tracking Number Heading */}
+                                    <div
+                                        dir="ltr"
+                                        style={{
+                                            fontFamily: "'Archivo', sans-serif",
+                                            fontWeight: 900,
+                                            fontSize: 'clamp(24px, 2.8vw, 30px)',
+                                            color: '#344e41',
+                                            letterSpacing: '-.01em',
+                                        }}
+                                    >
+                                        {complaint.complaint_number}
+                                    </div>
+                                    {/* Subject */}
+                                    <div style={{ fontSize: '15px', color: '#6b645e', maxWidth: '65ch', lineHeight: 1.45 }}>
+                                        {complaint.subject}
+                                    </div>
+                                </div>
+
+                                {/* Status Badge (e.g. Under investigation) */}
+                                {(() => {
+                                    const badge = getStatusBadge(complaint);
+                                    return (
+                                        <div
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                background: badge.bg,
+                                                color: badge.color,
+                                                borderRadius: '999px',
+                                                padding: '7px 18px',
+                                                fontSize: '13.5px',
+                                                fontFamily: uiFont,
+                                                fontWeight: 700,
+                                                boxShadow: 'inset 0 0 0 1px rgba(52,78,65,.1)',
+                                            }}
+                                        >
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: badge.dot, display: 'block' }} />
+                                            <span>{badge.text}</span>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* 3 Info Stat Cards: Submitted, Department, Due by */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+                                {/* Submitted */}
+                                <div style={{ background: '#faf7f2', borderRadius: '18px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <span style={{ fontSize: '12.5px', color: '#8b847d', fontWeight: 500 }}>
+                                        {isUrdu ? 'تاریخِ اندراج' : 'Submitted'}
+                                    </span>
+                                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#2a2623' }}>
+                                        {formatDate(complaint.submitted_at || complaint.created_at)}
+                                    </span>
+                                </div>
+
+                                {/* Department */}
+                                <div style={{ background: '#faf7f2', borderRadius: '18px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <span style={{ fontSize: '12.5px', color: '#8b847d', fontWeight: 500 }}>
+                                        {isUrdu ? 'محکمہ' : 'Department'}
+                                    </span>
+                                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#2a2623', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {isUrdu
+                                            ? (complaint.department?.name_ur || complaint.department?.name || 'بجلی / متعلقہ محکمہ')
+                                            : (complaint.department?.name?.replace(/\(.*?\)/g, '').trim() || 'Electricity')}
+                                    </span>
+                                </div>
+
+                                {/* Due by */}
+                                <div style={{ background: '#faf7f2', borderRadius: '18px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <span style={{ fontSize: '12.5px', color: '#8b847d', fontWeight: 500 }}>
+                                        {isUrdu ? 'تکمیل کی متوقع تاریخ' : 'Due by'}
+                                    </span>
+                                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#2a2623' }}>
+                                        {getDueDate(complaint.submitted_at || complaint.created_at)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* ── VERTICAL TIMELINE ── */}
+                            <div style={{ marginTop: '10px', paddingInlineStart: '10px' }}>
+                                {getTimelineStages(complaint).map((step, idx, arr) => {
+                                    const isLast = idx === arr.length - 1;
+                                    const isDone = step.state === 'completed';
+                                    const isActive = step.state === 'active';
+
+                                    // Colors based on prototype screenshot:
+                                    // Finished / active node: solid green #2d6a4f or #344e41 with thick vertical green line
+                                    // Pending node: hollow circle with grey/sand line
+                                    const dotBg = isDone || isActive ? '#2d6a4f' : '#fff';
+                                    const dotBorder = isDone || isActive ? '#2d6a4f' : '#d8d1c5';
+                                    const lineColor = isDone ? '#2d6a4f' : '#e6ded2';
+                                    const titleColor = isDone || isActive ? '#2a2623' : '#8b847d';
+                                    const descColor = isDone || isActive ? '#6b645e' : '#a9a29b';
+
+                                    return (
+                                        <div key={idx} style={{ display: 'flex', gap: '18px', position: 'relative' }}>
+                                            {/* Column with indicator and connecting line */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px' }}>
+                                                {/* Circle Marker */}
+                                                <div
+                                                    style={{
+                                                        width: '18px',
+                                                        height: '18px',
+                                                        borderRadius: '50%',
+                                                        background: dotBg,
+                                                        border: `3px solid ${dotBorder}`,
+                                                        boxSizing: 'border-box',
+                                                        marginTop: '3px',
+                                                        flexShrink: 0,
+                                                        zIndex: 2,
+                                                    }}
+                                                />
+                                                {/* Connecting line */}
+                                                {!isLast && (
+                                                    <div
+                                                        style={{
+                                                            width: '3px',
+                                                            flexGrow: 1,
+                                                            background: lineColor,
+                                                            minHeight: '36px',
+                                                            margin: '2px 0',
+                                                            borderRadius: '999px',
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            {/* Text details */}
+                                            <div style={{ paddingBottom: isLast ? '0px' : '26px' }}>
+                                                <div style={{ fontWeight: 800, fontSize: '15px', color: titleColor, fontFamily: uiFont }}>
+                                                    {step.title}
+                                                </div>
+                                                <div style={{ fontSize: '13px', color: descColor, marginTop: '3px', fontFamily: uiFont }}>
+                                                    {step.desc}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

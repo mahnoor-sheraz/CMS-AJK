@@ -47,7 +47,7 @@ class TrackComplaintRequest extends FormRequest
                 'regex:/^[A-Za-z0-9\-]+$/',
             ],
             'cnic' => [
-                'required',
+                'nullable',
                 'string',
                 'size:13',
                 'regex:/^[0-9]{13}$/',

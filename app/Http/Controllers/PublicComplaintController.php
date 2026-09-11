@@ -236,13 +236,30 @@ class PublicComplaintController extends Controller
     /**
      * Display the complaint tracking search page.
      */
-    public function trackForm(): Response
+    public function trackForm(\Illuminate\Http\Request $request): Response
     {
+        $complaintNumber = $request->query('complaint_number');
+        $complaint = null;
+        $searched = false;
+        $notFound = false;
+
+        if ($complaintNumber) {
+            $searched = true;
+            $complaint = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
+                ->where('complaint_number', $complaintNumber)
+                ->first();
+            $notFound = is_null($complaint);
+        }
+
         return Inertia::render('Public/ComplaintTrack', [
-            'complaint' => null,
-            'searched' => false,
-            'notFound' => false,
-            'errorCode' => null,
+            'complaint' => $complaint,
+            'searched' => $searched,
+            'notFound' => $notFound,
+            'errorCode' => $notFound ? 'ERR_COMPLAINT_NOT_FOUND' : null,
+            'searchParams' => [
+                'complaint_number' => $complaintNumber ?: '',
+                'cnic' => '',
+            ],
         ]);
     }
 
@@ -257,13 +274,17 @@ class PublicComplaintController extends Controller
         $cacheKey = "complaint:track:{$complaintNumber}:{$cnic}";
 
         $complaint = Cache::remember($cacheKey, 60, function () use ($complaintNumber, $cnic) {
-            return Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
-                ->where('complaint_number', $complaintNumber)
-                ->where(function ($query) use ($cnic) {
-                    $query->where('cnic', $cnic)
-                        ->orWhereHas('citizen', fn ($q) => $q->where('cnic', $cnic));
-                })
-                ->first();
+            $query = Complaint::with(['citizen', 'district', 'tehsil', 'department', 'statusHistories'])
+                ->where('complaint_number', $complaintNumber);
+
+            if (!empty($cnic)) {
+                $query->where(function ($q) use ($cnic) {
+                    $q->where('cnic', $cnic)
+                      ->orWhereHas('citizen', fn ($sub) => $sub->where('cnic', $cnic));
+                });
+            }
+
+            return $query->first();
         });
 
         $notFound = is_null($complaint);
