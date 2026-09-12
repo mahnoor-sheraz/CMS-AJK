@@ -1,9 +1,78 @@
 # PMCC Development Guide
 ### Prime Minister Contact Center
-### Complete guide — Part A: Environment Setup · Part B: Database Schema (Module 1) · Part C: Authentication & Roles (Module 2) · Part D: Citizen Portal (Module 3, bilingual) · Part E: Focal Person Portal (Module 4)
+### Complete guide — Part A: Environment Setup · Part B: Database Schema (Module 1) · Part C: Authentication & Roles (Module 2) · Part D: Citizen Portal (Module 3, bilingual) · Part E: Focal Person Portal (Module 4) · Part F: Admin, Super Admin & Director Portal (Module 5) · Part G: External Departmental Integration Bridge (Module 6) · Part H: Alternate Intake Channels (Module 7)
 ### For Azad Jammu & Kashmir (AJK) — built prompt-only, no Terminal, on Mac
 
 > **Branding note:** The original BRD document (and this guide, up to this point) referred to this system as "CMCC." The official name going forward is **PMCC — Prime Minister Contact Center**. This has been updated throughout the guide, including the complaint number prefix. If your GitHub repo is still named something like `cmcc-system`, that's fine to leave as-is — it's just an internal folder/repo identifier, not something citizens ever see — but you're welcome to rename it in GitHub's repo settings if you'd like it to match.
+
+---
+
+## Project Status Snapshot
+
+*(Added after a self-generated "engineering audit" report surfaced several claims that don't match this project's actual specs — some cross-validated cleanly, several didn't. This snapshot separates the two, rather than taking a status report at face value. Update this section honestly as modules actually get built and confirmed — don't let a future status report overwrite it uncritically either.)*
+
+### Cross-validated against our own specs (reasonably trustworthy)
+- **Module 1 (Schema)**: core tables, restrict-on-delete integrity, `complaint_status_history` audit trail, AJK districts/tehsils/departments/categories seed data — matches Part B.
+- **Module 2 (Auth & Roles)**: role-based middleware, department-scoping policy, inactive-account lockout, no public registration — matches Part C.
+- **Module 3 (Citizen Portal)**: bilingual RTL/LTR toggle, 4-step wizard, 24h CNIC rate limiting, dual-factor tracking (CNIC + complaint number) — matches Part D.
+- **Module 4 (FP Portal)**: 4-path classification (Direct/Club/Forward/Field Visit), AI duplicate suggestions requiring explicit human confirmation (never auto-clubbed), cascade-confirmation modal for resolving clubbed parents, cross-department reassignment *request* mechanism — matches Part E.
+- **Module 5 (Admin & Director)**: confirmed still mostly pending — Director approval screen, Admin "Others" triage queue, reference-data CRUD, and staff account provisioning are all genuinely not yet built. This matches PRD 4 exactly and is safe to treat as the accurate next-up list.
+- **One plausible, worth-keeping finding regardless of the source report's reliability**: unifying `Investigate.jsx` and `ComplaintResolve.jsx` under a shared FP layout component for visual consistency is a reasonable, actionable task — it matches a real risk this project has hit before (screens styled independently before a shared design system existed). Worth doing on its own merits, not because the report said so.
+
+### Master Feature Checklist
+
+Rather than auditing any one report's claims, this is the definitive list — drawn directly from the guide and all five PRDs — of what should exist so far. Use this to verify the actual system directly, regardless of any customization made along the way.
+
+**Module 1 — Schema**
+- [ ] Core tables with restrict-on-delete on every complaint-history foreign key
+- [ ] `complaint_number` auto-generated (`PMCC-{year}-{6 digits}`) via a model event, not a manual counter
+- [ ] Bilingual `name_ur` columns on districts, tehsils, departments, sub-departments, categories
+- [ ] AJK's 10 districts and 32 tehsils seeded, bilingual
+- [ ] AJK's 34 departments and their category/sub-category trees seeded, department names bilingual
+- [ ] `users.role` includes `admin`, `focal_person`, `director`, `field_officer` (and `super_admin`, added in this update — see below)
+- [ ] `users.supervisor_id` (links a field officer to their supervising FP)
+- [ ] `citizens.gender`, nullable, never required
+- [ ] `complaint_investigations.assigned_officer_id`
+- [ ] `complaint_reassignment_requests` table (from/to department, status, reviewed_by, review_notes)
+
+**Module 2 — Auth & Roles**
+- [ ] Email + password login; no public registration route
+- [ ] `EnsureUserHasRole` middleware; department-scoping policy on the Complaint model
+- [ ] `is_active = false` blocks login even with a correct password
+- [ ] Seeded initial Admin account with a shown-once temporary password
+- [ ] **No OTP/two-factor step** — confirm this doesn't exist; it was never requested
+
+**Module 3 — Citizen Portal**
+- [ ] Urdu default, English toggle, correct RTL/LTR layout mirroring
+- [ ] 4-step wizard with a single, non-redundant step indicator
+- [ ] Cascading District→Tehsil and Department→Sub-department→Category dropdowns, bilingual
+- [ ] CNIC/mobile input masking and validation; "Other" department path skips category
+- [ ] Citizen dedup by CNIC; 24h one-complaint-per-CNIC rate limit
+- [ ] Gender as an optional dropdown
+- [ ] Dual-factor tracking lookup (CNIC + complaint number); 3-stage public tracking bar
+- [ ] Design system tokens and the layered mountain motif applied
+- [ ] **No in-form camera/video capture** — confirm this doesn't exist; you skipped it deliberately
+
+**Module 4 — FP Portal**
+- [ ] Dashboard scoped to the FP's own department; full (unmasked) citizen name/CNIC
+- [ ] AI duplicate-suggestion panel — confirm/dismiss/skip, never auto-clubbed
+- [ ] Four classification paths: Handle Directly, Club with Existing, Forward Externally, Schedule Field Visit
+- [ ] Field visit assignable to self or a supervised `field_officer`
+- [ ] Action/Resolution screen: investigation log, Resolved/Rejected/Escalate outcomes, cascade-confirmation modal for clubbed parents
+- [ ] Cross-department reassignment *request* (approval screen is Module 5)
+- [ ] Same design tokens as the Citizen Portal (unified visual identity)
+
+**Module 5 — Admin, Super Admin & Director** *(not yet built — see Part F below)*
+- [ ] Centralized complaints table with BRD-specified filters
+- [ ] "Others" queue with mandatory remark
+- [ ] Reference-data CRUD (departments, sub-departments, categories, forward destinations)
+- [ ] FP/Director account provisioning by Admin
+- [ ] Admin account provisioning by Super Admin, with full shared visibility into Admin's views
+- [ ] Director's reassignment approval screen (source department approves, per your confirmed decision)
+
+### The verification prompt
+
+> "Go through this checklist against the actual current codebase, item by item, and report honestly for each: exists and working / exists but incomplete / does not exist. Don't summarize — list every item with its actual status. Specifically confirm: what database engine is configured in `config/database.php`; whether any OTP/two-factor step exists anywhere in the auth flow; whether in-form camera or video capture exists anywhere in the Citizen Portal; and the actual hex color values currently defined in the CSS/Tailwind config, compared against `--pmcc-primary: #0F3D2E`, `--pmcc-accent: #A8672A`, `--pmcc-bg-citizen: #FAFAF7`, `--pmcc-bg-staff: #F6F7F6`."
 
 ---
 
@@ -78,6 +147,124 @@ In Antigravity's main prompt/chat box, type:
 > "Set up a new Laravel project in this folder, using Laravel Breeze with a React + Inertia frontend (not plain Blade). Use Composer and npm to install everything. Once installed, confirm the project runs locally before doing anything else."
 
 Review the plan Antigravity proposes and approve it. Once it's done, you have a working, empty Laravel + React app — ready for Part B.
+
+---
+
+# Design System: Unified Visual Identity
+### Applies to the Citizen Portal and FP Portal now, and every future portal from here on
+
+*(This replaces an earlier, flag-literal color attempt that didn't take effect in Antigravity and didn't land well as a look. This version is more restrained — muted rather than bright, with AJK identity carried through a distinctive motif rather than raw flag colors — and the prompt below is written specifically to avoid the earlier failure mode: incomplete replacement rather than full retrofit.)*
+
+## Why the first attempt likely didn't work
+
+A common reason a restyling prompt appears to do nothing: Antigravity adds new color tokens *alongside* the existing hardcoded ones (default Tailwind classes, colors baked into individual components) rather than finding and replacing every instance. The screen keeps rendering with whatever it was already using. The prompt below explicitly asks Antigravity to search for and replace every existing color, and to report back exactly what it touched — so you can verify the fix actually happened, rather than re-running a prompt and hoping.
+
+## The token system
+
+| Token | Hex | Use |
+|---|---|---|
+| `--pmcc-primary` | `#0F3D2E` | Header bar, primary navigation, table headers |
+| `--pmcc-primary-dark` | `#0A2921` | Hover/active states on primary elements |
+| `--pmcc-accent` | `#A8672A` | The single primary action button per screen only |
+| `--pmcc-accent-soft` | `#F5EBDD` | Soft background tint near accent elements |
+| `--pmcc-bg-citizen` | `#FAFAF7` | Citizen Portal background |
+| `--pmcc-bg-staff` | `#F6F7F6` | FP/Admin/Director Portal background |
+| `--pmcc-surface` | `#FFFFFF` | Cards, inputs, table backgrounds |
+| `--pmcc-border` | `#E4E2DC` | 1px dividers and borders — never heavier |
+| `--pmcc-text-primary` | `#171717` | Body text |
+| `--pmcc-text-secondary` | `#5A5A54` | Secondary/muted text |
+
+**Status colors, fixed everywhere:** Pending `#8C8C86` · In Progress `#A8672A` · Resolved `#1F6F45` · Rejected/Error `#B3352A`.
+
+**Typography**: Noto Nastaliq Urdu (Urdu, unchanged) + Noto Sans (English, unchanged).
+
+**AJK signature**: a layered, smooth-curved mountain skyline (two overlapping ridge layers at different opacities, with a small peak accent on the tallest point — not a jagged single-stroke line), used only beneath every header bar (low-opacity) and as a watermark on the citizen confirmation screen / empty states — never inside dense data tables.
+
+## Advanced UX practices to bake in alongside the visual retrofit
+
+These aren't decoration — they're the difference between a form that looks clean and one that actually feels effortless to use, especially for citizens on modest phones and imperfect connections:
+
+- **Input masking**: CNIC auto-formats as the citizen types (`12345-1234567-1` pattern), mobile number auto-formats to the standard Pakistani display pattern as it's typed.
+- **Real-time inline validation**: each field validates on blur, not only on final submit, with specific error text tied to the actual rule broken (e.g. "CNIC must be exactly 13 digits," never a generic "Invalid input").
+- **Autofocus** the first field of each step when it loads, so a citizen can start typing immediately.
+- **Live, color-coded character counter** on the Details field — gray while under the 50-character minimum, shifting to green once met, so the citizen has a clear, ambient signal without reading extra text.
+- **Searchable dropdowns** for the longer lists — Department (34 options) and Category — so a citizen can type a few letters instead of scrolling a long list. District/Tehsil can stay simple selects; short enough lists that search adds little.
+- **Loading placeholders**, not blank flashes, while any dropdown's options are being fetched.
+- **Minimum 44×44px tap targets** throughout — buttons, dropdown rows, step indicators — given many citizens will be on modest phones, not precision desktop pointers.
+- **Respect `prefers-reduced-motion`** for any step-transition animation — a working, calm form matters more than a polished one for someone who's opted out of motion.
+- **A quiet "welcome back" acknowledgment** for a returning CNIC — pre-fill their last known name/district/mobile, but always editable and never silently assumed correct, since people move and details change.
+- **Proper accessible labels and visible focus rings** throughout — every input has a real `<label>`, not just a placeholder standing in for one, and keyboard-only navigation through all four steps works cleanly.
+
+## The prompt to give Antigravity
+
+> "I need you to unify the visual design of the Citizen Portal and Focal Person Portal, which currently look like two unrelated products. This is a full retrofit, not an addition — search the entire codebase for hardcoded colors and default Tailwind/component-library color classes in both portals, and replace every one of them with the tokens below. Do not leave old color values in place alongside new ones.
+>
+> Define these as CSS custom properties (or Tailwind theme colors, whichever fits this project better) and use them everywhere, with no exceptions:
+> - `--pmcc-primary: #0F3D2E` (header, nav, table headers)
+> - `--pmcc-primary-dark: #0A2921` (hover/active on primary elements)
+> - `--pmcc-accent: #A8672A` (the one primary action button per screen — never more than one per screen)
+> - `--pmcc-accent-soft: #F5EBDD`
+> - `--pmcc-bg-citizen: #FAFAF7` (Citizen Portal page background)
+> - `--pmcc-bg-staff: #F6F7F6` (FP Portal page background)
+> - `--pmcc-surface: #FFFFFF` (cards, inputs, tables)
+> - `--pmcc-border: #E4E2DC` (1px, never heavier)
+> - `--pmcc-text-primary: #171717`
+> - `--pmcc-text-secondary: #5A5A54`
+>
+> Status colors — apply these exact values to every status badge/indicator on both the citizen tracking bar and the FP dashboard, so a given status is always the same color in both places: Submitted/Pending `#8C8C86`, Under Investigation/In Progress `#A8672A`, Resolved `#1F6F45`, Rejected/Escalated `#B3352A`.
+>
+> For the mountain skyline motif, use this exact SVG as the base (scale/tile it to fit each header's width) rather than designing your own from scratch:
+> ```
+> <svg viewBox='0 0 400 46' preserveAspectRatio='none'>
+>   <path d='M0,46 C50,30 90,34 130,24 C160,17 175,10 195,10 C215,10 225,20 245,26 C275,35 310,28 340,32 C365,35 385,30 400,26 L400,46 Z' fill='#ffffff' opacity='0.08'/>
+>   <path d='M0,46 C30,36 60,38 90,30 C115,24 135,14 160,14 C180,14 190,24 208,30 L230,20 C245,13 258,16 270,24 C290,37 320,30 350,34 C370,36 388,32 400,30 L400,46 Z' fill='#ffffff' opacity='0.14'/>
+>   <path d='M195,10 L200,4 L205,10' fill='none' stroke='#ffffff' stroke-width='1.2' opacity='0.5' stroke-linecap='round' stroke-linejoin='round'/>
+> </svg>
+> ```
+> Place it beneath the header bar on every screen of both portals (as shown, white-on-`--pmcc-primary`). Use a more visible version (higher opacity, or in `--pmcc-primary` on the light background) as a watermark on the citizen confirmation screen after submitting, and on any empty-state screen (e.g. 'no complaints found'). Do not add this motif inside dense data tables (the FP dashboard's queue table) — keep those clean.
+>
+> Give every screen on both portals the same header treatment: a consistent bilingual lockup reading 'PMCC' and 'وزیراعظم رابطہ مرکز', on the `--pmcc-primary` background. Leave a placeholder space for an official logo image on the header's leading edge — I'll provide the actual logo file separately.
+>
+> Change the Gender field on the Citizen Portal from its current control to a proper dropdown/select (Male / Female / Prefer not to say), matching the style of the other dropdowns on the form, with helper text beneath it explaining it's optional and used only for equitable-service reporting.
+>
+> Also apply these UX improvements while you're in there: input masking on CNIC and mobile number fields as the citizen types; real-time inline validation on blur with specific error messages, not generic ones; autofocus the first field of each step; a live character counter on the Details field that turns green once the 50-character minimum is met; searchable dropdowns for Department and Category specifically (not District/Tehsil, which can stay simple); loading placeholders instead of blank flashes while dropdown data loads; minimum 44×44px tap targets throughout; respect the user's `prefers-reduced-motion` setting for any step transitions; pre-fill (but keep editable) a returning citizen's last known details when their CNIC matches an existing record; and ensure every input has a real accessible `<label>`, not just a placeholder, with visible keyboard focus states throughout all four steps.
+>
+> Once done, list every file you modified, and show me the Citizen Portal's submission form and the FP Portal's dashboard side by side so I can directly compare them."
+
+## Verifying it worked
+
+1. Check the list of modified files Antigravity gives you — if it's suspiciously short (e.g. only one CSS file, with no component files touched), the retrofit likely didn't reach everywhere; ask it to specifically check the form and table components for leftover hardcoded colors.
+2. Look at the Citizen Portal and FP dashboard side by side — they should now clearly read as one product: same header treatment, same button style, same border weight, same font.
+3. Confirm a "Resolved" badge is the exact same color on the citizen's tracking page and the FP's dashboard.
+4. Confirm the mountain motif appears under the header and on the citizen confirmation screen (using the exact layered SVG given, not a plain jagged line), but is absent from the FP's queue table.
+5. Confirm Gender now renders as a dropdown, not buttons or pills.
+6. Type an invalid CNIC and confirm the error message names the actual rule (13 digits), not a generic message; confirm the Details counter turns green once you hit 50 characters; tab through the whole form with only the keyboard and confirm focus is always visible.
+
+## Troubleshooting: if Antigravity oscillates between "too small" and "too wide"
+
+This is a common failure mode when a prompt just says "make it look nice" — the AI has to re-guess the actual bounds every single time, so each fix overcorrects the last one instead of converging. If this happens (as it did here, with the citizen form swinging from too small to too wide, alongside an unrelated Gender dropdown bug), don't just ask for another vague pass. Two rules that break the cycle:
+
+1. **Give hard, specific numbers, not adjectives.** Not "bigger" or "more spacious" — an exact max-width, exact padding, exact spacing between fields, exact input height. Ambiguity is what causes oscillation.
+2. **Force a screenshot checkpoint before allowing further changes.** Don't approve a second round of "make it nicer" without seeing the actual result first — that's almost always what turns one fix into a back-and-forth.
+
+If a real bug (like a broken dropdown) is tangled up with a styling complaint in the same report, separate them explicitly in the prompt and ask Antigravity to diagnose and report the bug's actual cause *before* touching visual polish — otherwise a styling pass can silently paper over or reintroduce the bug without you knowing what actually got fixed.
+
+### Example prompt (the citizen form specifically, sizing + a Gender dropdown error)
+
+> "The citizen complaint form has two problems to fix, in this order — don't skip straight to visual polish before the first part is done:
+>
+> **1. First, diagnose and report the Gender dropdown error before touching anything.** Check the browser console and the component code for the Gender field specifically, and tell me the exact error message and its cause before fixing it. I want to understand what broke, not just see it silently patched.
+>
+> **2. Fix the form's sizing with hard, specific constraints — stop guessing at 'bigger' or 'smaller' each time:**
+> - The form container has a **fixed max-width of 480px** on any screen wider than 480px, and is **horizontally centered** on the page — never edge-to-edge on a desktop or tablet screen.
+> - On screens narrower than 480px (most phones), the form takes the **full width minus 20px of padding on each side** — never edge-to-edge with zero breathing room, never artificially shrunk smaller than the screen.
+> - Internal padding inside the form card is a **consistent 24px** on all sides — not tight/cramped, not excessively spacious.
+> - Vertical spacing between form fields is a **consistent 16px** — every field the same gap, not uneven.
+> - Input fields are **full-width within the form container**, height 44px, never narrower than their label text.
+>
+> Use the existing design tokens already defined in this project (`--pmcc-primary`, `--pmcc-accent`, `--pmcc-border`, etc.) — do not introduce new colors or spacing values outside what's already established.
+>
+> Before making any further changes beyond this, show me a screenshot of the result at both a typical desktop width and a typical mobile width (390px), so I can confirm both look right before you do anything else to it."
 
 ---
 
@@ -633,7 +820,7 @@ Decisions #3 and #4 above need real additions to what Module 1 and Module 2 alre
 
 **Cross-department reassignment requests** (new table):
 - `complaint_reassignment_requests`: `id`, `complaint_id` (FK → complaints, restrict), `requested_by` (FK → users — the FP requesting), `from_department_id` (FK → departments, restrict), `to_department_id` (FK → departments, restrict), `reason` (text, required), `status` (enum: `pending` / `approved` / `rejected`, default `pending`), `reviewed_by` (FK → users, nullable — the Director who acted on it), `reviewed_at` (timestamp, nullable), `review_notes` (text, nullable), timestamps.
-- **Assumption I'm flagging rather than guessing silently:** I've set the *destination* department's Director as the approver (they're the one whose queue is about to gain a complaint), not the source department's Director. This seems like the more defensible default — a department shouldn't be able to have complaints pushed onto it without its own Director's sign-off — but if AJK's actual accountability structure works the other way (the *originating* Director signs off on giving it away), this is a one-line change before we build the approval screen in Module 5.
+- **Confirmed with stakeholder:** the *source* department's Director approves a reassignment request — the department giving the complaint away signs off on letting it go, not the department receiving it. (An earlier draft of this guide defaulted to destination-approves as a flagged assumption; this has since been corrected based on your confirmation.)
 
 ### The prompt to give Antigravity for this schema addition
 
@@ -722,4 +909,184 @@ The Director's approval screen — where they actually see and act on pending re
 
 ## What's next
 
-**PRD for Module 5: Admin & Director Portal** — the centralized complaints table, the "Others" assignment queue, department/category/FP/Director management, and the reassignment-request approval screen this module's Prompt 5 fed into. Per your standing instruction, I'll write that PRD first, before any build guide content. Say the word when you're ready.
+Continue to **Part F** below.
+
+---
+
+# Part F — Module 5: Admin, Super Admin & Director Portal
+
+**Before running any prompt in this module**, make sure Antigravity has the design tokens from the Design System section applied consistently — this module uses `--pmcc-bg-staff`, the same header treatment, and the same fixed status-color mapping as the FP Portal.
+
+## Schema addition: the `super_admin` role
+
+One new enum value, no other schema impact — `super_admin` is system-wide like `admin`, not department-scoped.
+
+> "Add `super_admin` as a new allowed value on the `users.role` enum via a new migration, alongside the existing `admin`, `focal_person`, `director`, and `field_officer` values. A `super_admin` account has `department_id` left null, same as `admin`. Confirm the enum was updated successfully."
+
+## The staged prompts
+
+### Prompt 1 — Centralized Complaints Table (Admin & Super Admin)
+
+> "Build the centralized complaints table at a route like `/admin/complaints`, protected by `admin` OR `super_admin` role middleware — this is the one screen in the system allowed to see every complaint regardless of department, since both roles have full visibility. Include filtering and sorting on: complaint ID, citizen CNIC, channel, district, tehsil, department, sub-department, category, submission date, and current stage. Show the citizen's full name and CNIC, matching the no-masking pattern already established on the FP Portal. Show me this running against test data spanning at least three different departments."
+
+### Prompt 2 — "Others" Triage Queue
+
+> "Build the Others queue at a route like `/admin/others`, listing every complaint where `is_uncategorized = true`. For each, Admin (or Super Admin) selects a department, an optional sub-department, and a category, and must enter non-empty `admin_remarks` before submitting — block the action if remarks are empty. On submit, set `admin_assigned_by` to the current user, set `is_uncategorized = false`, and write a `complaint_status_history` row. Show me routing one test uncategorized complaint end to end, and confirm submission is blocked when remarks are left empty."
+
+### Prompt 3 — Reference Data Management
+
+> "Build management screens for Admin (and Super Admin) to create, edit, and deactivate — never hard-delete, since these are protected by restrict-on-delete foreign keys — the following: Departments (name, `name_ur`, `display_order`, `is_active`), Sub-departments (attached to a department), Categories (attached to a department, preserving the existing two-level main/sub-category structure), and Forward Destinations. A deactivated item must stop appearing in the Citizen Portal's dropdowns and the FP Portal's Forward Externally destination list going forward, while every historical complaint that already references it stays fully intact and readable. Show me creating one new department and deactivating one existing category, then confirm a citizen loading the submission form no longer sees the deactivated category."
+
+### Prompt 4 — Focal Person & Director Account Provisioning
+
+> "Build an account management screen for Admin to create, edit, and deactivate/reactivate Focal Person and Director accounts. Creating an account requires name, email, a role of either `focal_person` or `director`, and exactly one department; generate a temporary password and show it once on screen at creation time. Deactivating a account immediately blocks its login, per the `is_active` check already built in Module 2. Show me creating one test Focal Person and one test Director account, then deactivating one of them and confirming its login is blocked afterward."
+
+### Prompt 5 — Super Admin: Admin Account Provisioning & Shared Visibility
+
+> "Build the equivalent account management capability for Super Admin, scoped specifically to `role = admin` — Super Admin can create, edit, and deactivate/reactivate Admin accounts, using the same temporary-password mechanism as Prompt 4. Also confirm a Super Admin login has full access to every screen built in this module so far (Centralized Complaints Table, Others queue, Reference Data management) exactly as Admin sees them, with no separate or restricted version. Show me creating one test Admin account as Super Admin, then confirm that same Super Admin login can freely access the Others queue and Centralized Complaints Table."
+
+### Prompt 6 — Director's Reassignment Approval Screen
+
+> "Build the Director's reassignment approval screen at a route like `/director/reassignments`, protected by the `director` role. A Director sees only `pending` rows in `complaint_reassignment_requests` where `from_department_id` matches their own department — this is the department *giving the complaint away*, confirmed as the approver, not the department receiving it. Approving sets `status = approved`, updates the complaint's `department_id` to `to_department_id`, clears `assigned_fp_id` (so it lands unassigned in the new department's queue), and writes a `complaint_status_history` row. Rejecting requires a non-empty `review_notes` value, sets `status = rejected`, and leaves the complaint's department and FP assignment untouched. Show me approving one test request and rejecting a second one, and confirm the complaint's `department_id` only actually changes on approval, never on rejection."
+
+## Verifying it worked
+
+1. Log in as an Admin and confirm the Centralized Complaints Table shows complaints from every department, not just one.
+2. Route a test "Other" complaint and confirm it disappears from the Others queue and now shows up correctly in its assigned department's FP dashboard.
+3. Deactivate a category and confirm it vanishes from the citizen form's dropdown while any complaint that already used it still displays correctly.
+4. Create an FP account, log in as that FP, confirm access; deactivate it, confirm login is now blocked.
+5. As Super Admin, create an Admin account and confirm it can log in; confirm the Super Admin account itself can reach every Admin-level screen without a separate gate.
+6. As a Director, approve one reassignment request and reject another — confirm only the approved one actually moves department, and the rejected one requires a review note.
+
+## A note on what this completes, and what's still beyond it
+
+This closes out all three portals originally scoped in the BRD (Citizen, Focal Person, Admin) plus the Director role added along the way. Two genuinely separate pieces of work remain deliberately outside this guide's scope:
+
+- **The external API bridge** to other departmental systems (`complaint_external_forwards` is the hook point, but the actual integration was never built) — a distinct future module.
+- **The offline Field Officer app** — scoped as its own standalone BRD/PRD document, handed off separately, since it depends on new API endpoints this Laravel backend doesn't yet expose (Sanctum token auth, an assigned-visits endpoint, a submit-findings endpoint) — worth returning to once this module is stable.
+
+---
+
+## What's next
+
+Continue to **Part G** below.
+
+---
+
+# Part G — Module 6: External Departmental Integration Bridge
+
+## What this module is, and isn't
+
+This builds a **generic, configurable bridge** — not integration with any specific department's system, since none is confirmed to exist yet. Every department defaults to working exactly as already built (inside PMCC's own FP Portal). This module adds the *option* to instead connect a department to an external system, in either direction, provable against a mocked endpoint rather than a real partner.
+
+## Schema additions
+
+> "Add the following via new migrations:
+>
+> 1. Add an `integration_mode` column to `departments`: enum `native` / `inbound` / `outbound` / `bidirectional`, default `native`.
+> 2. Add nullable `external_api_base_url` and `external_api_key` (encrypted at rest) columns to `departments`, used only when `integration_mode` is not `native`.
+> 3. Add a new row to the `channels` lookup table: 'External Department API', alongside the existing Web/Mobile App/Call Center/Khuli Kachahry values.
+> 4. Create a new table `complaint_external_references`: `id`, `complaint_id` (FK→complaints, restrict), `department_id` (FK→departments, restrict), `external_reference_id` (string, nullable — the other system's own case ID), timestamps.
+> 5. Create a new table `external_integration_logs`: `id`, `complaint_id` (FK→complaints, restrict), `department_id` (FK→departments, restrict), `direction` (enum: `inbound`/`outbound`), `payload` (json), `response_body` (text, nullable), `http_status_code` (integer, nullable), `status` (enum: `success`/`failed`/`retrying`), `attempted_at` (timestamp), timestamps.
+>
+> Confirm all changes applied successfully."
+
+## Building a mocked external endpoint first
+
+Since no real department system exists to integrate against, build and test against a stand-in first — same principle as the Field Officer app's mocked API.
+
+> "Build a small mocked external departmental API within this project (or as a separate lightweight local service, whichever is simpler in this environment) that: accepts an incoming complaint payload and logs it, accepts a status-update payload and logs it, and can be configured to deliberately fail (return a 500 or time out) on request, so we can test PMCC's retry behavior against it. This mock is for testing only — never intended for production use."
+
+## The staged prompts
+
+### Prompt 1 — Inbound: receiving a new complaint
+
+> "Build an authenticated API endpoint, `POST /api/external/complaints`, that an external departmental system can call to submit a new complaint into PMCC. Authenticate using the calling department's `external_api_key` (looked up via the request, e.g. a header identifying the department). On a valid request: create or reuse a `citizens` record (same CNIC-dedup logic as the Citizen Portal), create a `complaints` record with `channel_id` set to 'External Department API', store the sender's own case ID in `complaint_external_references.external_reference_id`, and write the first `complaint_status_history` row. Log the full attempt (payload, response, status) to `external_integration_logs` regardless of success or failure. Reject requests from a department not configured with `integration_mode` of `inbound` or `bidirectional`. Show me a successful test submission via this endpoint (using the mocked external API from earlier), and confirm it's indistinguishable in the database from any other complaint except for its channel."
+
+### Prompt 2 — Inbound: status/reply update
+
+> "Build a second authenticated endpoint, `POST /api/external/complaints/{reference}/status`, where `{reference}` can be either PMCC's own `complaint_number` or the external system's `external_reference_id` (check `complaint_external_references` for a match). On a valid request, update the complaint's `status`/`stage` using the same logic already governing those fields elsewhere in the system, write a `complaint_status_history` row, and log the attempt. Reject updates for a department not configured with `integration_mode` of `inbound` or `bidirectional`, or for a complaint that doesn't belong to the calling department. Show me pushing a status update through this endpoint for the complaint created in Prompt 1, and confirm the citizen's public tracking page reflects the change."
+
+### Prompt 3 — Outbound: pushing a complaint out
+
+> "Build outbound delivery: whenever a complaint is routed to (or updated within) a department with `integration_mode` of `outbound` or `bidirectional`, queue a background job (Laravel queue) that sends the complaint's data to that department's `external_api_base_url`. On failure (non-2xx response, timeout, or connection error), retry with exponential backoff, up to 5 attempts; after the final failed attempt, flag the complaint for manual Admin attention rather than failing silently. Log every attempt — success or failure — to `external_integration_logs`. Show me a successful delivery to the mocked external endpoint, and then a deliberately-failed delivery (using the mock's failure mode) that correctly retries and then flags for Admin attention after exhausting retries."
+
+### Prompt 4 — Admin visibility into integration configuration and logs
+
+> "Extend the Reference Data management screen from Module 5: when editing a department, allow Admin/Super Admin to set its `integration_mode` and (if not `native`) its `external_api_base_url` and `external_api_key`. Add a simple log viewer showing recent `external_integration_logs` entries — direction, department, status, timestamp — filterable by department and by success/failure, so a failed integration can be diagnosed without a direct database query. Show me configuring a test department as `outbound`, then viewing its integration log after Prompt 3's test deliveries."
+
+## Verifying it worked
+
+1. Submit a complaint through the mocked inbound endpoint and confirm it appears correctly in the relevant department's normal complaint views, tagged with the "External Department API" channel.
+2. Push a status update through the inbound endpoint and confirm the citizen's public tracker (Module 3) reflects it.
+3. Configure a test department as `outbound`, route a complaint to it, and confirm the mocked endpoint receives the correct payload.
+4. Force the mock endpoint to fail, confirm PMCC retries the expected number of times with increasing delay, and confirm the complaint is flagged for Admin attention after retries are exhausted — not silently dropped.
+5. Confirm a department left at `integration_mode = native` is completely unaffected by any of this — its complaints still flow entirely through the FP Portal as before.
+
+## A note on what happens when a real partner shows up
+
+Connecting an actual department's system later should mean: setting their real `external_api_base_url` and issuing them a real `external_api_key`, possibly adjusting the payload shape if their API expects a different structure than what's built here, and switching their `integration_mode` away from `native`. If their API turns out to need meaningfully different authentication (mTLS, IP allowlisting) or field mapping, that's a scoped addition to this module, not a rebuild of it.
+
+---
+
+## What's next
+
+Continue to **Part H** below.
+
+---
+
+# Part H — Module 7: Alternate Intake Channels
+
+## What this module covers, and the split reasoning
+
+Two genuinely different capabilities, sharing only the underlying "log a complaint on someone's behalf" mechanism:
+- **Paper/letter complaints** are department-specific — they arrive at one department's office, so logging them is an **FP capability**, added to the dashboard already built in Module 4.
+- **Call Center and Social Media** complaints are cross-department — the person logging them doesn't know in advance which department it belongs to, so they need a **centralized login**, separate from any single department.
+
+## Schema additions
+
+> "Add the following via new migrations:
+>
+> 1. Add two new rows to the `channels` lookup table: 'Social Media' and 'Postal / Manual Letter' (Call Center already exists from Module 1).
+> 2. Add `intake_operator` as a new allowed value on the `users.role` enum. An `intake_operator` account has `department_id` left null — this role is not department-scoped.
+> 3. Add a nullable `logged_by_user_id` column to `complaints` (FK→users, restrict on delete) — records who manually entered a complaint on someone's behalf, distinct from `assigned_fp_id` (who's investigating it). Left null for citizen-submitted complaints.
+>
+> Confirm all changes applied successfully."
+
+## The staged prompts
+
+### Prompt 1 — FP manual entry for paper/letter complaints
+
+> "Add a 'Log a Complaint' action to the Focal Person dashboard (Module 4). This opens the same field set as the Citizen Portal's submission form (name, CNIC, mobile, district/tehsil, subject, details, attachments), except: department is locked to the FP's own department (no department selector — they already know it's theirs), category/sub-category still selectable within that department, and channel defaults to 'Postal / Manual Letter' but is editable (in case the FP is logging a phone call they personally took, for example). On submit, create the complaint exactly as the Citizen Portal would — same CNIC-dedup logic, same auto-generated `complaint_number` — but set `logged_by_user_id` to the current FP. Show me an FP logging one test paper-complaint into their own department's queue, and confirm it behaves identically to a citizen-submitted one from that point forward (appears in their dashboard, can go through First Investigation, etc.)."
+
+### Prompt 2 — Centralized Intake Operator login and form
+
+> "Build a new, narrowly-scoped portal for the `intake_operator` role, separate from the FP/Admin/Director portals — this role has access to exactly one screen: a complaint-logging form, and nothing else (no dashboards, no investigation screens, no reference data). Protect it with its own role middleware, reusing the `EnsureUserHasRole` pattern from Module 2.
+>
+> The form has the same fields as the Citizen Portal's submission form in full — including the Department → Sub-department → Category cascade with 'Other' at the bottom, and District/Tehsil — since an intake operator doesn't know in advance which department a complaint belongs to. Channel is selectable between 'Call Center' and 'Social Media' (not Web/Mobile/Khuli Kachahry, which stay citizen-self-service-only). Reuse the existing bilingual Urdu/English system from Module 3 on this form, since the operator may be transcribing what a citizen says in Urdu.
+>
+> On submit: same CNIC-dedup and complaint-creation logic as the Citizen Portal, with `logged_by_user_id` set to the current intake operator and `channel_id` set to whichever the operator selected. Show a confirmation screen with the complaint number, same as the citizen experience, so it can be read back to the citizen if appropriate.
+>
+> Show me logging one test complaint as an intake operator with the channel set to 'Call Center,' and confirm the intake-operator login cannot reach any FP, Admin, or Director screen."
+
+### Prompt 3 — Account provisioning for intake operators
+
+> "Extend Admin's account management screen (Module 5) to also support creating, editing, and deactivating `intake_operator` accounts — same mechanism as Focal Person/Director provisioning: name, email, generated temporary password shown once. Show me creating one test intake-operator account and confirming it can log in and reach only the complaint-logging form."
+
+## Verifying it worked
+
+1. As an FP, log a paper complaint into your own department and confirm it cannot be logged into any *other* department — the department field should be genuinely locked, not just defaulted.
+2. As an intake operator, log a complaint with each of the two new channels and confirm both appear correctly, with the right channel tag, in Admin's Centralized Complaints Table (Module 5) — no changes needed there beyond the data existing.
+3. Confirm an intake-operator login is rejected from every FP/Admin/Director route, the same way Module 2's role middleware already rejects cross-role access elsewhere.
+4. Confirm `logged_by_user_id` is populated correctly for both new paths, and left null for a normal citizen-submitted complaint from Module 3.
+5. Toggle the intake-operator form to Urdu and confirm it behaves identically to the Citizen Portal's bilingual system (RTL layout, translated fields).
+
+## A note on the Call Center CRM option
+
+If a real Call Center CRM system exists or gets adopted later, the more scalable path is extending Module 6's inbound bridge (built for departmental integration) to also accept a complaint from a call-center-specific integration credential not tied to any single department — falling into the "Others" queue for department assignment if the CRM doesn't know AJK's department structure itself. That's a targeted extension of already-built infrastructure, not new engineering from scratch, whenever that becomes a real need rather than a hypothetical one.
+
+---
+
+## What's next
+
+With Modules 1 through 7, the Field Officer app, and the External Integration Bridge all scoped and built (or ready to build), PMCC now covers every intake path currently known — citizen self-service, staff-assisted (call center, social media, paper), field investigation, and future system-to-system integration. Remaining work from here is real-world integration (once an actual department, CRM, or field-device platform decision materializes) or whatever new needs surface once the system is actually in use.

@@ -61,7 +61,7 @@ PMCC requires that only authorized government staff — Admins and Focal Persons
 - Clear, plain-language validation and error messages throughout — no raw framework error text ever shown to a user.
 
 **P2 — Future Considerations**
-- Multi-factor authentication for Admin accounts.
+- Multi-factor authentication for Admin accounts. *(A self-generated status report later claimed a 2-step OTP flow was already built — you confirmed this was never requested. Unverified; check directly in the codebase before treating it as real, and if it does exist, it needs its own proper scoping here rather than being silently present.)*
 - Username-based login as an alternative to email.
 - Focal Persons spanning multiple departments (would require converting `department_id` into a many-to-many relationship).
 
@@ -125,7 +125,7 @@ Citizens across Azad Jammu & Kashmir need a way to file complaints about governm
 | Bilingual UI, Urdu default, English toggle, with RTL/LTR layout switching | Given a first-time visitor, when the page loads, then all text is in Urdu with a right-to-left layout; when the toggle is clicked, then everything switches to English, left-to-right. |
 | Full submission form matching BRD fields | Each required field (name, CNIC, mobile, district, tehsil, subject, details) blocks submission with a clear message when empty or invalid. |
 | Multi-step form with a visible step indicator | The form is broken into distinct steps (Your Details, Location, Complaint, Attachments & Review), with a step indicator showing current position — visually and conceptually distinct from the public 3-stage tracking bar elsewhere in this module. |
-| Optional gender field | The citizen may select Male / Female / Prefer not to say; submission succeeds identically whether or not this field is answered. |
+| Optional gender field | The citizen may select Male / Female / Prefer not to say from a dropdown (see PRD 5 for the UI treatment); submission succeeds identically whether or not this field is answered. |
 | In-form photo/video capture | A citizen can open their device camera directly from the attachment step to take a photo or record a short video, without first saving it elsewhere; captured media counts toward the same 5-file/10MB-each attachment limit as uploaded files, and video recording is capped at approximately 60 seconds. |
 | CNIC-based citizen deduplication | Given a CNIC already in the `citizens` table, when a new complaint is submitted with that CNIC, then the existing citizen record is reused/updated, not duplicated. |
 | "Other" department path | Given "Other" selected as department, when submitted, then `is_uncategorized = true` and `department_id`/`category_id` are left empty. |
@@ -234,7 +234,7 @@ Once a complaint is submitted, someone at the responsible department needs a wor
 **P2 — Future Considerations**
 - Configurable, per-department SLA thresholds.
 - A dedicated field-officer login/task view (this module gives FPs the ability to *assign* to a field officer; a field officer's own view of their assigned visits is not yet built).
-- Allowing the *source* department's Director, rather than the destination's, to approve reassignment — currently defaulted to destination-approves (see Open Questions).
+- Allowing the *destination* department's Director, rather than the source's, to approve reassignment — considered, but the *source* department (the one giving the complaint away) is the confirmed approver.
 
 ## Success Metrics
 - **Leading**: % of AI-suggested duplicates that get explicitly confirmed or dismissed (not left permanently pending) — indicates FPs are actually engaging with the suggestion panel rather than ignoring it.
@@ -245,7 +245,7 @@ Once a complaint is submitted, someone at the responsible department needs a wor
 - **Lagging**: % of reassignment requests approved vs. rejected, once Module 5's approval screen exists — a high rejection rate might indicate FPs are misusing the request as a way to offload work rather than genuinely misrouted complaints.
 
 ## Open Questions
-- **Which department's Director approves a reassignment request — source or destination?** Defaulted to the *destination* department (they're gaining the complaint, so their sign-off gates new work landing on them), but this is a real policy call, not a technical one. *(stakeholder — confirm before Module 5 builds the approval screen)*
+- ~~Which department's Director approves a reassignment request — source or destination?~~ **Resolved**: the *source* department's Director approves (the one giving the complaint away) — confirmed with stakeholder.
 - Is a fixed system-wide 15-day SLA threshold acceptable, or do different complaint categories realistically need different timeframes (e.g. an infrastructure complaint vs. a documentation request)? *(stakeholder)*
 - Should there be any limit on how many complaints can be clubbed under a single parent, or any review step if that number gets unusually large? *(engineering — not currently addressed)*
 - Does a field officer need their own login and task view in a near-term future phase, or is FP-mediated visibility (the FP checks visit outcomes themselves) sufficient indefinitely? *(product — affects whether P2's "dedicated field-officer view" should be prioritized sooner)*
@@ -277,8 +277,8 @@ Once complaints are flowing through departments (Modules 3–4), the system need
 - **FP, Director, or Admin self-service account creation** — out of scope; consistent with Module 2's "no public registration" principle extended all the way up the hierarchy. Every account is created by the role one level above it.
 - **The external API bridge to departmental systems** — still out of scope. `complaint_external_forwards` and any Super Admin-facing system configuration screens are the hook points for it, not the integration itself.
 - **Bulk/batch operations on complaints** (e.g. mass-reassigning many complaints at once) — out of scope for v1; every action in this module operates on one complaint or one account at a time, so every action stays individually auditable.
-- **Source-department-approves as an alternative reassignment model** — not built; per Module 4's PRD, the destination department's Director approves. Still flagged as genuinely open with you, not finally settled.
-- **Within-department reassignment** (an Admin moving a complaint between two FPs in the same department) — still deferred, unresolved from Module 4's PRD; not built here either unless you tell me otherwise.
+- **Source-department-approves as the reassignment model** — confirmed and built as described above (the *source* department's Director approves, not the destination's — this was flagged as open in Module 4's PRD and is now resolved).
+- **Within-department reassignment** (an Admin moving a complaint between two FPs in the same department) — **confirmed out of scope, not built.** Raised, briefly reconsidered, then explicitly ruled out — not deferred, genuinely excluded.
 
 ## User Stories
 - As **Admin**, I want to see a queue of "Other" (uncategorized) complaints, so I can route them to the correct department.
@@ -303,7 +303,7 @@ Once complaints are flowing through departments (Modules 3–4), the system need
 | Department / sub-department / category management | Admin can create, edit, and deactivate (soft, via `is_active`) each; deactivated items disappear from citizen/FP dropdowns going forward, but historical complaints referencing them are untouched (schema already enforces restrict-on-delete, so hard delete isn't offered anywhere). |
 | Forward destination management | Same create/edit/deactivate pattern as above, for `forward_destinations`. |
 | FP and Director account management | Admin can create an account (name, email, role, exactly one department), with a system-generated temporary password shown once; can deactivate/reactivate an existing account, immediately affecting login per Module 2's `is_active` check. |
-| Director reassignment approval | A Director sees only `pending` `complaint_reassignment_requests` where `to_department_id` matches their own department. Approving sets `status = approved`, updates the complaint's `department_id` to `to_department_id`, clears `assigned_fp_id` (lands unassigned in the new department's queue), and writes a `complaint_status_history` row. Rejecting requires a non-empty `review_notes` value, sets `status = rejected`, and leaves the complaint's department/FP untouched. |
+| Director reassignment approval | A Director sees only `pending` `complaint_reassignment_requests` where `from_department_id` matches their own department — they approve their own department giving the complaint away, not the receiving department accepting it. Approving sets `status = approved`, updates the complaint's `department_id` to `to_department_id`, clears `assigned_fp_id` (lands unassigned in the new department's queue), and writes a `complaint_status_history` row. Rejecting requires a non-empty `review_notes` value, sets `status = rejected`, and leaves the complaint's department/FP untouched. |
 | Super Admin manages Admin accounts | Super Admin can create/deactivate accounts with `role = admin`, using the same mechanism as Admin→FP/Director. |
 | Super Admin shares every Admin view | A Super Admin login can access every screen Admin can access, with no separate or restricted version. |
 
@@ -335,4 +335,239 @@ Once complaints are flowing through departments (Modules 3–4), the system need
 
 ## What's next
 
-Once you've reviewed this PRD and flagged anything you'd change, the Module 5 build guide (Part F) is next — covering the schema addition for `super_admin`, and staged Antigravity prompts for the complaints table, Others queue, account/reference-data management, and the Director approval screen. Say the word when you're ready.
+Once you've reviewed this PRD and flagged anything you'd change, the Module 5 build guide (Part F) is next — covering the schema addition for `super_admin`, and staged Antigravity prompts for the complaints table, Others queue, account/reference-data management, and the Director approval screen.
+
+---
+
+# PRD 5 — Unified Design System
+### Not tied to a single module — applies retroactively to Citizen Portal and FP Portal, and to every portal built from here on
+
+## Problem Statement
+The Citizen Portal and FP Portal were each styled independently by Antigravity, with no shared visual direction given at build time — resulting in two visibly unrelated products under one system name. A first attempt to fix this with a flag-literal color prompt (bright green and gold, taken directly from the AJK flag) didn't resolve the inconsistency in Antigravity, and separately didn't land well as a look — it read as decorative rather than official. This PRD replaces that attempt with a deliberately restrained system, still rooted in AJK identity, but through a distinctive motif rather than literal flag colors used as UI chrome.
+
+## Goals
+1. Citizen Portal and FP Portal — and every portal built from here on (Admin, Director, Super Admin) — are visually unmistakably one product.
+2. The visual language reads as sleek and modern while still carrying government gravitas — neither a consumer app nor a dated bureaucratic form.
+3. AJK's identity is present through a distinctive, tasteful signature (a mountain-ridge line motif, evoking the region's geography) rather than literal flag colors as backgrounds or buttons.
+4. Status meaning stays fixed and identical everywhere — "resolved" is the same color on a citizen's tracker and an FP's dashboard.
+5. The system is specified precisely enough — exact values, exact component treatment, explicit replace-not-append instructions — that Antigravity can actually execute it, addressing why the first attempt failed to take effect.
+
+## Non-Goals
+- **Literal AJK flag colors as primary UI chrome** — deliberately moved away from, based on your own reaction to the first attempt.
+- **A different design language per portal** — every current and future portal inherits this same system; no per-module exceptions.
+- **Any change to functionality, field logic, or validation** — this is a visual-only initiative, same as every other addendum in this guide.
+- **Motion or micro-interaction polish** — out of scope for this pass, which covers static visual tokens only.
+
+## User Stories
+- As a **citizen**, I want the form to feel calm, modern, and trustworthy, so I feel confident my complaint is being taken seriously by a credible institution.
+- As a **Focal Person**, I want a clean, low-noise interface, so I can move through a dense queue without visual fatigue.
+- As **anyone using any part of PMCC**, I want every screen to look like it belongs to the same system, so I never wonder if I've been redirected somewhere else.
+- As **PITB (Super Admin)**, I want the AJK identity expressed with dignity and distinctiveness rather than generic-government or startup-flashy, so the system reflects well on the institution.
+
+## The design tokens
+
+| Token | Hex | Use |
+|---|---|---|
+| `--pmcc-primary` | `#0F3D2E` | Header bar, primary navigation, table headers — a muted pine green, deliberately less saturated than the flag's bright green |
+| `--pmcc-primary-dark` | `#0A2921` | Hover/active states on primary elements |
+| `--pmcc-accent` | `#A8672A` | The single primary call-to-action per screen (e.g. "Continue," "Submit") — a muted copper, not bright orange |
+| `--pmcc-accent-soft` | `#F5EBDD` | Soft background tint for accent-adjacent elements |
+| `--pmcc-bg-citizen` | `#FAFAF7` | Citizen Portal background — near-white, warm paper |
+| `--pmcc-bg-staff` | `#F6F7F6` | FP/Admin/Director Portal background — near-white, cool paper |
+| `--pmcc-surface` | `#FFFFFF` | Cards, inputs, table backgrounds |
+| `--pmcc-border` | `#E4E2DC` | Dividers, input borders, table lines — 1px, never heavier |
+| `--pmcc-text-primary` | `#171717` | Body text |
+| `--pmcc-text-secondary` | `#5A5A54` | Secondary/muted text, helper copy |
+
+**Status colors — fixed, identical across every portal:**
+
+| Status meaning | Hex |
+|---|---|
+| Submitted / Pending | `#8C8C86` |
+| Under Investigation / In Progress | `#A8672A` (reuses the accent copper, rather than introducing a fourth hue) |
+| Resolved | `#1F6F45` (a clear, distinct success green — not the same as the primary brand green, so it never visually disappears against a green header) |
+| Rejected / Escalated / Error | `#B3352A` (a muted brick red, kept restrained rather than an alarm-bright red) |
+
+## The AJK signature: a mountain-ridge motif, not flag colors
+
+A layered, smooth-curved mountain skyline — two overlapping ridge lines at different opacities, with a small peak accent — evoking AJK's Himalayan geography, used in exactly two places, deliberately not scattered decoratively:
+1. A subtle line beneath the header bar on every screen, low-opacity, barely-there.
+2. A slightly more visible version as a watermark on the citizen confirmation screen and empty states (e.g. "no complaints found").
+
+It does **not** appear inside dense FP/Admin tables — that's where restraint matters more than identity, to avoid visual noise while scanning a queue.
+
+## Typography
+
+Unchanged from the earlier decision: **Noto Nastaliq Urdu** for Urdu, **Noto Sans** for English — kept because it was already the right call; this redesign only replaces color and component treatment, not the type pairing.
+
+## Requirements
+
+**P0 — Must-Have**
+| Requirement | Acceptance Criteria |
+|---|---|
+| Full token replacement, not addition | Every hardcoded color and default Tailwind/component-library color currently in the Citizen Portal and FP Portal is replaced with a token from the table above — none coexist alongside unused old values. |
+| Consistent application across portals | The same token produces the same visual result on both portals (e.g. `--pmcc-accent` buttons look identical in the citizen form and the FP dashboard, modulo the citizen/staff background difference). |
+| Fixed status-color mapping | A given complaint status renders in the exact same color on the citizen's public tracker and the FP's dashboard, with no exceptions. |
+| Mountain-ridge motif in its two specified locations only | The motif appears beneath every header and on citizen confirmation/empty states; it does not appear inside dense data tables. |
+| Verifiable execution | Antigravity lists every file it modified when applying this, so the change can be checked rather than taken on faith — directly addressing why the first attempt appeared to do nothing. |
+| Gender rendered as a dropdown | The Gender field on the Citizen Portal is a select/dropdown, matching the style of the form's other dropdowns — not a button/pill selector. |
+| Advanced UX practices applied throughout the Citizen Portal | Input masking on CNIC/mobile, real-time inline validation with specific error text, autofocus per step, a color-coded live character counter, searchable dropdowns on the longer lists (Department, Category), loading placeholders instead of blank flashes, minimum 44×44px tap targets, respect for `prefers-reduced-motion`, editable pre-fill for returning citizens, and real accessible labels with visible focus states throughout. |
+
+**P1 — Nice-to-Have**
+- A single exported `docs/design-tokens.md` (or Tailwind config) as the canonical source every future module reads from, rather than values being re-typed into each prompt.
+
+**P2 — Future Considerations**
+- Official AJK government logo integration once the actual file is sourced by your team — still not something I can approximate myself.
+- Subtle motion/transition polish, once the static system is confirmed and stable.
+
+## Success Metrics
+- **Leading**: a side-by-side screenshot of the Citizen Portal and FP Portal is immediately recognizable as one product to someone with no prior context.
+- **Leading**: zero remaining instances of the earlier flag-literal palette, or any Antigravity/Tailwind default color, found anywhere in either portal after the retrofit runs.
+
+## Open Questions
+- Is this level of restraint the right amount, or should there be more color/warmth present? This mockup is a reasonable middle point, but worth confirming once it's live in Antigravity rather than judged only as a static image.
+- Should the mountain-ridge motif ever appear on FP/Admin screens, or should it stay citizen-and-confirmation-only, as currently specified? Kept minimal deliberately, but flagging in case that reads as *too* absent on the staff side.
+
+---
+
+## What's next
+
+The corresponding build guide section is done (Part F, Module 5: Admin, Super Admin & Director Portal) — this closes out all three portals originally scoped in the BRD, plus the Director role added along the way.
+
+---
+
+# PRD 6 — External Departmental Integration Bridge
+### Corresponds to Module 6 in the build guide — a generic capability, not built against a specific partner system
+
+## Problem Statement
+The original BRD's integration diagram shows PMCC exchanging data with external departmental systems in both directions: some departments forward complaints *into* PMCC from their own existing case-management systems (for central oversight), while PMCC sends complaints *out* to other departments' systems for them to handle directly. No specific department has a known, ready-to-integrate system today — this is confirmed speculative/future-phase work. Building against an imagined API contract for a specific department would mean guessing at something we have no visibility into and likely rebuilding it later. Instead, this module builds the **general-purpose bridge** — configurable per department, direction-agnostic, and provably working against a mocked external endpoint — so that connecting a real department's system later is a configuration change, not new engineering.
+
+## Goals
+1. Any department can be individually configured as "native" (handled inside PMCC's own FP Portal, as every department is today) or "externally integrated" (in-bound, out-bound, or both), without a schema change per department added.
+2. PMCC can receive a new complaint or a status/reply update pushed in from an authenticated external system, and reflect it correctly in the existing complaint lifecycle (same `status`, `stage`, `complaint_status_history` machinery already built — no parallel data model for externally-sourced complaints).
+3. PMCC can push a complaint's data out to an external department's configured endpoint, with resilient retry behavior — a failed delivery is retried and logged, never silently dropped.
+4. Every integration attempt, success or failure, is logged with enough detail (payload, response, timestamp) to debug a real partner's integration later.
+5. The whole bridge is provably correct against a mocked external endpoint before any real department is connected — the same "build against a documented mock, swap the base URL later" approach used for the Field Officer app.
+
+## Non-Goals
+- **Integration with any specific, named external system** — not built, because none is confirmed to exist yet. This module builds the bridge, not a WAPDA/SNGPL/LESCO/Railway-specific adapter.
+- **OAuth or certificate-based authentication for inbound calls** — a simple per-department API key is sufficient for a first phase of server-to-server integration between government systems; more sophisticated auth is a reasonable future hardening step, not v1.
+- **A UI for external departments to view/manage their own integration** — this is a machine-to-machine API bridge, not a portal for external users. Any department using this needs its own engineers on their end to call it.
+- **Automatic conversion of every existing department to "externally integrated"** — every department stays `native` (using the FP Portal we've already built) unless explicitly reconfigured by Admin/Super Admin.
+
+## User Stories
+- As **Admin/Super Admin**, I want to mark a specific department as externally integrated (inbound, outbound, or both), so departments with their own systems aren't forced to also use PMCC's FP Portal redundantly.
+- As **an external departmental system** (in the future), I want to push a new complaint into PMCC via an authenticated API call, so my department's existing intake still gives the PM's office central visibility.
+- As **an external departmental system**, I want to push a status update or reply for a complaint PMCC already knows about, so the citizen's PMCC tracker reflects real progress without my staff needing a second login.
+- As **PMCC**, when a complaint is routed to an outbound-integrated department, I want to push its data to that department's configured endpoint automatically, retrying if the attempt fails, so a temporarily-down external system doesn't lose the complaint.
+- As **a developer debugging a real integration later**, I want a complete log of every attempt (what was sent, what came back, when), so I'm not troubleshooting blind.
+
+## Requirements
+
+**P0 — Must-Have**
+| Requirement | Acceptance Criteria |
+|---|---|
+| Per-department integration mode | `departments` gains an `integration_mode` field: `native` (default), `inbound`, `outbound`, or `bidirectional`. Existing departments remain `native` unless explicitly changed. |
+| Inbound endpoint: new complaint | An authenticated external system can `POST` a new complaint, which creates the same `citizens`/`complaints` records the Citizen Portal would, tagged with a new `channels` entry ("External Department API") rather than Web/Mobile/Call Center/Khuli Kachahry. |
+| Inbound endpoint: status/reply update | An authenticated external system can `POST` a status/reply update for a complaint it previously sent (or one already in PMCC), which updates `status`/`stage` through the same logic already governing those fields, and writes a `complaint_status_history` row. |
+| Outbound push on routing/update | When a complaint is routed to (or updated within) a department configured for `outbound`/`bidirectional`, PMCC automatically sends its data to that department's configured endpoint. |
+| Retry on failure, never silent drop | A failed outbound push is retried with backoff; after repeated failures, the complaint is flagged for manual Admin attention rather than failing silently. |
+| Full attempt logging | Every inbound and outbound attempt — success or failure — is logged with its payload, response, HTTP status, and timestamp. |
+| Provable against a mock | The entire bridge is demonstrated working end-to-end against a mocked external endpoint (a small stand-in API), not against any real department system. |
+
+**P1 — Nice-to-Have**
+- An `external_reference_id` stored per complaint, so a department's own case ID can be reconciled against PMCC's `complaint_number` when both systems refer to the same case differently.
+- A simple Admin-facing log viewer for integration attempts, rather than requiring a direct database query to debug.
+
+**P2 — Future Considerations**
+- OAuth/mTLS or IP-allowlisting for inbound authentication, once a real government partner's security requirements are known.
+- Per-department field-mapping configuration, if different departments' systems use meaningfully different data shapes.
+- A formal SLA/monitoring dashboard for integration health once real partners exist.
+
+## Success Metrics
+- **Leading**: 100% of mocked-endpoint test pushes succeed and are logged correctly, with induced failures correctly triggering retry rather than silent loss.
+- **Leading**: 0 complaints created via the inbound endpoint that are indistinguishable from citizen-submitted ones in any report or dashboard — the "External Department API" channel tag must be visibly distinct everywhere channel is shown.
+- **Lagging** *(once a real partner exists)*: successful delivery rate and average retry count for that department's actual integration — not measurable yet, noted for later.
+
+## Open Questions
+- **Which department, if any, will be the first real integration partner**, and what does their actual API look like? Entirely unknown today — this module is deliberately built so that answering this later is a configuration and adapter-writing exercise, not a redesign.
+- **Is a per-department API key sufficient authentication**, or does AJK/PITB's security policy require something stronger (mTLS, IP allowlisting) for inter-government API traffic? Worth a policy answer before any real department connects, not before this module is built.
+- **Retry policy specifics** (how many attempts, what backoff interval, when to give up and flag for manual attention) — implemented with a reasonable default (e.g. 5 attempts, exponential backoff), but not something the BRD specifies, so treat the exact numbers as adjustable.
+
+## Timeline Considerations
+- Genuinely independent of Modules 1–5 in terms of urgency — nothing here blocks the system's core function, since every department defaults to `native` and works exactly as already built. This is infrastructure for a future need, not a current bottleneck.
+- Real value only materializes once an actual department commits to integrating — until then, this module is a tested, ready capability sitting dormant, which is the correct state for speculative work rather than a reason not to build it now.
+
+---
+
+## What's next
+
+The build guide section (Part G) is next — the schema addition, the mocked external endpoint, and the inbound/outbound API prompts.
+
+---
+
+# PRD 7 — Alternate Intake Channels
+### Call Center, Social Media, and department-level manual/paper entry
+
+## Problem Statement
+Not every complaint originates from a citizen using the Citizen Portal directly. A call center may already be fielding phone complaints, a social media team may be finding complaints in public posts/comments/DMs, and individual departments sometimes receive complaints as physical letters or in-person paper submissions. None of these currently have any way into PMCC — they either go undocumented, get tracked in a separate spreadsheet nobody else sees, or never reach central reporting at all. This PRD adds the missing entry points, without pretending every source needs the same kind of workflow.
+
+## Goals
+1. A department's own Focal Person can log a complaint that arrived as a paper letter directly into their own department's queue, without a citizen ever touching the Citizen Portal.
+2. A centralized Call Center or Social Media team member can log a complaint on a citizen's behalf, for any department, from one shared login — not tied to any single department's FP account.
+3. Every complaint, regardless of how it entered the system, is fully visible in Admin's Centralized Complaints Table and reportable by channel — a call-center-sourced complaint is not a second-class, harder-to-find record.
+4. Every manually-logged complaint records who logged it, for accountability, distinct from who's assigned to investigate it.
+5. The door is left open for a real Call Center CRM to push complaints in automatically later, without needing a redesign — same principle as Module 6's external bridge.
+
+## Non-Goals
+- **Real-time CRM integration with a specific call center platform** — not built now, since none is confirmed to exist yet (same reasoning as PRD 6). The manual entry capability is what ships now; CRM integration is a flagged future extension of the existing Module 6 bridge.
+- **Automated social media monitoring/scraping** — out of scope entirely. A human on the social media team finds and manually logs a complaint; nothing here reads social platforms automatically.
+- **A dashboard for intake operators to review their own submission history** — out of scope for v1; they submit and get a confirmation number, the same experience a citizen gets, not a queue of their own to manage.
+- **Merging this new role into the FP or Admin role** — a Call Center/Social Media operator gets a distinct, narrowly-scoped role, not elevated FP or Admin access, since they don't need visibility into investigations, resolutions, or system configuration.
+
+## User Stories
+- As a **Focal Person**, I want to log a complaint that arrived as a letter directly into my department's queue, so paper-based complaints get the same tracking and accountability as digital ones.
+- As a **Call Center agent**, I want to log a complaint on a citizen's behalf while I'm on the phone with them, for any department, so their issue is tracked centrally regardless of who picks up the call.
+- As a **Social Media team member**, I want to log a complaint I found in a comment or message, so it doesn't just sit in a screenshot folder disconnected from the real system.
+- As **Admin**, I want every complaint — however it entered the system — to show up in my centralized table with its true channel visible, so I can see the real shape of where complaints are actually coming from.
+- As **PITB (Super Admin)**, I want the door left open to connect a real Call Center CRM automatically later, without this manual-entry work being wasted effort once that happens.
+
+## Requirements
+
+**P0 — Must-Have**
+| Requirement | Acceptance Criteria |
+|---|---|
+| FP manual entry for paper/letter complaints | An FP has a "Log a Complaint" action on their dashboard, pre-set to their own department, with channel defaulted to "Postal / Manual Letter" (editable). Creates a complaint identical in structure to a citizen-submitted one. |
+| New `intake_operator` role, cross-department | A new role, not scoped to any department, with access only to a complaint-logging form — no visibility into FP/Admin/Director screens. |
+| Centralized logging form for Call Center / Social Media | The same field set as the Citizen Portal's form (name, CNIC, mobile, district/tehsil, department/category including "Other," subject, details, attachments), with channel selectable between "Call Center" and "Social Media" rather than Web/Mobile/Khuli Kachahry. |
+| Attribution recorded, separate from assignment | Every manually-logged complaint records `logged_by_user_id` (who entered it) — distinct from `assigned_fp_id` (who's investigating it). |
+| Full visibility in existing reporting | These complaints appear in Admin's Centralized Complaints Table (Module 5) and are filterable by their true channel — no schema or UI change needed there beyond the two new channel values existing. |
+| Confirmation number issued | Logging a complaint through either the FP or intake-operator form produces the same `complaint_number` and confirmation experience as the Citizen Portal, so it can be given to the citizen if appropriate (e.g., read to them over the phone). |
+
+**P1 — Nice-to-Have**
+- Bilingual Urdu/English support on the centralized intake-operator form (reusing the Citizen Portal's existing bilingual system) — since an operator may be transcribing what a citizen says in Urdu, this could genuinely help accuracy. Defaulted to **on** in the build guide below; flag if you'd rather this stay English-only like the other staff tools.
+- A lightweight "recently logged by me" list on the intake-operator form, purely as a convenience, not a full dashboard.
+
+**P2 — Future Considerations**
+- Real Call Center CRM integration, extending Module 6's inbound bridge to accept complaints not tied to a specific department's `external_api_key` — flagged there as a natural extension once a real CRM is identified.
+- Rate-limiting or duplicate-detection specific to intake operators (e.g., flagging if the same operator logs an unusually high volume in a short time), if abuse or data-quality issues emerge in practice.
+
+## Success Metrics
+- **Leading**: 100% of complaints logged through either new path appear correctly in Admin's Centralized Complaints Table with the correct channel tag.
+- **Leading**: 0 instances of an intake-operator account able to access any FP, Director, or Admin screen, during testing.
+- **Lagging**: proportion of total complaints entering via Call Center/Social Media/Manual vs. the Citizen Portal directly, once real usage exists — useful context for whether deeper CRM integration is worth prioritizing later.
+
+## Open Questions
+- **Should the intake-operator form be bilingual or English-only?** Defaulted to bilingual (reusing existing infrastructure) in the build guide, but this is a real product call, not a technical one — easy to flip either way.
+- **Should Call Center and Social Media be two separate roles/logins, or one shared "intake operator" role that picks the channel per submission?** Defaulted to one shared role for simplicity; split them if the two teams need genuinely separate account management or reporting.
+- **Does a citizen submission through Call Center/Social Media need the same 24-hour-per-CNIC rate limit as the Citizen Portal?** An operator submitting on behalf of many different citizens shouldn't be limited by their own account, but the *citizen's* CNIC being submitted repeatedly still might indicate an issue — left as-is (rate limit stays per-CNIC, not per-operator) unless real usage shows this needs adjusting.
+
+## Timeline Considerations
+- Depends on Modules 1–4 (schema, auth/roles, and the FP dashboard being extended). Independent of Module 5/6/the Field Officer app.
+- The optional Call Center CRM integration extension depends on Module 6's bridge already existing, and on a real CRM partner being identified — same "dormant until needed" posture as Module 6 itself.
+
+---
+
+## What's next
+
+The build guide section (Part H) is next.
