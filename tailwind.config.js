@@ -13,9 +13,30 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Noto Sans"', ...defaultTheme.fontFamily.sans],
+                sans: ['"Public Sans"', '"Noto Sans"', ...defaultTheme.fontFamily.sans],
+                outfit: ['"Outfit"', 'sans-serif'],
+                publicSans: ['"Public Sans"', 'sans-serif'],
             },
             colors: {
+                'fp-green': '#24402F',
+                'fp-green-dark': '#16281D',
+                'fp-green-tint': '#EDEFEA',
+                'fp-gold': '#C8901F',
+                'fp-gold-light': '#E8B14A',
+                'fp-gold-tint': '#FBF0DA',
+                'fp-sand': '#FAF6EF',
+                'fp-sand-subtle': '#FBF8F2',
+                'fp-sand-card': '#F6F3EB',
+                'fp-border': '#EAE3D6',
+                'fp-border-dark': '#E2DACB',
+                'fp-ink': '#16241C',
+                'fp-ink-muted': '#5F6E63',
+                'fp-ink-secondary': '#6B7A70',
+                'fp-red': '#EE3B23',
+                'fp-red-dark': '#A32A17',
+                'fp-red-tint': '#FDEAE6',
+                'fp-emerald': '#2F7A5A',
+                'fp-emerald-tint': '#E7F2EC',
                 'tea_green': {
                     DEFAULT: '#c9e4ca',
                     100: '#1d391e',
